@@ -1,4 +1,4 @@
-# WhatsApp Web Plus Companion - fixed-purpose elevated registry permission repair.
+# WhatsApp Companion - fixed-purpose elevated registry permission repair.
 # Deviates from the original plan's native C++ helper by project-owner decision.
 #
 # Exit-code ABI (stable):

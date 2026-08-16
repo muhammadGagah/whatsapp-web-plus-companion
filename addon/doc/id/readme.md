@@ -1,6 +1,6 @@
-# WhatsApp Web Plus Companion
+# WhatsApp Companion
 
-WhatsApp Web Plus Companion adalah add-on NVDA untuk WhatsApp Stable dan
+WhatsApp Companion adalah add-on NVDA untuk WhatsApp Stable dan
 WhatsApp Beta versi Microsoft Store. Add-on ini membawa perintah keyboard dan
 peningkatan pembaca layar dari WhatsApp Web Plus ke aplikasi WhatsApp desktop.
 
@@ -62,21 +62,25 @@ Memasang paket Companion yang lebih baru akan menggantikan add-on lama dan
 salinan WhatsApp Web Plus bawaannya. Tindakan ini tidak mengubah userscript
 WhatsApp Web Plus yang Anda pasang secara terpisah di browser.
 
+Nama add-on yang terlihat sekarang adalah **WhatsApp Companion**. Nama file
+paket, ID add-on internal, folder pemasangan, dan repositori GitHub tetap
+menggunakan `whatsappWebPlusCompanion` atau `whatsapp-web-plus-companion` agar
+instalasi yang sudah ada tetap dapat ditingkatkan tanpa menjadi add-on baru.
+
 ## Membuka WhatsApp untuk pertama kali
 
 1. Pastikan WhatsApp sudah tertutup.
 2. Tekan `NVDA+N` untuk membuka menu NVDA.
 3. Pilih **Peralatan**.
-4. Pilih **WhatsApp Web Plus Companion**.
-5. Pilih **Luncurkan WhatsApp Stable dengan WhatsApp Web Plus Companion** atau
-   **Luncurkan WhatsApp Beta dengan WhatsApp Web Plus Companion**.
+4. Pilih **WhatsApp Companion**.
+5. Pilih **Luncurkan WhatsApp Stable dengan WhatsApp Companion** atau
+   **Luncurkan WhatsApp Beta dengan WhatsApp Companion**.
 6. NVDA akan mengatakan bahwa WhatsApp sedang dibuka. Tunggu sampai NVDA
    memastikan bahwa WhatsApp sudah berjalan dengan Companion.
 7. Jika WhatsApp terbuka tetapi tidak menerima fokus, tekan `Alt+Tab` sekali.
 
-Setelah mendengar konfirmasi tersebut, gunakan
-[perintah keyboard WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus#keyboard-shortcuts)
-di dalam WhatsApp.
+Setelah mendengar konfirmasi tersebut, gunakan perintah pada bagian
+[Pintasan keyboard WhatsApp](#pintasan-keyboard-whatsapp).
 
 Jangan buka WhatsApp dari menu Mulai ketika Anda ingin memakai Companion.
 Companion perlu menyiapkan pengaturan lokal sementara sebelum WhatsApp dibuka.
@@ -112,25 +116,25 @@ kirim juga mungkin hilang.
 
 ### Mendengar kembali hasil terakhir
 
-Gunakan **Laporkan hasil WhatsApp Web Plus Companion terakhir** jika Anda
+Gunakan **Laporkan hasil WhatsApp Companion terakhir** jika Anda
 melewatkan sebuah pesan atau memakai mode ucapan Sesuai Permintaan. Perintah
 ini mengulangi hasil pembukaan, koneksi, penutupan, perbaikan, atau pembaruan
 terakhir.
 
-## Perintah pada menu Companion
+## Perintah pada menu WhatsApp Companion
 
-Buka menu NVDA, pilih **Peralatan**, lalu pilih **WhatsApp Web Plus
-Companion**. Gunakan tombol panah untuk berpindah, `Enter` untuk menjalankan
-perintah, dan `Escape` untuk menutup menu.
+Buka menu NVDA, pilih **Peralatan**, lalu pilih **WhatsApp Companion**. Gunakan
+tombol panah untuk berpindah, `Enter` untuk menjalankan perintah, dan `Escape`
+untuk menutup menu.
 
 ### Perintah untuk membuka WhatsApp
 
-- **Luncurkan WhatsApp Stable dengan WhatsApp Web Plus Companion** membuka
+- **Luncurkan WhatsApp Stable dengan WhatsApp Companion** membuka
   aplikasi Stable dari Microsoft Store.
-- **Luncurkan WhatsApp Beta dengan WhatsApp Web Plus Companion** membuka
+- **Luncurkan WhatsApp Beta dengan WhatsApp Companion** membuka
   aplikasi Beta dari Microsoft Store.
-- **Luncurkan kanal WhatsApp terakhir yang dipilih dengan WhatsApp Web Plus
-  Companion** mengulangi pilihan Stable atau Beta yang terakhir Anda gunakan.
+- **Luncurkan kanal WhatsApp terakhir yang dipilih dengan WhatsApp Companion**
+  mengulangi pilihan Stable atau Beta yang terakhir Anda gunakan.
 
 WhatsApp Stable dan WhatsApp Beta adalah dua aplikasi Microsoft Store yang
 terpisah. Anda boleh memasang salah satu atau keduanya.
@@ -147,7 +151,7 @@ terpisah. Anda boleh memasang salah satu atau keduanya.
 
 ### Perintah hasil dan pembaruan
 
-- **Laporkan hasil WhatsApp Web Plus Companion terakhir** mengulangi hasil
+- **Laporkan hasil WhatsApp Companion terakhir** mengulangi hasil
   terbaru.
 - **Periksa pembaruan userscript WhatsApp Web Plus** memeriksa sumber resmi
   yang sudah ditentukan. Jika salinan resmi yang lebih baru atau berbeda lolos
@@ -163,26 +167,70 @@ Untuk menambahkan gestur sendiri:
 
 1. Buka menu NVDA.
 2. Pilih **Preferensi**, lalu **Gestur Input**.
-3. Ketik `WhatsApp Web Plus Companion` di kotak penyaring.
-4. Buka kategori **WhatsApp Web Plus Companion**.
+3. Ketik `WhatsApp Companion` di kotak penyaring.
+4. Buka kategori **WhatsApp Companion**.
 5. Pilih sebuah perintah.
 6. Pilih **Tambah**, tekan gestur yang Anda inginkan, lalu setujui dialog.
 
 Pengaturan sederhana yang berguna adalah satu gestur untuk perintah pembuka
-yang biasa Anda gunakan dan satu gestur untuk **Laporkan hasil WhatsApp Web
-Plus Companion terakhir**.
+yang biasa Anda gunakan dan satu gestur untuk **Laporkan hasil WhatsApp
+Companion terakhir**.
 
-## Mempelajari perintah WhatsApp
+## Pintasan keyboard WhatsApp
 
 Companion hanya membuka dan menghubungkan WhatsApp. Perintah yang Anda gunakan
 di dalam WhatsApp berasal dari proyek utama WhatsApp Web Plus.
 
-Mulailah dari halaman berikut:
+Anda tidak perlu menghafal semua pintasan ini. Pelajari hanya pintasan yang
+Anda perlukan.
+
+### Berpindah di WhatsApp
+
+| Pintasan | Tindakan |
+| --- | --- |
+| `Alt + Shift + 1` | Buka Chat |
+| `Alt + Shift + 2` | Buka Status atau Pembaruan |
+| `Alt + Shift + 3` | Buka Komunitas |
+| `Alt + Shift + 4` | Buka Saluran |
+| `Alt + Shift + 5` | Buka Meta AI |
+| `Alt + Shift + D` | Berpindah antara riwayat pesan dan area penulisan pesan |
+| `Alt + 1` | Pindah ke daftar chat |
+| `Alt + 2` | Pindah ke pesan terbaru |
+| `Alt + 3` | Pindah ke pesan pertama yang belum dibaca |
+| `Alt + Up Arrow` | Buka chat sebelumnya jika diaktifkan pada Pemetaan ulang pintasan |
+| `Alt + Down Arrow` | Buka chat berikutnya jika diaktifkan pada Pemetaan ulang pintasan |
+| `Alt + T` | Baca judul chat saat ini; tekan dua kali dengan cepat untuk mengaktifkan atau menonaktifkan pemantau aktivitas chat |
+| `Alt + 0` | Tutup pemutar audio atau video WhatsApp, atau tutup promosi aplikasi desktop |
+| `Alt + M` | Mulai merekam pesan suara jika diaktifkan pada Pemetaan ulang pintasan |
+
+### Kontrol panggilan masuk
+
+Pintasan ini hanya bekerja ketika panggilan suara atau video masuk sedang
+berdering dan WhatsApp menampilkan tombol **Terima** dan **Tolak**. Pintasan
+akan menekan tombol yang sama. Jika pintasan tidak bekerja, pindah ke tombol
+tersebut dan tekan secara langsung.
+
+| Pintasan | Tindakan |
+| --- | --- |
+| `Ctrl + Alt + A` | Terima panggilan suara atau video masuk |
+| `Ctrl + Alt + D` | Tolak panggilan suara atau video masuk |
+
+### Fitur opsional
+
+| Pintasan | Tindakan |
+| --- | --- |
+| `Alt + Shift + N` | Aktifkan atau nonaktifkan Mode Privasi |
+| `Alt + Shift + L` | Aktifkan atau nonaktifkan pembacaan pesan otomatis |
+| `Shift + F8` | Buka atau tutup pengaturan WhatsApp Web Plus |
+| `Alt + Shift + 8` | Aktifkan atau nonaktifkan Bersihkan Antarmuka |
+| `Alt + Shift + 9` | Aktifkan atau nonaktifkan Mode Gelap Asli |
+
+Pilihan fitur opsional Anda diingat setelah WhatsApp dimuat ulang.
+
+### Bantuan WhatsApp Web Plus lainnya
 
 - [Penggunaan pertama WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus#first-use)
   memberikan pengenalan terpandu.
-- [Pintasan keyboard WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus#keyboard-shortcuts)
-  mencantumkan semua perintah.
 - [Menu pengaturan WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus#settings-menu)
   menjelaskan menu `Shift+F8`.
 - [Mode Privasi](https://github.com/muhammadGagah/whatsapp-web-plus#what-each-setting-does)
@@ -354,8 +402,8 @@ Windows yang terkunci, atau dalam konfigurasi NVDA hanya-baca.
 
 Tunggu sampai NVDA memastikan bahwa WhatsApp berjalan dengan Companion.
 Pemuatan dapat memerlukan waktu lebih lama ketika WhatsApp mengunduh pesan.
-Jika NVDA melaporkan kesalahan, jalankan **Laporkan hasil WhatsApp Web Plus
-Companion terakhir** dan catat pesan lengkapnya.
+Jika NVDA melaporkan kesalahan, jalankan **Laporkan hasil WhatsApp Companion
+terakhir** dan catat pesan lengkapnya.
 
 ### WhatsApp sudah siap tetapi tidak menerima fokus
 
@@ -364,10 +412,10 @@ Tekan `Alt+Tab` sekali untuk berpindah ke WhatsApp.
 ### Perintah WhatsApp Web Plus tidak berfungsi
 
 Pastikan Anda membuka WhatsApp dari submenu Companion, bukan dari menu Mulai.
-Jalankan **Laporkan hasil WhatsApp Web Plus Companion terakhir** dan pastikan
+Jalankan **Laporkan hasil WhatsApp Companion terakhir** dan pastikan
 pembukaan terakhir berhasil. Setelah itu, baca
-[referensi pintasan WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus#keyboard-shortcuts)
-untuk mengetahui perintah terbaru dan pemetaan ulang opsional.
+[Pintasan keyboard WhatsApp](#pintasan-keyboard-whatsapp) untuk mengetahui
+perintah terbaru dan pemetaan ulang opsional.
 
 ### NVDA mengatakan koneksi terputus
 
@@ -397,7 +445,7 @@ mencoba lagi.
 ### Hasil yang datang di latar belakang tidak diucapkan
 
 Mode ucapan Sesuai Permintaan NVDA mungkin menyembunyikan ucapan latar
-belakang. Jalankan **Laporkan hasil WhatsApp Web Plus Companion terakhir**.
+belakang. Jalankan **Laporkan hasil WhatsApp Companion terakhir**.
 Output braille tetap tersedia sesuai pengaturan NVDA Anda.
 
 ### Pembaruan gagal
@@ -410,7 +458,7 @@ mengganti sebagian salinan di dalam paket.
 
 1. Tutup WhatsApp.
 2. Buka Add-on Store NVDA.
-3. Temukan **WhatsApp Web Plus Companion** di bagian add-on terpasang.
+3. Temukan **WhatsApp Companion** di bagian add-on terpasang.
 4. Pilih **Hapus**, lalu mulai ulang NVDA ketika diminta.
 
 Menghapus Companion tidak menghapus WhatsApp atau userscript browser yang
@@ -498,7 +546,7 @@ diedit secara manual.
 
 Laporkan masalah pembukaan, koneksi, pembaruan, perbaikan, atau integrasi NVDA
 di
-[pelacak masalah WhatsApp Web Plus Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/issues).
+[pelacak masalah WhatsApp Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/issues).
 
 Laporkan masalah pintasan WhatsApp, label, pembacaan Status, penyaringan
 privasi, atau pengaturan userscript di

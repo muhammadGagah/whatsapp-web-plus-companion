@@ -1,13 +1,19 @@
 import json
 import pathlib
 import subprocess
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Protocol
 
 from .models import LoaderError
 from .policy import ChannelPolicy
 
 PowerShellRunner = Callable[[str], str]
+
+
+class CancellationEvent(Protocol):
+	def is_set(self) -> bool: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +47,37 @@ def runPowerShell(script: str) -> str:
 	if completed.returncode:
 		raise LoaderError("powershell.failed", f"exit={completed.returncode}")
 	return completed.stdout
+
+
+def runPowerShellCancellable(script: str, cancelEvent: CancellationEvent) -> str:
+	process = subprocess.Popen(
+		["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+		stdin=subprocess.DEVNULL,
+		stdout=subprocess.PIPE,
+		stderr=subprocess.PIPE,
+		text=True,
+		encoding="utf-8",
+		errors="strict",
+		creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+	)
+	deadline = time.monotonic() + 10
+	while True:
+		if cancelEvent.is_set():
+			process.kill()
+			_ = process.communicate()
+			raise LoaderError("operation.cancelled")
+		remaining = deadline - time.monotonic()
+		if remaining <= 0:
+			process.kill()
+			_ = process.communicate()
+			raise LoaderError("powershell.failed", "timeout")
+		try:
+			stdout, _stderr = process.communicate(timeout=min(0.1, remaining))
+		except subprocess.TimeoutExpired:
+			continue
+		if process.returncode:
+			raise LoaderError("powershell.failed", f"exit={process.returncode}")
+		return stdout
 
 
 def _rows(rawText: str) -> list[object]:

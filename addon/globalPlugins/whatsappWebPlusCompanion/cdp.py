@@ -5,7 +5,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import TypeVar, cast
 from urllib.parse import urlsplit
 
 from .models import LoaderError
@@ -30,14 +30,43 @@ _COMPANION_BRIDGE_SOURCE = r"""
 	let dropped = 0;
 	let lastInvalidation = 'startup';
 	let invalidatedSource = '';
-	let contextSequence = 1;
 	const maxQueue = 50;
 	const maxText = 1800;
 	const validSources = new Set(['status', 'message-log', 'alert']);
 	const statusSelector = '#wa-plus-live-region[role="status"]';
 	const logSelector = '#wa-plus-message-log[role="log"]';
 	const alertSelector = '#wa-plus-settings-alert, #wa-plus-custom-text-error';
-	const sessionToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+	const randomTokenPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+	const createRandomToken = () => {
+		const cryptoApi = globalThis.crypto;
+		if (typeof cryptoApi?.randomUUID === 'function') {
+			try {
+				const token = String(cryptoApi.randomUUID());
+				if (randomTokenPattern.test(token)) return token;
+			} catch {
+				// Fall through to getRandomValues(), which is available in more contexts.
+			}
+		}
+		if (typeof cryptoApi?.getRandomValues !== 'function') return '';
+		try {
+			const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+			bytes[6] = (bytes[6] & 0x0f) | 0x40;
+			bytes[8] = (bytes[8] & 0x3f) | 0x80;
+			const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+			return [
+				hex.slice(0, 8),
+				hex.slice(8, 12),
+				hex.slice(12, 16),
+				hex.slice(16, 20),
+				hex.slice(20)
+			].join('-');
+		} catch {
+			return '';
+		}
+	};
+	const sessionToken = createRandomToken();
+	let contextToken = createRandomToken();
+	if (!sessionToken || !contextToken) return;
 	let previousMain = null;
 	let previousTitle = '';
 	let previousLanguage = '';
@@ -50,7 +79,13 @@ _COMPANION_BRIDGE_SOURCE = r"""
 	};
 	const languageFor = node => {
 		const element = elementFor(node);
-		return String(element?.closest?.('[lang]')?.getAttribute?.('lang') ||
+		let configured = '';
+		try {
+			configured = localStorage.getItem('wa-plus-language') || '';
+		} catch {
+			// Fall back to the nearest DOM language when storage is unavailable.
+		}
+		return String(configured || element?.closest?.('[lang]')?.getAttribute?.('lang') ||
 			document.documentElement?.getAttribute?.('lang') || '').trim();
 	};
 	const privacyEnabled = () => {
@@ -101,7 +136,7 @@ _COMPANION_BRIDGE_SOURCE = r"""
 		previousLanguage = language;
 		previousPrivacy = privacy;
 		if (reason) {
-			contextSequence++;
+			contextToken = createRandomToken() || `${sessionToken}:${generation + 1}`;
 			invalidate(reason);
 		}
 	};
@@ -114,7 +149,7 @@ _COMPANION_BRIDGE_SOURCE = r"""
 			sequence: ++sequence,
 			generation,
 			sessionToken,
-			context: String(contextSequence),
+			context: contextToken,
 			source,
 			language: languageFor(node),
 			privacy: privacyEnabled(),
@@ -174,7 +209,7 @@ _COMPANION_BRIDGE_SOURCE = r"""
 					contractVersion: 2,
 					sessionToken,
 					generation,
-					context: String(contextSequence),
+					context: contextToken,
 					invalidated,
 					lastInvalidation,
 					invalidatedSource,
@@ -214,6 +249,25 @@ _MAX_ANNOUNCEMENTS = 50
 _MAX_ANNOUNCEMENT_TEXT = 1800
 _VALID_ANNOUNCEMENT_SOURCES = frozenset({"status", "message-log", "alert"})
 _LANGUAGE_PATTERN = re.compile(r"^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$", re.IGNORECASE)
+_SEMANTIC_HEALTH_CONTRACT_VERSION = 1
+_SEMANTIC_HEALTH_CHECK_KEYS = frozenset(
+	{
+		"settingsMenu",
+		"statusRegion",
+		"messageLog",
+		"messageGrid",
+		"messageGridName",
+		"messageGridTabStop",
+		"messageGridFocusTarget",
+		"messageInput",
+		"messageInputName",
+		"messageInputFocusTarget",
+	},
+)
+_SEMANTIC_HEALTH_STATES = frozenset({"pass", "fail", "notApplicable"})
+_SEMANTIC_HEALTH_ERROR_CODES = frozenset(
+	{"semantic.probe"} | {f"semantic.{key}" for key in _SEMANTIC_HEALTH_CHECK_KEYS},
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -277,6 +331,7 @@ def selectTarget(version: object, targets: object, port: int) -> Target:
 
 class CdpSession:
 	def __init__(self, webSocket: WebSocket) -> None:
+		super().__init__()
 		self.webSocket = webSocket
 		self.nextId = 1
 
@@ -296,7 +351,10 @@ class CdpSession:
 		)
 		submitUnlessSet = getattr(cancelEvent, "submitUnlessSet", None)
 		if callable(submitUnlessSet):
-			submitted, _result = submitUnlessSet(lambda: self.webSocket.sendText(payload))
+			submitted, _result = cast(
+				tuple[bool, object],
+				submitUnlessSet(lambda: self.webSocket.sendText(payload)),
+			)
 			if not submitted:
 				raise LoaderError("operation.cancelled")
 		elif cancelEvent is not None:
@@ -473,7 +531,10 @@ def makeReadinessWrapper(bundleHash: str) -> str:
 		if (globalThis[property]?.state !== 'starting') return false;
 		const current = readCandidate();
 		if (!sameCandidate(candidate, current) || !Object.values(current.requiredNodes).every(Boolean)) {{
-			publish('failed', current.requiredNodes, 'readiness.changedDuringInjection');
+			candidate = null;
+			stableFrames = 0;
+			publish('waiting', current.requiredNodes);
+			arm();
 			return false;
 		}}
 		publish('ready', current.requiredNodes);
@@ -582,10 +643,16 @@ def readCompanionAnnouncements(
 		source = item.get("source")
 		privacy = item.get("privacy")
 		text = item.get("text")
+		retainedAcrossScopedInvalidation = (
+			itemGeneration is not None
+			and itemGeneration < generation
+			and invalidatedSource in _VALID_ANNOUNCEMENT_SOURCES
+			and source != invalidatedSource
+		)
 		if (
 			sequence is None
 			or sequence <= previousSequence
-			or itemGeneration != generation
+			or (itemGeneration != generation and not retainedAcrossScopedInvalidation)
 			or source not in _VALID_ANNOUNCEMENT_SOURCES
 			or not isinstance(privacy, bool)
 			or not isinstance(text, str)
@@ -606,6 +673,9 @@ def readCompanionAnnouncements(
 		entries.append(
 			CompanionAnnouncement(
 				sequence=sequence,
+				# A scoped invalidation intentionally retains entries from the
+				# other sources. Normalize those entries to the current envelope;
+				# downstream consumers validate one coherent generation/context.
 				generation=generation,
 				sessionToken=sessionToken,
 				context=context,
@@ -627,6 +697,37 @@ def readCompanionAnnouncements(
 		overflowed=overflowed,
 		entries=tuple(entries),
 	)
+
+
+def _isValidSemanticHealth(value: object) -> bool:
+	if not isinstance(value, dict) or set(value) != {
+		"contractVersion",
+		"overall",
+		"checks",
+		"errorCode",
+	}:
+		return False
+	if value.get("contractVersion") != _SEMANTIC_HEALTH_CONTRACT_VERSION:
+		return False
+	checks = value.get("checks")
+	if not isinstance(checks, dict) or set(checks) != set(_SEMANTIC_HEALTH_CHECK_KEYS):
+		return False
+	if any(state not in _SEMANTIC_HEALTH_STATES for state in checks.values()):
+		return False
+	values = tuple(checks.values())
+	expectedOverall = (
+		"fail"
+		if "fail" in values
+		else "notApplicable"
+		if all(state == "notApplicable" for state in values)
+		else "pass"
+	)
+	if value.get("overall") != expectedOverall:
+		return False
+	errorCode = value.get("errorCode")
+	if expectedOverall == "fail":
+		return isinstance(errorCode, str) and errorCode in _SEMANTIC_HEALTH_ERROR_CODES
+	return errorCode == ""
 
 
 def installAndVerify(
@@ -673,12 +774,8 @@ def installAndVerify(
 			),
 		)
 	injectionRequested = probe.get("health") is not None or probe.get("sentinel") is not None
-	healthEnd = (
-		time.monotonic() + healthDeadline if injectionRequested and healthDeadline is not None else None
-	)
+	healthEnd: float | None = None
 	while True:
-		if healthEnd is not None and time.monotonic() >= healthEnd:
-			raise LoaderError("bundle.healthTimeout")
 		if cancelEvent.wait(0.25):
 			raise LoaderError("operation.cancelled")
 		status = _runtimeValue(
@@ -710,8 +807,15 @@ def installAndVerify(
 		readinessReady = readiness.get("state") == "ready" and all(
 			readinessNodes.get(key) is True for key in _READINESS_REQUIRED_KEYS
 		)
+		if not readinessReady:
+			# A renderer reload can leave the previous userscript health object in the
+			# main world while WhatsApp rebuilds its application shell. Readiness owns
+			# this transition, so stale health must not turn normal loading into a
+			# terminal bundle failure or start the post-injection health deadline.
+			healthEnd = None
+			continue
 		health = status.get("health")
-		if readinessReady and not injectionRequested and health is None and status.get("sentinel") is None:
+		if not injectionRequested and health is None and status.get("sentinel") is None:
 			if cancelEvent.is_set():
 				raise LoaderError("operation.cancelled")
 			try:
@@ -734,12 +838,16 @@ def installAndVerify(
 			if healthDeadline is not None:
 				healthEnd = time.monotonic() + healthDeadline
 			continue
+		if injectionRequested and healthDeadline is not None and healthEnd is None:
+			healthEnd = time.monotonic() + healthDeadline
+		if healthEnd is not None and time.monotonic() >= healthEnd:
+			raise LoaderError("bundle.healthTimeout")
 		if not isinstance(health, dict):
 			continue
 		if health.get("state") == "failed":
 			raise LoaderError("bundle.failed", str(health.get("errorCode", "")))
 		requiredNodes = health.get("requiredNodes")
-		if (
+		baseHealthReady = (
 			readinessReady
 			and health.get("contractVersion") == 1
 			and health.get("scriptVersion") == bundleVersion
@@ -749,7 +857,13 @@ def installAndVerify(
 			and health.get("bundleIdentifier") == bundleHash
 			and isinstance(requiredNodes, dict)
 			and all(requiredNodes.get(key) is True for key in ("settingsMenu", "statusRegion", "messageLog"))
-		):
+		)
+		if baseHealthReady:
+			semanticHealth = health.get("semanticHealth")
+			if not isinstance(semanticHealth, dict) or not _isValidSemanticHealth(semanticHealth):
+				raise LoaderError("bundle.healthMismatch")
+			if semanticHealth.get("overall") != "pass":
+				continue
 			postInstall = _runtimeValue(
 				session.request(
 					"Runtime.evaluate",
@@ -758,18 +872,37 @@ def installAndVerify(
 							"({bridgeContractVersion:globalThis."
 							"__whatsappWebPlusCompanionBridge?.contractVersion||0,"
 							"chatListReady:Boolean(document.querySelector('div#side')?.querySelector("
-							f"{json.dumps(_CHAT_LIST_SELECTOR)})?.isConnected)}})"
+							f"{json.dumps(_CHAT_LIST_SELECTOR)})?.isConnected),"
+							"semanticNodesReady:["
+							'document.querySelectorAll(\'[id="wa-plus-settings-menu"][role="menu"]\').length===1,'
+							'document.querySelectorAll(\'[id="wa-plus-live-region"][role="status"]'
+							'[aria-live="polite"][aria-atomic="true"]\').length===1,'
+							'document.querySelectorAll(\'[id="wa-plus-message-log"][role="log"]'
+							'[aria-live="polite"][aria-relevant="additions"]'
+							'[aria-atomic="false"]\').length===1].every(Boolean)})'
 						),
 						"returnByValue": True,
 					},
 				),
 			)
 			if (
-				isinstance(postInstall, dict)
-				and postInstall.get("bridgeContractVersion") == 2
-				and postInstall.get("chatListReady") is True
+				not isinstance(postInstall, dict)
+				or postInstall.get("bridgeContractVersion") != 2
+				or postInstall.get("semanticNodesReady") is not True
+				or (
+					postInstall.get("chatListReady") is not True
+					and postInstall.get("chatListReady") is not False
+				)
 			):
-				return health, identifier
+				raise LoaderError("bundle.healthMismatch")
+			if postInstall.get("chatListReady") is not True:
+				# The userscript and its owned semantic nodes are healthy, but
+				# WhatsApp replaced or detached the chat shell between readiness
+				# and this final probe. Keep waiting without charging that page-load
+				# time against the bundle health deadline.
+				healthEnd = None
+				continue
+			return health, identifier
 		if health.get("state") == "ready":
 			raise LoaderError("bundle.healthMismatch")
 

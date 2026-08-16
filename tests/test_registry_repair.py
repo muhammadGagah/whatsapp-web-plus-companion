@@ -64,8 +64,8 @@ class RegistryDiagnosisTests(unittest.TestCase):
 
 	def test_access_denied_leaf_is_repairable(self) -> None:
 		class DeniedRegistry(MemoryRegistry):
-			def openOrCreateUserLeaf(self, stage="user"):
-				raise LoaderError("registry.user.openCreateAccessDenied", "stage=user;winerror=5")
+			def openUserLeafReadOnly(self, stage="user.open"):
+				raise LoaderError("registry.user.openAccessDenied", "stage=user.open;winerror=5")
 
 		status, mutex = self._diagnose(DeniedRegistry())
 		self.assertEqual(status, RegistryPermissionStatus.REPAIRABLE_ACCESS_DENIED)
@@ -81,8 +81,8 @@ class RegistryDiagnosisTests(unittest.TestCase):
 			def readMachinePolicy(self, valueName):
 				raise LoaderError("registry.machine.readAccessDenied", "stage=machine.read;winerror=5")
 
-			def openOrCreateUserLeaf(self, stage="user"):
-				raise LoaderError("registry.user.openCreateAccessDenied", "stage=user;winerror=5")
+			def openUserLeafReadOnly(self, stage="user.open"):
+				raise LoaderError("registry.user.openAccessDenied", "stage=user.open;winerror=5")
 
 		status, mutex = self._diagnose(DeniedMachineAndUserRegistry())
 		self.assertEqual(status, RegistryPermissionStatus.REPAIRABLE_ACCESS_DENIED)
@@ -106,8 +106,8 @@ class RegistryDiagnosisTests(unittest.TestCase):
 
 	def test_user_failure_without_machine_error_is_managed_or_unknown(self) -> None:
 		class BrokenRegistry(MemoryRegistry):
-			def openOrCreateUserLeaf(self, stage="user"):
-				raise LoaderError("registry.user.openCreateFailed", "stage=user;winerror=87")
+			def openUserLeafReadOnly(self, stage="user.open"):
+				raise LoaderError("registry.user.openFailed", "stage=user.open;winerror=87")
 
 		status, mutex = self._diagnose(BrokenRegistry())
 		self.assertEqual(status, RegistryPermissionStatus.MANAGED_OR_UNKNOWN)
@@ -115,8 +115,8 @@ class RegistryDiagnosisTests(unittest.TestCase):
 
 	def test_arbitrary_failure_is_not_repairable(self) -> None:
 		class BrokenRegistry(MemoryRegistry):
-			def openOrCreateUserLeaf(self, stage="user"):
-				raise LoaderError("registry.user.openCreateFailed", "stage=user;winerror=87")
+			def openUserLeafReadOnly(self, stage="user.open"):
+				raise LoaderError("registry.user.openFailed", "stage=user.open;winerror=87")
 
 		status, mutex = self._diagnose(BrokenRegistry())
 		self.assertEqual(status, RegistryPermissionStatus.MANAGED_OR_UNKNOWN)
@@ -149,6 +149,25 @@ class RegistryDiagnosisTests(unittest.TestCase):
 		self.assertEqual(status, RegistryPermissionStatus.USABLE)
 		self.assertEqual(registry.current, RegistryValue("--existing", 1))
 		self.assertEqual(mutex.acquired, mutex.released)
+
+	def test_missing_leaf_is_not_created_during_diagnosis(self) -> None:
+		class MissingLeafRegistry(MemoryRegistry):
+			def __init__(self) -> None:
+				super().__init__(None)
+				self.createCalled = False
+
+			def openUserLeafReadOnly(self, stage="user.open"):
+				return None
+
+			def openOrCreateUserLeaf(self, stage="user.openCreate"):
+				self.createCalled = True
+				return super().openOrCreateUserLeaf(stage)
+
+		registry = MissingLeafRegistry()
+		status, _mutex = self._diagnose(registry)
+
+		self.assertEqual(status, RegistryPermissionStatus.USABLE)
+		self.assertFalse(registry.createCalled)
 
 
 def _writeHelperPackage(root: pathlib.Path, *, tamper: bool = False) -> None:

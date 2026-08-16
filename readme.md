@@ -1,7 +1,7 @@
-# WhatsApp Web Plus Companion
+# WhatsApp Companion
 
-WhatsApp Web Plus Companion is an NVDA add-on for the Microsoft Store versions
-of WhatsApp Stable and WhatsApp Beta. It brings the keyboard commands and
+WhatsApp Companion is an NVDA add-on for the Microsoft Store versions of
+WhatsApp Stable and WhatsApp Beta. It brings the keyboard commands and
 screen-reader improvements from WhatsApp Web Plus into the WhatsApp desktop
 application.
 
@@ -60,21 +60,25 @@ Installing a newer Companion package replaces the older Companion add-on and
 its built-in WhatsApp Web Plus copy. It does not change a WhatsApp Web Plus
 userscript that you installed separately in a browser.
 
+The visible add-on name is now **WhatsApp Companion**. Its package filename,
+internal add-on ID, installation folder, and GitHub repository retain the
+`whatsappWebPlusCompanion` or `whatsapp-web-plus-companion` name so existing
+installations continue to upgrade in place.
+
 ## Launch WhatsApp for the first time
 
 1. Make sure WhatsApp is closed.
 2. Press `NVDA+N` to open the NVDA menu.
 3. Choose **Tools**.
-4. Choose **WhatsApp Web Plus Companion**.
-5. Choose **Launch WhatsApp Stable with WhatsApp Web Plus Companion** or
-   **Launch WhatsApp Beta with WhatsApp Web Plus Companion**.
+4. Choose **WhatsApp Companion**.
+5. Choose **Launch WhatsApp Stable with WhatsApp Companion** or
+   **Launch WhatsApp Beta with WhatsApp Companion**.
 6. NVDA says that WhatsApp is launching. Wait until NVDA confirms that
    WhatsApp is running with the Companion.
 7. If WhatsApp opens without receiving focus, press `Alt+Tab` once.
 
-After that confirmation, use the
-[WhatsApp Web Plus keyboard commands](https://github.com/muhammadGagah/whatsapp-web-plus#keyboard-shortcuts)
-inside WhatsApp.
+After that confirmation, use the commands in
+[WhatsApp keyboard shortcuts](#whatsapp-keyboard-shortcuts).
 
 Do not open WhatsApp from the Start menu when you want to use the Companion.
 The Companion must prepare a temporary local setting before WhatsApp starts.
@@ -109,24 +113,24 @@ sent may also be lost.
 
 ### Hear the last result again
 
-Use **Report the last WhatsApp Web Plus Companion result** when you missed a
+Use **Report the last WhatsApp Companion result** when you missed a
 message or use NVDA speech On-demand mode. This command repeats the latest
 launch, connection, closure, repair, or update result.
 
-## Companion menu commands
+## WhatsApp Companion menu commands
 
-Open the NVDA menu, choose **Tools**, then choose **WhatsApp Web Plus
-Companion**. Use the arrow keys to move, `Enter` to run a command, and `Escape`
-to close the menu.
+Open the NVDA menu, choose **Tools**, then choose **WhatsApp Companion**. Use
+the arrow keys to move, `Enter` to run a command, and `Escape` to close the
+menu.
 
 ### Launch commands
 
-- **Launch WhatsApp Stable with WhatsApp Web Plus Companion** starts the
+- **Launch WhatsApp Stable with WhatsApp Companion** starts the
   Microsoft Store Stable app.
-- **Launch WhatsApp Beta with WhatsApp Web Plus Companion** starts the
+- **Launch WhatsApp Beta with WhatsApp Companion** starts the
   Microsoft Store Beta app.
-- **Launch the last selected WhatsApp channel with WhatsApp Web Plus
-  Companion** repeats the Stable or Beta choice that you used most recently.
+- **Launch the last selected WhatsApp channel with WhatsApp Companion**
+  repeats the Stable or Beta choice that you used most recently.
 
 WhatsApp Stable and WhatsApp Beta are separate Microsoft Store apps. You may
 install either one or both.
@@ -143,7 +147,7 @@ install either one or both.
 
 ### Result and update commands
 
-- **Report the last WhatsApp Web Plus Companion result** repeats the most
+- **Report the last WhatsApp Companion result** repeats the most
   recent result.
 - **Check for WhatsApp Web Plus userscript updates** checks the fixed official
   source. If it finds a newer or changed valid copy, it installs that copy for
@@ -158,25 +162,69 @@ To add your own gesture:
 
 1. Open the NVDA menu.
 2. Choose **Preferences**, then **Input Gestures**.
-3. Type `WhatsApp Web Plus Companion` in the filter box.
-4. Expand the **WhatsApp Web Plus Companion** category.
+3. Type `WhatsApp Companion` in the filter box.
+4. Expand the **WhatsApp Companion** category.
 5. Select a command.
 6. Choose **Add**, press the gesture that you want, and confirm the dialog.
 
 A simple setup is one gesture for your usual launch command and one for
-**Report the last WhatsApp Web Plus Companion result**.
+**Report the last WhatsApp Companion result**.
 
-## Learn the WhatsApp commands
+## WhatsApp keyboard shortcuts
 
 The Companion only starts and connects WhatsApp. The commands that you use
 inside WhatsApp belong to the main WhatsApp Web Plus project.
 
-Start with these pages:
+You can use WhatsApp without memorizing these shortcuts. Learn only the ones
+you need.
+
+### Move around WhatsApp
+
+| Shortcut | Action |
+| --- | --- |
+| `Alt + Shift + 1` | Open Chats |
+| `Alt + Shift + 2` | Open Status or Updates |
+| `Alt + Shift + 3` | Open Communities |
+| `Alt + Shift + 4` | Open Channels |
+| `Alt + Shift + 5` | Open Meta AI |
+| `Alt + Shift + D` | Move between the message history and message writing area |
+| `Alt + 1` | Move to the chat list |
+| `Alt + 2` | Move to the latest message |
+| `Alt + 3` | Move to the first unread message |
+| `Alt + Up Arrow` | Open the previous chat when enabled in Shortcut remapping |
+| `Alt + Down Arrow` | Open the next chat when enabled in Shortcut remapping |
+| `Alt + T` | Read the current chat title; press twice quickly to turn Chat activity monitor on or off |
+| `Alt + 0` | Close the open WhatsApp audio or video player, or dismiss the desktop app promotion |
+| `Alt + M` | Start recording a voice message when enabled in Shortcut remapping |
+
+### Incoming call controls
+
+These shortcuts work only while an incoming voice or video call is ringing and
+WhatsApp is showing its **Accept** and **Decline** buttons. They press those
+same buttons for you. If a shortcut does nothing, move to the buttons and press
+them directly.
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl + Alt + A` | Accept the incoming voice or video call |
+| `Ctrl + Alt + D` | Decline the incoming voice or video call |
+
+### Optional features
+
+| Shortcut | Action |
+| --- | --- |
+| `Alt + Shift + N` | Turn Privacy Mode on or off |
+| `Alt + Shift + L` | Turn Automatic reading of messages on or off |
+| `Shift + F8` | Open or close WhatsApp Web Plus settings |
+| `Alt + Shift + 8` | Turn Clean UI on or off |
+| `Alt + Shift + 9` | Turn Original Dark Mode on or off |
+
+Your optional feature choices are remembered after WhatsApp reloads.
+
+### More WhatsApp Web Plus help
 
 - [First use of WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus#first-use)
   gives a guided introduction.
-- [WhatsApp Web Plus keyboard shortcuts](https://github.com/muhammadGagah/whatsapp-web-plus#keyboard-shortcuts)
-  lists all commands.
 - [WhatsApp Web Plus settings menu](https://github.com/muhammadGagah/whatsapp-web-plus#settings-menu)
   explains the `Shift+F8` menu.
 - [Privacy Mode](https://github.com/muhammadGagah/whatsapp-web-plus#what-each-setting-does)
@@ -337,7 +385,7 @@ session, or in a read-only NVDA configuration.
 
 Wait for NVDA to confirm that WhatsApp is running with the Companion. Loading
 may take longer while WhatsApp downloads messages. If NVDA reports an error,
-run **Report the last WhatsApp Web Plus Companion result** and note the exact
+run **Report the last WhatsApp Companion result** and note the exact
 message.
 
 ### WhatsApp is ready but does not have focus
@@ -347,10 +395,10 @@ Press `Alt+Tab` once to move to WhatsApp.
 ### WhatsApp Web Plus commands do not work
 
 Make sure you launched WhatsApp from the Companion submenu, not from the Start
-menu. Run **Report the last WhatsApp Web Plus Companion result** and check that
-the latest launch succeeded. Then read the
-[WhatsApp Web Plus shortcut reference](https://github.com/muhammadGagah/whatsapp-web-plus#keyboard-shortcuts)
-for current commands and optional remapping.
+menu. Run **Report the last WhatsApp Companion result** and check that
+the latest launch succeeded. Then read
+[WhatsApp keyboard shortcuts](#whatsapp-keyboard-shortcuts) for current
+commands and optional remapping.
 
 ### NVDA says the connection was lost
 
@@ -380,7 +428,7 @@ again.
 ### A background result was not spoken
 
 NVDA speech On-demand mode may suppress background speech. Run **Report the
-last WhatsApp Web Plus Companion result**. Braille output remains available
+last WhatsApp Companion result**. Braille output remains available
 according to your NVDA settings.
 
 ### An update failed
@@ -393,7 +441,7 @@ partly replace the packaged copy.
 
 1. Close WhatsApp.
 2. Open NVDA Add-on Store.
-3. Find **WhatsApp Web Plus Companion** under installed add-ons.
+3. Find **WhatsApp Companion** under installed add-ons.
 4. Choose **Remove**, then restart NVDA when asked.
 
 Removing the Companion does not remove WhatsApp or a separate browser
@@ -479,7 +527,7 @@ edited manually.
 ## Get help or report a problem
 
 Report launch, connection, update, repair, or NVDA integration problems in the
-[WhatsApp Web Plus Companion issue tracker](https://github.com/muhammadGagah/whatsapp-web-plus-companion/issues).
+[WhatsApp Companion issue tracker](https://github.com/muhammadGagah/whatsapp-web-plus-companion/issues).
 
 Report WhatsApp shortcut, label, Status reading, privacy filtering, or
 userscript setting problems in the

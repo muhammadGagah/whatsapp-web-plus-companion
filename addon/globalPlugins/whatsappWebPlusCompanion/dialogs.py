@@ -1,29 +1,35 @@
 from collections.abc import Callable
+from typing import Any
 
 import wx
 
 
+MessageDialog: Any
+Payload: Any
+
 try:
-	from gui.message import MessageDialog, Payload
+	from gui.message import MessageDialog as _NativeMessageDialog
+	from gui.message import Payload as _NativePayload
 except ImportError:
 	from gui import message as guiMessage
 
 	_DEFAULT_BUTTONS = object()
 
-	class Payload:
+	class _CompatPayload:
 		pass
 
 	class _DestroyEvent:
-		def __init__(self, dialog: "MessageDialog") -> None:
+		def __init__(self, dialog: "_CompatMessageDialog") -> None:
+			super().__init__()
 			self._dialog = dialog
 
-		def GetEventObject(self) -> "MessageDialog":
+		def GetEventObject(self) -> "_CompatMessageDialog":
 			return self._dialog
 
 		def Skip(self) -> None:
 			pass
 
-	class MessageDialog:
+	class _CompatMessageDialog:
 		"""Compatibility wrapper for NVDA versions before MessageDialog."""
 
 		def __init__(
@@ -33,6 +39,7 @@ except ImportError:
 			caption: str = wx.MessageBoxCaptionStr,
 			buttons: object = _DEFAULT_BUTTONS,
 		) -> None:
+			super().__init__()
 			self._parent = parent
 			self._message = message
 			self._caption = caption
@@ -40,7 +47,7 @@ except ImportError:
 			self._noLabel = ""
 			self._yesLabel = ""
 			self._defaultOnNo = False
-			self._yesCallback: Callable[[Payload], None] | None = None
+			self._yesCallback: Callable[[_CompatPayload], None] | None = None
 			self._destroyHandler: Callable[[_DestroyEvent], None] | None = None
 			self._nativeDialog: wx.MessageDialog | None = None
 
@@ -50,7 +57,7 @@ except ImportError:
 			label: str,
 			defaultFocus: bool = False,
 			fallbackAction: bool = False,
-		) -> "MessageDialog":
+		) -> "_CompatMessageDialog":
 			self._noLabel = label
 			# The safe button is the default action: Enter cancels. On the legacy
 			# path this also approximates fallbackAction, which is a modern API
@@ -62,8 +69,8 @@ except ImportError:
 			self,
 			*,
 			label: str,
-			callback: Callable[[Payload], None],
-		) -> "MessageDialog":
+			callback: Callable[[_CompatPayload], None],
+		) -> "_CompatMessageDialog":
 			self._yesLabel = label
 			self._yesCallback = callback
 			return self
@@ -105,7 +112,7 @@ except ImportError:
 				dialog.Destroy()
 			try:
 				if confirmed and self._yesCallback is not None:
-					self._yesCallback(Payload())
+					self._yesCallback(_CompatPayload())
 			finally:
 				if self._destroyHandler is not None:
 					self._destroyHandler(_DestroyEvent(self))
@@ -121,3 +128,9 @@ except ImportError:
 		def Close(self) -> None:
 			if self._nativeDialog is not None:
 				self._nativeDialog.Close()
+
+	Payload = _CompatPayload
+	MessageDialog = _CompatMessageDialog
+else:
+	Payload = _NativePayload
+	MessageDialog = _NativeMessageDialog

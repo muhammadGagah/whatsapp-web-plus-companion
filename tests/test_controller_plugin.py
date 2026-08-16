@@ -33,7 +33,7 @@ class ControllerPluginTests(unittest.TestCase):
 				break
 			time.sleep(0.001)
 		warning.assert_called_once_with(
-			"WhatsApp Web Plus Companion launch failed: code=%s detail=%s",
+			"WhatsApp Companion launch failed: code=%s detail=%s",
 			"endpoint.timeout",
 			"socketTimeout",
 		)
@@ -425,7 +425,8 @@ class ControllerPluginTests(unittest.TestCase):
 		self.assertIn('if result.messageKey == "companion.announcement":', source)
 		self.assertIn('if result.messageKey == "companion.invalidate":', source)
 		self.assertIn("LangChangeCommand(language.replace", source)
-		self.assertIn("braille.handler.message(text)", source)
+		self.assertIn("BrailleMessageQueue(", source)
+		self.assertIn("self._brailleMessages.enqueue(text, source)", source)
 		self.assertIn("completed.wait(_DELIVERY_TIMEOUT)", source)
 		self.assertIn("self._updateCancel.set()", source)
 		self.assertIn("if self._disposed:", source)

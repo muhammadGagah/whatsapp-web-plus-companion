@@ -53,6 +53,7 @@ class DpapiCrypto:
 	"""Current-user DPAPI protection for the recovery journal payload."""
 
 	def __init__(self) -> None:
+		super().__init__()
 		self._crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
 		self._kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 		self._crypt32.CryptProtectData.argtypes = (
@@ -117,6 +118,7 @@ class DpapiCrypto:
 
 class FileJournalStorage:
 	def __init__(self, path: Path) -> None:
+		super().__init__()
 		self._path = path
 
 	def read(self) -> bytes | None:
@@ -239,12 +241,32 @@ def currentUserSid() -> str:
 
 
 def defaultJournalPath() -> Path:
+	base: Path | None = None
 	try:
-		import nvdaPaths
+		import NVDAState
 
-		base = Path(nvdaPaths.userConfigPath)
+		writePaths = getattr(NVDAState, "WritePaths", None)
+		configDir = getattr(writePaths, "configDir", None)
+		if configDir:
+			base = Path(configDir)
 	except ImportError:
-		base = Path(os.environ.get("APPDATA", str(Path.home()))) / "nvda"
+		pass
+	if base is None:
+		# NVDA 2024.1 exposes the active --config-path through appArgs. Keep
+		# this fallback for older supported builds and test environments.
+		try:
+			import globalVars
+
+			configPath = getattr(globalVars.appArgs, "configPath", None)
+			if configPath:
+				base = Path(configPath)
+		except (AttributeError, ImportError):
+			pass
+	if base is None:
+		appData = os.environ.get("APPDATA")
+		if not appData:
+			raise JournalError("configPath")
+		base = Path(appData) / "nvda"
 	return base / "whatsappWebPlusCompanion" / "registry-recovery.bin"
 
 
@@ -255,6 +277,7 @@ class RegistryJournal:
 		crypto: JournalCrypto | None = None,
 		storage: JournalStorage | None = None,
 	) -> None:
+		super().__init__()
 		self.sid = sid
 		self._crypto = crypto or DpapiCrypto()
 		self._storage = storage or FileJournalStorage(defaultJournalPath())

@@ -11,9 +11,12 @@ import time
 try:
 	import msvcrt
 except ImportError:
-	import fcntl
-
 	msvcrt = None
+
+try:
+	import fcntl
+except ImportError:
+	fcntl = None
 
 from .models import LoaderError
 
@@ -75,8 +78,10 @@ def updateStoreLock(root: Path, cancelEvent: object | None = None) -> Iterator[N
 			try:
 				if msvcrt is not None:
 					msvcrt.locking(lockFile.fileno(), msvcrt.LK_NBLCK, 1)
-				else:
+				elif fcntl is not None:
 					fcntl.flock(lockFile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+				else:
+					raise RuntimeError("no supported file-lock API is available")
 				break
 			except OSError:
 				if time.monotonic() >= deadline:
@@ -91,7 +96,7 @@ def updateStoreLock(root: Path, cancelEvent: object | None = None) -> Iterator[N
 			if msvcrt is not None:
 				lockFile.seek(0)
 				msvcrt.locking(lockFile.fileno(), msvcrt.LK_UNLCK, 1)
-			else:
+			elif fcntl is not None:
 				fcntl.flock(lockFile.fileno(), fcntl.LOCK_UN)
 
 

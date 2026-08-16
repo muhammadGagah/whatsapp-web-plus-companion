@@ -1,4 +1,4 @@
-# WhatsApp Web Plus Companion manual validation
+# WhatsApp Companion manual validation
 
 The current release is not complete until these checks pass in NVDA 2024.1
 32-bit and NVDA 2026.1.1 64-bit using synthetic WhatsApp accounts and synthetic
@@ -8,7 +8,7 @@ chat content. Do not collect or share logs from a real account.
 
 1. Install the current `whatsappWebPlusCompanion-*.nvda-addon` package and
    restart NVDA.
-2. Confirm no WhatsApp Web Plus Companion command has a default gesture.
+2. Confirm no WhatsApp Companion command has a default gesture.
 3. Assign temporary gestures to all seven commands: Stable, Beta,
    selected-channel, force-close, permission diagnosis, last-result, and
    check-update.
@@ -23,7 +23,7 @@ release and must not be reclassified as Beta-only support.
 1. Launch through the assigned NVDA command in Talk mode. Confirm immediate
    speech and braille feedback and that NVDA remains responsive.
 2. Repeat in On-demand mode. The immediate script result must speak. After the
-   asynchronous operation completes, invoke **Report the last WhatsApp Web Plus
+   asynchronous operation completes, invoke **Report the last WhatsApp
    Companion result** and confirm that the final result speaks and is brailled.
 3. Confirm the package identity, AUMID, registry lease, loopback-only listener,
    process ancestry, one eligible target, direct WebSocket, MAIN-world context,
@@ -36,14 +36,22 @@ release and must not be reclassified as Beta-only support.
    health reports `readyStateAtInstall` as `complete`. Repeat after a controlled
    internal reload; readiness must depend on the observed shell, not elapsed time.
 5. Confirm the userscript owns exactly one settings menu, status region, and
-   message log. Unrelated WhatsApp live regions must not affect health.
+   message log. Confirm semantic health reports `pass` for those owned nodes;
+   unrelated WhatsApp live regions must not affect health. With no conversation
+   open, grid and composer checks must report `notApplicable` without blocking
+   activation. Open a populated synthetic conversation with announcement
+   reduction enabled and confirm the message grid has one accessible name, one
+   tab stop, and one usable focus target. Confirm the composer has an accessible
+   name and usable focus target. Repeat with announcement reduction disabled;
+   only the message-grid checks may become `notApplicable`.
 6. In the signed-out state, confirm readiness remains `waiting` and the add-on
    does not move focus or report active. Complete sign-in, then confirm the
    signed-in shell activates without re-foregrounding WhatsApp or moving focus
    during delayed health completion or reconnect.
 7. Trigger a renderer or target replacement. Confirm no reload or focus
    movement, at most three reconnect attempts in 20 seconds, one userscript
-   instance, and working keyboard navigation afterward.
+   instance, semantic health returning to `pass`, and working keyboard
+   navigation afterward.
 8. Close WhatsApp normally with `Alt+F4` or its Quit command. Confirm the
    companion does not reconnect, relaunch, or announce a connection failure;
    the worker returns to idle, the next launch is accepted immediately, and
@@ -69,7 +77,7 @@ versions. Preserve only privacy-safe pass/fail evidence.
 
 ## NVDA Tools submenu and userscript update check
 
-1. Open NVDA menu > Tools > WhatsApp Web Plus Companion. Confirm exactly one
+1. Open NVDA menu > Tools > WhatsApp Companion. Confirm exactly one
    submenu exists after startup and after using Reload plugins three times.
 2. Confirm Up/Down moves through all seven commands, Right/Left enters and leaves
    the submenu, Enter activates a command, and Escape closes the menu and
@@ -143,7 +151,7 @@ versions. Preserve only privacy-safe pass/fail evidence.
    closure result replaces the force-close result, and a new launch is accepted
    after force close completes.
 8. Repeat in Talk and On-demand speech modes. Confirm progress and final output
-   are available on braille, and **Report the last WhatsApp Web Plus Companion
+   are available on braille, and **Report the last WhatsApp Companion
    result** repeats the force-close outcome.
 9. Reload plugins or exit NVDA while force close is pending. Confirm NVDA stays
    responsive and no result is announced after the add-on has been disposed.
@@ -204,7 +212,7 @@ below pass with the packaged helper (`registryRepair.bat` +
 9. Choose **Continue to User Account Control**. Confirm **Opening the Windows
    permission request. NVDA itself will remain unelevated.**, then UAC shows
    only the helper. After approval, confirm one final result announces the
-   repair and **Report the last WhatsApp Web Plus Companion result** repeats it
+   repair and **Report the last WhatsApp Companion result** repeats it
    in speech On-demand mode and on braille.
 10. Cancel UAC: confirm **No permission change was made.** and that no DACL or
     value changed.
@@ -252,7 +260,7 @@ below pass with the packaged helper (`registryRepair.bat` +
 
 ### Keyboard, speech, and braille
 
-1. Navigate NVDA menu > Tools > WhatsApp Web Plus Companion entirely by
+1. Navigate NVDA menu > Tools > WhatsApp Companion entirely by
    keyboard; confirm seven items with correct names and non-conflicting
    mnemonics.
 2. Confirm the diagnosis progress and every repair result speak once in Talk

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: whatsappWebPlusCompanion 2026.08.14\n"
-"PO-Revision-Date: 2026-08-10 00:00+0700\n"
+"Project-Id-Version: whatsappWebPlusCompanion 2026.08.16\n"
+"PO-Revision-Date: 2026-08-16 00:00+0700\n"
 "Last-Translator: Muhammad Gagah\n"
 "Language-Team: Indonesian\n"
 "Language: id\n"
@@ -10,26 +10,26 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-msgid "WhatsApp Web Plus Companion"
-msgstr "WhatsApp Web Plus Companion"
+msgid "WhatsApp Companion"
+msgstr "WhatsApp Companion"
 
-msgid "Bring fast keyboard navigation and clearer screen-reader feedback from WhatsApp Web Plus to Microsoft Store WhatsApp Stable and Beta. The Companion securely loads a bundled, verified userscript and restores the connection automatically when WhatsApp replaces its renderer."
-msgstr "Hadirkan navigasi keyboard yang cepat dan informasi screen reader yang lebih jelas dari WhatsApp Web Plus ke WhatsApp Stable dan Beta dari Microsoft Store. Companion memuat userscript terverifikasi yang sudah disertakan secara aman dan memulihkan koneksi secara otomatis ketika WhatsApp mengganti renderer."
+msgid "WhatsApp Companion brings fast keyboard navigation and clearer screen-reader feedback from WhatsApp Web Plus to Microsoft Store WhatsApp Stable and Beta. It securely loads a bundled, verified userscript and restores the connection automatically when WhatsApp replaces its renderer."
+msgstr "WhatsApp Companion menghadirkan navigasi keyboard yang cepat dan informasi pembaca layar yang lebih jelas dari WhatsApp Web Plus ke WhatsApp Stable dan Beta dari Microsoft Store. Add-on ini memuat userscript terverifikasi yang sudah disertakan secara aman dan memulihkan koneksi secara otomatis ketika WhatsApp mengganti renderer."
 
-msgid "WhatsApp {channel} is running with WhatsApp Web Plus Companion."
-msgstr "WhatsApp {channel} berjalan dengan WhatsApp Web Plus Companion."
+msgid "WhatsApp {channel} is running with WhatsApp Companion."
+msgstr "WhatsApp {channel} berjalan dengan WhatsApp Companion."
 
-msgid "WhatsApp Web Plus Companion is already running. Close WhatsApp first."
-msgstr "WhatsApp Web Plus Companion sudah berjalan. Tutup WhatsApp terlebih dahulu."
+msgid "WhatsApp Companion is already running. Close WhatsApp first."
+msgstr "WhatsApp Companion sudah berjalan. Tutup WhatsApp terlebih dahulu."
 
-msgid "WhatsApp {channel} was closed. WhatsApp Web Plus Companion stopped."
-msgstr "WhatsApp {channel} telah ditutup. WhatsApp Web Plus Companion berhenti."
+msgid "WhatsApp {channel} was closed. WhatsApp Companion stopped."
+msgstr "WhatsApp {channel} telah ditutup. WhatsApp Companion berhenti."
 
 msgid "WhatsApp is already running. Close it normally and try again."
 msgstr "WhatsApp sudah berjalan. Tutup secara normal lalu coba lagi."
 
-msgid "WhatsApp Web Plus Companion launch was cancelled."
-msgstr "Peluncuran WhatsApp Web Plus Companion dibatalkan."
+msgid "WhatsApp Companion launch was cancelled."
+msgstr "Peluncuran WhatsApp Companion dibatalkan."
 
 msgid "The companion connection was lost. Close WhatsApp, then launch it again."
 msgstr "Koneksi companion terputus. Tutup WhatsApp, lalu luncurkan kembali."
@@ -55,8 +55,8 @@ msgstr "Userscript WhatsApp Web Plus yang disertakan tidak berjalan. Tutup Whats
 msgid "The downloaded WhatsApp Web Plus userscript did not start and was disabled. Close WhatsApp, then launch it again through the Companion to use the packaged fallback."
 msgstr "Userscript WhatsApp Web Plus yang diunduh tidak berjalan dan telah dinonaktifkan. Tutup WhatsApp, lalu luncurkan kembali melalui Companion untuk memakai fallback bawaan paket."
 
-msgid "WhatsApp Web Plus Companion could not start. Close WhatsApp and try again."
-msgstr "WhatsApp Web Plus Companion tidak dapat dimulai. Tutup WhatsApp lalu coba lagi."
+msgid "WhatsApp Companion could not start. Close WhatsApp and try again."
+msgstr "WhatsApp Companion tidak dapat dimulai. Tutup WhatsApp lalu coba lagi."
 
 msgid "Beta"
 msgstr "Beta"
@@ -64,38 +64,41 @@ msgstr "Beta"
 msgid "Stable"
 msgstr "Stable"
 
-msgid "Launching WhatsApp {channel} with WhatsApp Web Plus Companion."
-msgstr "Meluncurkan WhatsApp {channel} dengan WhatsApp Web Plus Companion."
+msgid "Launching WhatsApp {channel} with WhatsApp Companion."
+msgstr "Meluncurkan WhatsApp {channel} dengan WhatsApp Companion."
 
-msgid "Launch WhatsApp Stable with WhatsApp Web Plus Companion"
-msgstr "Luncurkan WhatsApp Stable dengan WhatsApp Web Plus Companion"
+msgid "WhatsApp {channel} is still loading with WhatsApp Companion. Please wait."
+msgstr "WhatsApp {channel} masih dimuat dengan WhatsApp Companion. Harap tunggu."
 
-msgid "Launch WhatsApp Beta with WhatsApp Web Plus Companion"
-msgstr "Luncurkan WhatsApp Beta dengan WhatsApp Web Plus Companion"
+msgid "Launch WhatsApp Stable with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp Stable dengan WhatsApp Companion"
 
-msgid "Launch the last selected WhatsApp channel with WhatsApp Web Plus Companion"
-msgstr "Luncurkan kanal WhatsApp terakhir yang dipilih dengan WhatsApp Web Plus Companion"
+msgid "Launch WhatsApp Beta with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp Beta dengan WhatsApp Companion"
 
-msgid "Report the last WhatsApp Web Plus Companion result"
-msgstr "Laporkan hasil WhatsApp Web Plus Companion terakhir"
+msgid "Launch the last selected WhatsApp channel with WhatsApp Companion"
+msgstr "Luncurkan kanal WhatsApp terakhir yang dipilih dengan WhatsApp Companion"
 
-msgid "No WhatsApp Web Plus Companion result is available yet."
-msgstr "Belum ada hasil WhatsApp Web Plus Companion."
+msgid "Report the last WhatsApp Companion result"
+msgstr "Laporkan hasil WhatsApp Companion terakhir"
 
-msgid "&WhatsApp Web Plus Companion"
-msgstr "&WhatsApp Web Plus Companion"
+msgid "No WhatsApp Companion result is available yet."
+msgstr "Belum ada hasil WhatsApp Companion."
 
-msgid "Launch WhatsApp &Stable with WhatsApp Web Plus Companion"
-msgstr "Luncurkan WhatsApp &Stable dengan WhatsApp Web Plus Companion"
+msgid "&WhatsApp Companion"
+msgstr "&WhatsApp Companion"
 
-msgid "Launch WhatsApp &Beta with WhatsApp Web Plus Companion"
-msgstr "Luncurkan WhatsApp &Beta dengan WhatsApp Web Plus Companion"
+msgid "Launch WhatsApp &Stable with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp &Stable dengan WhatsApp Companion"
 
-msgid "Launch the &last selected WhatsApp channel with WhatsApp Web Plus Companion"
-msgstr "Luncurkan &kanal WhatsApp terakhir yang dipilih dengan WhatsApp Web Plus Companion"
+msgid "Launch WhatsApp &Beta with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp &Beta dengan WhatsApp Companion"
 
-msgid "&Report the last WhatsApp Web Plus Companion result"
-msgstr "&Laporkan hasil WhatsApp Web Plus Companion terakhir"
+msgid "Launch the &last selected WhatsApp channel with WhatsApp Companion"
+msgstr "Luncurkan &kanal WhatsApp terakhir yang dipilih dengan WhatsApp Companion"
+
+msgid "&Report the last WhatsApp Companion result"
+msgstr "&Laporkan hasil WhatsApp Companion terakhir"
 
 msgid "&Check for WhatsApp Web Plus userscript updates"
 msgstr "&Periksa pembaruan userscript WhatsApp Web Plus"
@@ -136,8 +139,8 @@ msgstr "Bundle userscript tidak dapat diperbarui dalam konteks NVDA ini. Gunakan
 msgid "Checking for WhatsApp Web Plus userscript updates. If the official userscript has a newer version or different content, the Companion will download and install it automatically."
 msgstr "Memeriksa pembaruan userscript WhatsApp Web Plus. Jika userscript resmi memiliki versi yang lebih baru atau isi yang berbeda, Companion akan mengunduh dan memasangnya secara otomatis."
 
-msgid "WhatsApp Web Plus Companion last result"
-msgstr "Hasil terakhir WhatsApp Web Plus Companion"
+msgid "WhatsApp Companion last result"
+msgstr "Hasil terakhir WhatsApp Companion"
 
 msgid "Some WhatsApp Web Plus announcements were skipped while reconnecting."
 msgstr "Beberapa pengumuman WhatsApp Web Plus terlewat saat menyambungkan kembali."
@@ -205,8 +208,8 @@ msgstr "Kebijakan Windows mengontrol pengaturan peluncuran WebView2 untuk kanal 
 msgid "A Windows policy controls the WebView2 launch settings for all applications. The Companion cannot override the policy, so it left the settings unchanged. Contact your administrator for help."
 msgstr "Kebijakan Windows mengontrol pengaturan peluncuran WebView2 untuk semua aplikasi. Companion tidak dapat mengesampingkan kebijakan tersebut, sehingga pengaturannya tidak diubah. Hubungi administrator Anda untuk meminta bantuan."
 
-msgid "Windows blocked access to the per-user WebView2 policy setting required by the Companion. In NVDA Tools, open WhatsApp Web Plus Companion and choose Diagnose and repair WebView2 policy permissions, then try again."
-msgstr "Windows memblokir akses ke pengaturan kebijakan WebView2 per pengguna yang dibutuhkan Companion. Di menu Peralatan NVDA, buka WhatsApp Web Plus Companion dan pilih Diagnosa dan perbaiki izin kebijakan WebView2, lalu coba lagi."
+msgid "Windows blocked access to the per-user WebView2 policy setting required by the Companion. In NVDA Tools, open WhatsApp Companion and choose Diagnose and repair WebView2 policy permissions, then try again."
+msgstr "Windows memblokir akses ke pengaturan kebijakan WebView2 per pengguna yang dibutuhkan Companion. Di menu Peralatan NVDA, buka WhatsApp Companion dan pilih Diagnosa dan perbaiki izin kebijakan WebView2, lalu coba lagi."
 
 msgid "The per-user WebView2 policy setting could not be read. Close WhatsApp and try again. If this continues, report the error."
 msgstr "Pengaturan kebijakan WebView2 per pengguna tidak dapat dibaca. Tutup WhatsApp dan coba lagi. Jika terus berlanjut, laporkan kesalahan ini."
@@ -271,8 +274,8 @@ msgstr "Membuka permintaan izin Windows. NVDA akan tetap berjalan tanpa hak admi
 msgid "Repair per-user WebView2 policy permissions?"
 msgstr "Perbaiki izin kebijakan WebView2 per pengguna?"
 
-msgid "WhatsApp Web Plus Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?"
-msgstr "WhatsApp Web Plus Companion membutuhkan pengaturan peluncuran WebView2 sementara sebelum membuka WhatsApp. Windows saat ini memblokir kunci Registry per pengguna yang menyimpan pengaturan ini. Perbaikan ini memberi akun Windows Anda izin untuk membaca, membuat, mengubah, dan menghapus nilai di dalam satu kunci kebijakan WebView2 itu. Windows melindungi seluruh kunci, bukan nilai individual, jadi program lain yang berjalan sebagai akun Anda juga dapat mengubah nilai dalam kunci tersebut. Perbaikan tidak akan mengubah nilai Registry apa pun, kebijakan tingkat komputer apa pun, aturan tolak administrator apa pun, data WhatsApp Anda, atau isi chat Anda. Hanya helper perbaikan kecil yang berjalan sebagai administrator, sementara NVDA dan WhatsApp tetap tanpa hak administrator. Izin ini tetap ada setelah Anda memulai ulang Windows atau menghapus add-on. Apakah Anda ingin melanjutkan ke permintaan izin Windows?"
+msgid "WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?"
+msgstr "WhatsApp Companion membutuhkan pengaturan peluncuran WebView2 sementara sebelum membuka WhatsApp. Windows saat ini memblokir kunci Registry per pengguna yang menyimpan pengaturan ini. Perbaikan ini memberi akun Windows Anda izin untuk membaca, membuat, mengubah, dan menghapus nilai di dalam satu kunci kebijakan WebView2 itu. Windows melindungi seluruh kunci, bukan nilai individual, jadi program lain yang berjalan sebagai akun Anda juga dapat mengubah nilai dalam kunci tersebut. Perbaikan tidak akan mengubah nilai Registry apa pun, kebijakan tingkat komputer apa pun, aturan tolak administrator apa pun, data WhatsApp Anda, atau isi chat Anda. Hanya helper perbaikan kecil yang berjalan sebagai administrator, sementara NVDA dan WhatsApp tetap tanpa hak administrator. Izin ini tetap ada setelah Anda memulai ulang Windows atau menghapus add-on. Apakah Anda ingin melanjutkan ke permintaan izin Windows?"
 
 msgid "&Keep current permissions"
 msgstr "&Pertahankan izin saat ini"
@@ -358,5 +361,11 @@ msgstr "Pengaturan WebView2 tersimpan telah dipulihkan setelah perbaikan. Anda d
 msgid "A saved WebView2 setting changed outside the Companion. The Companion did not overwrite it. Review the per-user WebView2 policy setting manually."
 msgstr "Pengaturan WebView2 tersimpan berubah di luar Companion. Companion tidak menimpanya. Tinjau pengaturan kebijakan WebView2 per pengguna secara manual."
 
-msgid "Clearer force-close dialog wording and more natural WebView2 policy guidance, with validated automatic userscript updates, safe packaged fallback, accessible close-and-continue permission diagnosis, and compatibility with NVDA 2024.1 through 2026.1."
-msgstr "Teks dialog tutup paksa yang lebih jelas dan panduan kebijakan WebView2 yang lebih alami, dengan pembaruan userscript otomatis yang tervalidasi, fallback paket yang aman, diagnosis izin tutup-dan-lanjutkan yang aksesibel, serta kompatibilitas dengan NVDA 2024.1 sampai 2026.1."
+msgid "Renamed the visible add-on to WhatsApp Companion, added random session tokens, context nonces, and semantic health validation across renderer reloads, hardened stale speech and braille announcement invalidation, and bundled WhatsApp Web Plus 2.6.76."
+msgstr "Nama add-on yang terlihat diubah menjadi WhatsApp Companion, token sesi acak, nonce konteks, dan validasi kesehatan semantik ditambahkan untuk pemuatan ulang renderer, invalidasi pengumuman ucapan dan braille yang usang diperkuat, serta WhatsApp Web Plus 2.6.76 disertakan."
+
+msgid "Skipped WhatsApp Web Plus braille announcements: {count}."
+msgstr "Pengumuman braille WhatsApp Web Plus yang dilewati: {count}."
+
+msgid "WhatsApp Web Plus announcement cleared."
+msgstr "Pengumuman WhatsApp Web Plus telah dibersihkan."

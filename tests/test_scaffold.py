@@ -8,10 +8,14 @@ ROOT = pathlib.Path(__file__).parents[1]
 
 class ScaffoldTests(unittest.TestCase):
 	def test_manifest_versions_and_complete_template_engine_exist(self) -> None:
-		buildVars = ast.parse((ROOT / "buildVars.py").read_text(encoding="utf-8"))
+		buildVarsSource = (ROOT / "buildVars.py").read_text(encoding="utf-8")
+		buildVars = ast.parse(buildVarsSource)
 		text = ast.unparse(buildVars)
 		self.assertIn("2024.1.0", text)
 		self.assertIn("2026.1.1", text)
+		self.assertIn('addon_name="whatsappWebPlusCompanion"', buildVarsSource)
+		self.assertIn('addon_summary=_("WhatsApp Companion")', buildVarsSource)
+		self.assertIn('markdownExtensions: list[str] = ["tables"]', buildVarsSource)
 		self.assertTrue((ROOT / "addon/globalPlugins/whatsappWebPlusCompanion/__init__.py").is_file())
 		self.assertTrue((ROOT / "site_scons/site_tools/NVDATool/__init__.py").is_file())
 		self.assertTrue((ROOT / "manifest.ini.tpl").is_file())

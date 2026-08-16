@@ -8,13 +8,13 @@ from site_scons.site_tools.NVDATool.utils import _
 
 addon_info = AddonInfo(
 	addon_name="whatsappWebPlusCompanion",
-	addon_summary=_("WhatsApp Web Plus Companion"),
+	addon_summary=_("WhatsApp Companion"),
 	addon_description=_(
-		"Bring fast keyboard navigation and clearer screen-reader feedback from WhatsApp Web Plus to Microsoft Store WhatsApp Stable and Beta. The Companion securely loads a bundled, verified userscript and restores the connection automatically when WhatsApp replaces its renderer.",
+		"WhatsApp Companion brings fast keyboard navigation and clearer screen-reader feedback from WhatsApp Web Plus to Microsoft Store WhatsApp Stable and Beta. It securely loads a bundled, verified userscript and restores the connection automatically when WhatsApp replaces its renderer.",
 	),
-	addon_version="2026.08.14",
+	addon_version="2026.08.16",
 	addon_changelog=_(
-		"Clearer force-close dialog wording and more natural WebView2 policy guidance, with validated automatic userscript updates, safe packaged fallback, accessible close-and-continue permission diagnosis, and compatibility with NVDA 2024.1 through 2026.1.",
+		"Renamed the visible add-on to WhatsApp Companion, added random session tokens, context nonces, and semantic health validation across renderer reloads, hardened stale speech and braille announcement invalidation, and bundled WhatsApp Web Plus 2.6.76.",
 	),
 	addon_author="Muhammad",
 	addon_url="https://github.com/muhammadGagah/whatsapp-web-plus-companion",
@@ -23,15 +23,15 @@ addon_info = AddonInfo(
 	addon_minimumNVDAVersion="2024.1.0",
 	addon_lastTestedNVDAVersion="2026.1.1",
 	addon_updateChannel=None,
-	addon_license="GPL-2.0-or-later",
-	addon_licenseURL="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
+	addon_license="GPL-2.0",
+	addon_licenseURL="https://www.gnu.org/licenses/gpl-2.0.html",
 )
 
 pythonSources = ["addon/globalPlugins/whatsappWebPlusCompanion/*.py"]
 i18nSources: list[str] = pythonSources + ["buildVars.py"]
 excludedFiles = ["*.pyc", "__pycache__"]
 baseLanguage: str = "en"
-markdownExtensions: list[str] = []
+markdownExtensions: list[str] = ["tables"]
 brailleTables: BrailleTables = {}
 symbolDictionaries: SymbolDictionaries = {}
 speechDictionaries: SpeechDictionaries = {}

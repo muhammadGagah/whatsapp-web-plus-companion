@@ -12,11 +12,15 @@ from globalPlugins.whatsappWebPlusCompanion.registry import (
 	MemoryRegistry,
 	RegistryLease,
 	RegistryValue,
-	_acquireRegistryMutex,
+	acquireRegistryMutex,
 	_raiseStageError,
 	recoverPendingRegistryState,
 )
-from globalPlugins.whatsappWebPlusCompanion.registryJournal import JournalEntry, RegistryJournal
+from globalPlugins.whatsappWebPlusCompanion.registryJournal import (
+	JournalEntry,
+	JournalError,
+	RegistryJournal,
+)
 
 
 class _FakeCallable:
@@ -89,24 +93,24 @@ class RegistryMutexTests(unittest.TestCase):
 	def test_mutex_creation_failure(self, winDll) -> None:
 		winDll.return_value = _FakeKernel32(createHandle=None)
 		with self.assertRaisesRegex(LoaderError, "registry.mutex.createFailed"):
-			_acquireRegistryMutex()
+			acquireRegistryMutex()
 
 	@patch("globalPlugins.whatsappWebPlusCompanion.registry.ctypes.WinDLL")
 	def test_mutex_wait_failure(self, winDll) -> None:
 		winDll.return_value = _FakeKernel32(waitResult=0xFFFFFFFF)
 		with self.assertRaisesRegex(LoaderError, "registry.mutex.waitFailed"):
-			_acquireRegistryMutex()
+			acquireRegistryMutex()
 
 	@patch("globalPlugins.whatsappWebPlusCompanion.registry.ctypes.WinDLL")
 	def test_mutex_busy_contention(self, winDll) -> None:
 		winDll.return_value = _FakeKernel32(waitResult=0x102)
 		with self.assertRaisesRegex(LoaderError, "registry.mutex.busy"):
-			_acquireRegistryMutex()
+			acquireRegistryMutex()
 
 	@patch("globalPlugins.whatsappWebPlusCompanion.registry.ctypes.WinDLL")
 	def test_mutex_abandoned_ownership_is_taken(self, winDll) -> None:
 		winDll.return_value = _FakeKernel32(waitResult=0x80)
-		handle = _acquireRegistryMutex()
+		handle = acquireRegistryMutex()
 		self.assertEqual(handle, 7)
 
 
@@ -163,6 +167,103 @@ class RegistryLeaseTests(unittest.TestCase):
 		with self.assertRaisesRegex(LoaderError, "registry.restore.verifyMismatch"):
 			lease.restore()
 		self.assertFalse(lease.owned)
+
+	def test_failed_acquire_verification_rolls_back_before_returning(self) -> None:
+		prior = RegistryValue("--old", 1)
+
+		class FailAcquireVerifyRegistry(MemoryRegistry):
+			def verifyUserValue(self, valueName, expected):
+				if expected is not None and expected.data.startswith("--remote-debugging-port="):
+					return False
+				return super().verifyUserValue(valueName, expected)
+
+		registry = FailAcquireVerifyRegistry(prior)
+		lease = RegistryLease(CHANNELS[Channel.BETA], 49223, registry)
+
+		with self.assertRaisesRegex(LoaderError, "registry.user.verifyMismatch"):
+			lease.acquire()
+
+		self.assertEqual(registry.current, prior)
+		self.assertFalse(lease.owned)
+
+	def test_write_that_mutates_then_raises_is_rolled_back(self) -> None:
+		prior = RegistryValue("--old", 1)
+
+		class MutateThenFailRegistry(MemoryRegistry):
+			def setUserValue(self, key, valueName, value, stage="user.set"):
+				super().setUserValue(key, valueName, value, stage)
+				if stage == "user.set":
+					raise LoaderError("registry.user.setFailed", "stage=user.set")
+
+		registry = MutateThenFailRegistry(prior)
+		lease = RegistryLease(CHANNELS[Channel.BETA], 49223, registry)
+
+		with self.assertRaisesRegex(LoaderError, "registry.user.setFailed"):
+			lease.acquire()
+
+		self.assertEqual(registry.current, prior)
+
+	def test_applied_journal_failure_rolls_back_live_value(self) -> None:
+		prior = RegistryValue("--old", 1)
+
+		class FailAppliedJournal:
+			sid = "S-1-5-21-test"
+
+			def __init__(self) -> None:
+				self.phases: list[str] = []
+				self.cleared = False
+
+			def write(self, entry) -> None:
+				self.phases.append(entry.phase)
+				if entry.phase == "applied":
+					raise JournalError("write")
+
+			def clear(self) -> None:
+				self.cleared = True
+
+		journal = FailAppliedJournal()
+		registry = MemoryRegistry(prior)
+		lease = RegistryLease(
+			CHANNELS[Channel.BETA],
+			49223,
+			registry,
+			journal=journal,
+			operationId="op-test",
+		)
+
+		with self.assertRaisesRegex(LoaderError, "registry.recovery.unreadable"):
+			lease.acquire()
+
+		self.assertEqual(journal.phases, ["prepared", "applied"])
+		self.assertTrue(journal.cleared)
+		self.assertEqual(registry.current, prior)
+
+	def test_failed_acquire_rollback_keeps_journal_for_next_launch(self) -> None:
+		class VerifyThenRollbackFailsRegistry(MemoryRegistry):
+			def verifyUserValue(self, valueName, expected):
+				if expected is not None:
+					return False
+				return super().verifyUserValue(valueName, expected)
+
+			def deleteUserValue(self, key, valueName, stage="restore.delete"):
+				raise LoaderError("registry.restore.deleteAccessDenied", "stage=restore.delete")
+
+		storage = _MemoryStorage()
+		journal = _journal(storage)
+		registry = VerifyThenRollbackFailsRegistry(None)
+		lease = RegistryLease(
+			CHANNELS[Channel.BETA],
+			49223,
+			registry,
+			journal=journal,
+			operationId="op-test",
+		)
+
+		with self.assertRaisesRegex(LoaderError, "registry.restore.deleteAccessDenied"):
+			lease.acquire()
+
+		self.assertEqual(registry.current, RegistryValue("--remote-debugging-port=49223", 1))
+		self.assertIsNotNone(storage.payload)
 
 	def test_existing_remote_debugging_argument_is_not_adopted(self) -> None:
 		lease = RegistryLease(

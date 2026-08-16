@@ -1,5 +1,7 @@
 import addonHandler
 import braille
+from collections.abc import Callable
+import config
 import globalVars
 import globalPluginHandler
 import gui
@@ -12,16 +14,18 @@ import ui
 import wx
 from scriptHandler import script
 from speech.commands import LangChangeCommand
+from typing import Protocol
 
+from .announcements import BrailleMessageQueue, ScheduledCall
 from .cleanup import forceCloseOperation
 from .controller import Controller
-from .dialogs import MessageDialog, Payload
+from .dialogs import MessageDialog
 from .launcher import launchOperation
 from .menu import CompanionMenu, MenuSpec
 from .models import Channel, LoaderError, OperationResult
-from .packages import findPackage, findRunningPackageProcesses
+from .packages import findPackage, findRunningPackageProcesses, runPowerShellCancellable
 from .policy import CHANNELS
-from .registry import WinRegistry, _releaseRegistryMutex
+from .registry import WinRegistry, releaseRegistryMutex
 from .registryRepair import (
 	RegistryPermissionStatus,
 	RepairIdentity,
@@ -41,13 +45,66 @@ _DELIVERY_TIMEOUT = 2.0
 # speech emitted synchronously from the menu handler. Defer add-on
 # announcements long enough for the focus announcement to complete.
 _ANNOUNCEMENT_DELAY_MS = 350
+_BRAILLE_ANNOUNCEMENT_DWELL_FALLBACK_MS = 4000
+_BRAILLE_MAX_PENDING_MESSAGES = 50
 _VALID_ANNOUNCEMENT_SOURCES = frozenset({"status", "message-log", "alert"})
 _LANGUAGE_PATTERN = re.compile(r"^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$", re.IGNORECASE)
 
 
+class _Dialog(Protocol):
+	def Bind(self, eventType: object, handler: Callable[..., object]) -> object: ...
+
+	def Show(self) -> object: ...
+
+	def Close(self) -> object: ...
+
+
+def _scheduleBrailleMessage(delay: int, callback: Callable[[], None]) -> ScheduledCall:
+	return wx.CallLater(delay, callback)
+
+
+def _brailleMessageDwellMilliseconds() -> int | None:
+	try:
+		brailleConfig = config.conf["braille"]
+		showMessages = brailleConfig["showMessages"]
+		seconds = brailleConfig["messageTimeout"]
+	except (KeyError, TypeError):
+		return _BRAILLE_ANNOUNCEMENT_DWELL_FALLBACK_MS
+	try:
+		from config.configFlags import ShowMessages
+
+		useTimeout = ShowMessages.USE_TIMEOUT
+	except ImportError:
+		# ShowMessages.USE_TIMEOUT has value 1 throughout supported NVDA releases.
+		useTimeout = 1
+	if showMessages != useTimeout:
+		return None
+	if isinstance(seconds, bool) or not isinstance(seconds, (int, float)):
+		return _BRAILLE_ANNOUNCEMENT_DWELL_FALLBACK_MS
+	return max(1000, int(seconds * 1000))
+
+
+def _brailleMessagesEnabled() -> bool:
+	try:
+		brailleConfig = config.conf["braille"]
+		showMessages = brailleConfig["showMessages"]
+		mode = brailleConfig.get("mode", "followCursors")
+	except (AttributeError, KeyError, TypeError):
+		return True
+	try:
+		from config.configFlags import BrailleMode, ShowMessages
+
+		disabled = ShowMessages.DISABLED
+		speechOutput = BrailleMode.SPEECH_OUTPUT
+	except ImportError:
+		disabled = 0
+		speechOutput = "speechOutput"
+	return showMessages != disabled and mode != speechOutput
+
+
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: Category name shown in NVDA's Input Gestures dialog.
-	scriptCategory = _("WhatsApp Web Plus Companion")
+	scriptCategory = _("WhatsApp Companion")
 
 	def __init__(self) -> None:
 		super().__init__()
@@ -64,12 +121,25 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._updateTerminalPending = False
 		self._registryDiagnosisPending = False
 		self._registryDiagnosisResumeGeneration: int | None = None
-		self._dialog: MessageDialog | None = None
+		self._registryDiagnosisCancel = threading.Event()
+		self._registryDiagnosisWorker: threading.Thread | None = None
+		self._dialog: _Dialog | None = None
 		self._menu: CompanionMenu | None = None
 		self._companionSession = ""
 		self._companionGeneration = 0
 		self._companionContext = ""
 		self._companionLastSequence = 0
+		self._brailleMessages = BrailleMessageQueue(
+			braille.handler.message,
+			_scheduleBrailleMessage,
+			dwellMilliseconds=_brailleMessageDwellMilliseconds,
+			maxPendingMessages=_BRAILLE_MAX_PENDING_MESSAGES,
+			overflowMessage=lambda count: _(
+				"Skipped WhatsApp Web Plus braille announcements: {count}.",
+			).format(count=count),
+			clearedMessage=lambda: _("WhatsApp Web Plus announcement cleared."),
+			enabled=_brailleMessagesEnabled,
+		)
 		self.controller = Controller(
 			launchOperation,
 			self._queueReport,
@@ -82,7 +152,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _createMenu(self) -> CompanionMenu:
 		return CompanionMenu(
 			# Translators: Submenu label shown under NVDA's Tools menu.
-			_("&WhatsApp Web Plus Companion"),
+			_("&WhatsApp Companion"),
 			# Translators: Help text for the add-on submenu under NVDA's Tools menu.
 			_(
 				"Launch or force close Microsoft Store WhatsApp, and manage WhatsApp Web Plus userscript updates.",
@@ -92,20 +162,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				(
 					MenuSpec(
 						# Translators: Tools submenu command. The ampersand marks the mnemonic.
-						_("Launch WhatsApp &Stable with WhatsApp Web Plus Companion"),
-						_("Launch WhatsApp Stable with WhatsApp Web Plus Companion"),
+						_("Launch WhatsApp &Stable with WhatsApp Companion"),
+						_("Launch WhatsApp Stable with WhatsApp Companion"),
 						self._onLaunchStableMenu,
 					),
 					MenuSpec(
 						# Translators: Tools submenu command. The ampersand marks the mnemonic.
-						_("Launch WhatsApp &Beta with WhatsApp Web Plus Companion"),
-						_("Launch WhatsApp Beta with WhatsApp Web Plus Companion"),
+						_("Launch WhatsApp &Beta with WhatsApp Companion"),
+						_("Launch WhatsApp Beta with WhatsApp Companion"),
 						self._onLaunchBetaMenu,
 					),
 					MenuSpec(
 						# Translators: Tools submenu command. The ampersand marks the mnemonic.
-						_("Launch the &last selected WhatsApp channel with WhatsApp Web Plus Companion"),
-						_("Launch the last selected WhatsApp channel with WhatsApp Web Plus Companion"),
+						_("Launch the &last selected WhatsApp channel with WhatsApp Companion"),
+						_("Launch the last selected WhatsApp channel with WhatsApp Companion"),
 						self._onLaunchSelectedMenu,
 					),
 				),
@@ -130,8 +200,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				(
 					MenuSpec(
 						# Translators: Tools submenu command. The ampersand marks the mnemonic.
-						_("&Report the last WhatsApp Web Plus Companion result"),
-						_("Report the last WhatsApp Web Plus Companion result"),
+						_("&Report the last WhatsApp Companion result"),
+						_("Report the last WhatsApp Companion result"),
 						self._onReportLastResultMenu,
 					),
 					MenuSpec(
@@ -200,7 +270,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					return
 				state["delivered"] = self._reportIfCurrent(generation, result)
 			except Exception:
-				log.exception("Unexpected WhatsApp Web Plus Companion announcement delivery failure")
+				log.exception("Unexpected WhatsApp Companion announcement delivery failure")
 			finally:
 				completed.set()
 
@@ -225,7 +295,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if not self._isCurrentCompanionResult(result):
 				return False
 			# Translators: Spoken and brailled if the bounded bridge queue overflowed during a disconnect.
-			ui.message(_("Some WhatsApp Web Plus announcements were skipped while reconnecting."))
+			self._speakAndQueueBraille(
+				_("Some WhatsApp Web Plus announcements were skipped while reconnecting."),
+			)
 			return True
 		if result.messageKey == "companion.announcement":
 			return self._deliverCompanionAnnouncement(result)
@@ -239,6 +311,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		return True
 
 	def _resetCompanionDeliveryState(self) -> None:
+		self._brailleMessages.clearPending()
 		self._companionSession = ""
 		self._companionGeneration = 0
 		self._companionContext = ""
@@ -258,8 +331,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			or not context
 		):
 			return False
-		if session != self._companionSession:
+		sessionChanged = session != self._companionSession
+		if sessionChanged:
 			self._companionLastSequence = 0
+		invalidatedSource = result.values.get("source")
+		if sessionChanged:
+			self._brailleMessages.clearPending()
+		elif invalidatedSource in _VALID_ANNOUNCEMENT_SOURCES:
+			self._brailleMessages.discardPending(invalidatedSource)
+		else:
+			self._brailleMessages.clearPending()
 		self._companionSession = session
 		self._companionGeneration = generation
 		self._companionContext = context
@@ -293,6 +374,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		):
 			return False
 		if language:
+			self._speakAndQueueBraille(text, language, source)
+		else:
+			self._speakAndQueueBraille(text, source=source)
+		self._companionLastSequence = sequence
+		return True
+
+	def _speakAndQueueBraille(self, text: str, language: str = "", source: str = "") -> None:
+		if language:
 			speech.speak(
 				[
 					LangChangeCommand(language.replace("-", "_")),
@@ -300,11 +389,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					LangChangeCommand(None),
 				],
 			)
-			braille.handler.message(text)
 		else:
-			ui.message(text)
-		self._companionLastSequence = sequence
-		return True
+			speech.speak([text])
+		self._brailleMessages.enqueue(text, source)
 
 	def _announce(self, message: str) -> None:
 		"""Speak after the closing menu's focus announcement."""
@@ -338,19 +425,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 		messages = {
 			# Translators: Spoken and brailled after the companion has loaded successfully.
-			"active": _("WhatsApp {channel} is running with WhatsApp Web Plus Companion.").format(
+			"active": _("WhatsApp {channel} is running with WhatsApp Companion.").format(
 				channel=channel,
 			),
+			# Translators: Spoken and brailled while WhatsApp is still starting or loading.
+			"operation.loading": _(
+				"WhatsApp {channel} is still loading with WhatsApp Companion. Please wait.",
+			).format(channel=channel),
 			# Translators: Spoken and brailled when a launch command is invoked while a session is active.
-			"operation.busy": _("WhatsApp Web Plus Companion is already running. Close WhatsApp first."),
+			"operation.busy": _("WhatsApp Companion is already running. Close WhatsApp first."),
 			# Translators: Spoken and brailled when the user closes WhatsApp normally.
-			"package.closed": _("WhatsApp {channel} was closed. WhatsApp Web Plus Companion stopped.").format(
+			"package.closed": _("WhatsApp {channel} was closed. WhatsApp Companion stopped.").format(
 				channel=channel,
 			),
 			# Translators: Recovery message when WhatsApp was already open before the companion started.
 			"package.running": _("WhatsApp is already running. Close it normally and try again."),
 			# Translators: Spoken and brailled when NVDA stops an in-progress launch.
-			"operation.cancelled": _("WhatsApp Web Plus Companion launch was cancelled."),
+			"operation.cancelled": _("WhatsApp Companion launch was cancelled."),
 			# Translators: Status when another force-close request is made while one is running.
 			"processes.busy": _("WhatsApp is already being force closed. Wait for the result."),
 			# Translators: Result when neither Microsoft Store WhatsApp channel has a running process.
@@ -412,7 +503,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			),
 			# Translators: Recovery message when the per-user WebView2 policy value cannot be read.
 			"registry.user.readAccessDenied": _(
-				"Windows blocked access to the per-user WebView2 policy setting required by the Companion. In NVDA Tools, open WhatsApp Web Plus Companion and choose Diagnose and repair WebView2 policy permissions, then try again.",
+				"Windows blocked access to the per-user WebView2 policy setting required by the Companion. In NVDA Tools, open WhatsApp Companion and choose Diagnose and repair WebView2 policy permissions, then try again.",
 			),
 			# Translators: Recovery message for an unexpected per-user WebView2 policy read failure.
 			"registry.user.readFailed": _(
@@ -636,7 +727,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				}.get(prefix, ""),
 			)
 		# Translators: Fallback launch failure with a safe recovery action.
-		return message or _("WhatsApp Web Plus Companion could not start. Close WhatsApp and try again.")
+		return message or _("WhatsApp Companion could not start. Close WhatsApp and try again.")
 
 	def _channelLabel(self, value: object) -> str:
 		if value == Channel.BETA.value:
@@ -667,10 +758,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._resetCompanionDeliveryState()
 		self.selectedChannel = channel
 		# Translators: Immediate launch progress spoken and brailled after a user command.
-		self._announce(
-			_("Launching WhatsApp {channel} with WhatsApp Web Plus Companion.").format(
-				channel=self._channelLabel(channel.value),
+		self._report(
+			OperationResult(
+				False,
+				"operation.loading",
+				"operation.loading",
+				{"channel": channel.value},
 			),
+			defer=True,
 		)
 
 	def _startRegistryDiagnosis(self) -> None:
@@ -695,38 +790,44 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Translators: Immediate progress after the user starts the permission diagnosis.
 		self._announce(_("Checking WebView2 policy permissions."))
 		generation = self._generation
+		cancelEvent = threading.Event()
+		self._registryDiagnosisCancel = cancelEvent
 		self._registryDiagnosisPending = True
 		worker = threading.Thread(
 			target=self._runRegistryDiagnosis,
-			args=(generation,),
+			args=(generation, cancelEvent),
 			name="WhatsAppWebPlusRegistryDiagnosis",
 			daemon=True,
 		)
+		self._registryDiagnosisWorker = worker
 		worker.start()
 
 	@property
 	def _registryDiagnosisActive(self) -> bool:
 		return self._registryDiagnosisPending or self._registryDiagnosisResumeGeneration is not None
 
-	def _runRegistryDiagnosis(self, generation: int) -> None:
+	def _runRegistryDiagnosis(self, generation: int, cancelEvent: threading.Event) -> None:
 		try:
 			status = diagnoseRegistryPermissions(
 				WinRegistry(),
 				buildSecurityProbe(),
 				tryAcquireMutex=tryAcquireRegistryMutex,
-				releaseMutex=_releaseRegistryMutex,
-				whatsappRunning=self._whatsappRunning,
+				releaseMutex=releaseRegistryMutex,
+				whatsappRunning=lambda: self._whatsappRunning(cancelEvent),
+				isCancelled=cancelEvent.is_set,
 			)
 		except LoaderError as error:
+			if error.code == "operation.cancelled" or cancelEvent.is_set():
+				return
 			log.warning(
-				"WhatsApp Web Plus Companion permission diagnosis: code=%s detail=%s",
+				"WhatsApp Companion permission diagnosis: code=%s detail=%s",
 				error.code,
 				error.safeDetail,
 			)
 			self._queueDiagnosisLoaderError(generation, error.code, dict(error.values))
 			return
 		except Exception:
-			log.exception("Unexpected WhatsApp Web Plus Companion permission diagnosis failure")
+			log.exception("Unexpected WhatsApp Companion permission diagnosis failure")
 			status = RegistryPermissionStatus.MANAGED_OR_UNKNOWN
 		if self._disposed or generation != self._generation:
 			return
@@ -737,24 +838,48 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				self._registryDiagnosisPending = False
 			return
 
-	def _whatsappRunning(self) -> bool:
+	def _whatsappRunning(self, cancelEvent: threading.Event | None = None) -> bool:
+		cancelEvent = cancelEvent or threading.Event()
+
+		def runner(script: str) -> str:
+			return runPowerShellCancellable(script, cancelEvent)
+
 		for policy in CHANNELS.values():
+			if cancelEvent.is_set():
+				raise LoaderError("operation.cancelled")
 			try:
-				package = findPackage(policy)
+				package = findPackage(policy, runner)
+			except LoaderError as error:
+				if error.code == "operation.cancelled":
+					raise
+				log.warning(
+					"WhatsApp Companion package probe failed for %s: code=%s",
+					policy.id.value,
+					error.code,
+				)
+				continue
 			except Exception:
 				log.warning(
-					"WhatsApp Web Plus Companion package probe failed for %s",
+					"WhatsApp Companion package probe failed for %s",
 					policy.id.value,
 					exc_info=True,
 				)
 				continue
 			if package is not None:
 				try:
-					if findRunningPackageProcesses(package):
+					if findRunningPackageProcesses(package, runner):
 						return True
+				except LoaderError as error:
+					if error.code == "operation.cancelled":
+						raise
+					log.warning(
+						"WhatsApp Companion process probe failed for %s: code=%s",
+						policy.id.value,
+						error.code,
+					)
 				except Exception:
 					log.warning(
-						"WhatsApp Web Plus Companion process probe failed for %s",
+						"WhatsApp Companion process probe failed for %s",
 						policy.id.value,
 						exc_info=True,
 					)
@@ -773,6 +898,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if self._disposed or generation != self._generation:
 				return
 			self._registryDiagnosisPending = False
+			self._registryDiagnosisWorker = None
 			self._report(OperationResult(False, code, code, values))
 
 		try:
@@ -790,6 +916,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if self._disposed or generation != self._generation:
 			return
 		self._registryDiagnosisPending = False
+		self._registryDiagnosisWorker = None
 		if status is RegistryPermissionStatus.REPAIRABLE_ACCESS_DENIED:
 			self._confirmRegistryRepair()
 			return
@@ -863,7 +990,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				),
 			)
 		except Exception:
-			log.exception("Unexpected WhatsApp Web Plus Companion diagnosis close confirmation failure")
+			log.exception("Unexpected WhatsApp Companion diagnosis close confirmation failure")
 			self._report(
 				OperationResult(
 					False,
@@ -874,7 +1001,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				defer=True,
 			)
 
-	def _startForceCloseForRegistryDiagnosis(self, _payload: Payload) -> None:
+	def _startForceCloseForRegistryDiagnosis(self, _payload: object) -> None:
 		if self._disposed:
 			return
 		generation = self._generation
@@ -932,7 +1059,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				MessageDialog(
 					gui.mainFrame,
 					_(
-						"WhatsApp Web Plus Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?",
+						"WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?",
 					),
 					# Translators: Title of the WebView2 policy permission repair confirmation dialog.
 					_("Repair per-user WebView2 policy permissions?"),
@@ -951,7 +1078,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				),
 			)
 		except Exception:
-			log.exception("Unexpected WhatsApp Web Plus Companion repair confirmation failure")
+			log.exception("Unexpected WhatsApp Companion repair confirmation failure")
 			self._report(
 				OperationResult(
 					False,
@@ -962,7 +1089,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				defer=True,
 			)
 
-	def _startRegistryRepair(self, _payload: Payload) -> None:
+	def _startRegistryRepair(self, _payload: object) -> None:
 		if self._disposed:
 			return
 		if self.controller.forceClosing or self.controller.repairing:
@@ -984,7 +1111,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			identity = captureRequestIdentity()
 		except LoaderError as error:
 			log.warning(
-				"WhatsApp Web Plus Companion repair identity capture failed: code=%s detail=%s",
+				"WhatsApp Companion repair identity capture failed: code=%s detail=%s",
 				error.code,
 				error.safeDetail,
 			)
@@ -1031,7 +1158,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			),
 		)
 
-	def _startForceClose(self, _payload: Payload) -> None:
+	def _startForceClose(self, _payload: object) -> None:
 		if self._disposed:
 			return
 		if not self.controller.forceClose():
@@ -1224,13 +1351,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return True
 		return True
 
-	def _showDialog(self, dialog: MessageDialog) -> None:
+	def _showDialog(self, dialog: _Dialog) -> None:
 		self._dialog = dialog
 		dialog.Bind(wx.EVT_WINDOW_DESTROY, self._onDialogDestroyed)
 		try:
 			dialog.Show()
 		except Exception:
-			log.exception("WhatsApp Web Plus Companion dialog could not be shown")
+			log.exception("WhatsApp Companion dialog could not be shown")
 			if self._dialog is dialog:
 				self._dialog = None
 			raise
@@ -1251,7 +1378,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		if self.lastResult is None:
 			# Translators: Spoken and brailled when no companion operation has completed yet.
-			message = _("No WhatsApp Web Plus Companion result is available yet.")
+			message = _("No WhatsApp Companion result is available yet.")
 		else:
 			message = self._messageForResult(self.lastResult)
 		self._showDialog(
@@ -1259,23 +1386,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				gui.mainFrame,
 				message,
 				# Translators: Title for a dialog that shows the most recent companion or update result.
-				_("WhatsApp Web Plus Companion last result"),
+				_("WhatsApp Companion last result"),
 			),
 		)
 
 	# Translators: Command description in NVDA's Input Gestures dialog.
-	@script(description=_("Launch WhatsApp Stable with WhatsApp Web Plus Companion"), speakOnDemand=True)
+	@script(description=_("Launch WhatsApp Stable with WhatsApp Companion"), speakOnDemand=True)
 	def script_launchStable(self, gesture) -> None:
 		self._launch(Channel.STABLE)
 
 	# Translators: Command description in NVDA's Input Gestures dialog.
-	@script(description=_("Launch WhatsApp Beta with WhatsApp Web Plus Companion"), speakOnDemand=True)
+	@script(description=_("Launch WhatsApp Beta with WhatsApp Companion"), speakOnDemand=True)
 	def script_launchBeta(self, gesture) -> None:
 		self._launch(Channel.BETA)
 
 	# Translators: Command description in NVDA's Input Gestures dialog.
 	@script(
-		description=_("Launch the last selected WhatsApp channel with WhatsApp Web Plus Companion"),
+		description=_("Launch the last selected WhatsApp channel with WhatsApp Companion"),
 		speakOnDemand=True,
 	)
 	def script_launchSelected(self, gesture) -> None:
@@ -1290,11 +1417,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._reviewForceClose()
 
 	# Translators: Command description in NVDA's Input Gestures dialog.
-	@script(description=_("Report the last WhatsApp Web Plus Companion result"), speakOnDemand=True)
+	@script(description=_("Report the last WhatsApp Companion result"), speakOnDemand=True)
 	def script_reportLastResult(self, gesture) -> None:
 		if self.lastResult is None:
 			# Translators: Spoken and brailled when no companion operation has completed yet.
-			ui.message(_("No WhatsApp Web Plus Companion result is available yet."))
+			ui.message(_("No WhatsApp Companion result is available yet."))
 			return
 		self._report(self.lastResult)
 
@@ -1319,8 +1446,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._updateWorker = None
 			self._updateCheckPending = False
 			self._updateTerminalPending = False
+		self._registryDiagnosisCancel.set()
 		self._registryDiagnosisPending = False
+		self._registryDiagnosisWorker = None
 		self._registryDiagnosisResumeGeneration = None
+		self._brailleMessages.terminate()
 		if self._dialog is not None:
 			try:
 				self._dialog.Close()
