@@ -12,6 +12,7 @@ class CancellationEvent:
 	"""Event with an atomic check-and-submit boundary for external side effects."""
 
 	def __init__(self) -> None:
+		super().__init__()
 		self._event = threading.Event()
 		self._submissionLock = threading.Lock()
 

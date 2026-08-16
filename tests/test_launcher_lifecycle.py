@@ -28,6 +28,16 @@ class _CancelEvent:
 		return False
 
 
+class _CancelAfterPolls(_CancelEvent):
+	def __init__(self, polls: int) -> None:
+		self.polls = polls
+		self.waits: list[float] = []
+
+	def wait(self, timeout: float) -> bool:
+		self.waits.append(timeout)
+		return len(self.waits) > self.polls
+
+
 class LauncherLifecycleTests(unittest.TestCase):
 	def test_announcement_cursor_advances_only_after_delivery_and_retries_failure(self) -> None:
 		entry = CompanionAnnouncement(4, 2, "session", "chat", "status", "id", True, "Halo")
@@ -101,6 +111,86 @@ class LauncherLifecycleTests(unittest.TestCase):
 		self.assertEqual(reports[-1].values["language"], "en")
 		self.assertEqual(reports[-1].values["source"], "message-log")
 		self.assertEqual(state.lastAcknowledgedSequence, 9)
+
+	def test_replacement_renderer_is_reread_from_zero_before_delivery(self) -> None:
+		filtered = CompanionAnnouncementBatch(
+			"new-session",
+			1,
+			"new-session:1",
+			2,
+			False,
+			"startup",
+			"",
+			False,
+			(),
+		)
+		entry = CompanionAnnouncement(
+			2,
+			1,
+			"new-session",
+			"new-session:1",
+			"status",
+			"en",
+			False,
+			"Renderer ready",
+		)
+		fresh = CompanionAnnouncementBatch(
+			"new-session",
+			1,
+			"new-session:1",
+			2,
+			False,
+			"startup",
+			"",
+			False,
+			(entry,),
+		)
+		state = launcher._AnnouncementState("old-session", 4, "old-session:4", 99)
+		reports: list[OperationResult] = []
+
+		with patch.object(
+			launcher,
+			"readCompanionAnnouncements",
+			side_effect=[filtered, fresh],
+		) as read:
+			launcher._forwardCompanionAnnouncements(
+				MagicMock(),
+				state,
+				lambda result: reports.append(result) or True,
+			)
+
+		self.assertEqual(read.call_args_list[0].args[1:], (99, 4))
+		self.assertEqual(read.call_args_list[1].args[1:], (0, 0))
+		self.assertEqual(
+			[result.messageKey for result in reports],
+			["companion.invalidate", "companion.announcement"],
+		)
+		self.assertEqual(state.lastAcknowledgedSequence, 2)
+
+	def test_successful_empty_scoped_invalidation_acknowledges_removed_tail(self) -> None:
+		batch = CompanionAnnouncementBatch(
+			"session",
+			3,
+			"session:3",
+			6,
+			True,
+			"message-log-reset",
+			"message-log",
+			False,
+			(),
+		)
+		state = launcher._AnnouncementState("session", 2, "session:2", 5)
+		reports: list[OperationResult] = []
+
+		with patch.object(launcher, "readCompanionAnnouncements", return_value=batch):
+			launcher._forwardCompanionAnnouncements(
+				MagicMock(),
+				state,
+				lambda result: reports.append(result) or True,
+			)
+
+		self.assertEqual([result.messageKey for result in reports], ["companion.invalidate"])
+		self.assertEqual(state.lastAcknowledgedSequence, 6)
 
 	def test_listener_validation_retries_transient_topology(self) -> None:
 		with (
@@ -205,6 +295,56 @@ class LauncherLifecycleTests(unittest.TestCase):
 			launcher._raiseBundleInstallError(bundle, LoaderError("bundle.healthTimeout"))
 		quarantine.assert_not_called()
 
+	def test_announcement_bridge_is_read_before_health_check_without_process_inventory(self) -> None:
+		lease = MagicMock(owned=False)
+		lease.acquire.side_effect = lambda: setattr(lease, "owned", True)
+		lease.restore.side_effect = lambda: setattr(lease, "owned", False)
+		target = Target("initial", "https://web.whatsapp.com/", "ws://127.0.0.1/initial")
+		session = MagicMock()
+		order: list[str] = []
+
+		def forward(*_args) -> None:
+			order.append("announcement")
+
+		cancelEvent = _CancelAfterPolls(1)
+
+		with (
+			patch.object(launcher, "buildSecurityProbe", return_value=MagicMock()),
+			patch.object(launcher, "checkPreflight"),
+			patch.object(launcher, "_recoverPendingRegistryState"),
+			patch.object(launcher, "resolvePackage", return_value=MagicMock()),
+			patch.object(launcher, "findRunningPackageProcesses", side_effect=[(), (41,)]) as processes,
+			patch.object(launcher, "_TARGET_HEALTH_INTERVAL", 0.0),
+			patch.object(launcher, "reserveLoopbackPort", return_value=12345),
+			patch.object(launcher, "RegistryLease", return_value=lease),
+			patch.object(launcher, "activateAumid"),
+			patch.object(launcher, "waitForEndpoint"),
+			patch.object(launcher, "_waitForValidatedListener"),
+			patch.object(launcher, "_waitForTarget", return_value=target),
+			patch.object(
+				launcher,
+				"selectEmbeddedBundle",
+				return_value=MagicMock(source="source", version="1.0", sha256="hash", isUpdate=False),
+			),
+			patch.object(
+				launcher,
+				"_waitForInitialAttachment",
+				return_value=(target, session, {"state": "ready"}, lambda: None),
+			),
+			patch.object(launcher, "_forwardCompanionAnnouncements", side_effect=forward),
+			patch.object(
+				launcher,
+				"_discoverTarget",
+				side_effect=lambda _port: order.append("target") or target,
+			),
+			self.assertRaisesRegex(LoaderError, "operation.cancelled"),
+		):
+			launcher.launchOperation(Channel.STABLE, cancelEvent, lambda _state: None)
+
+		self.assertEqual(order, ["announcement", "target"])
+		self.assertEqual(processes.call_count, 2)
+		self.assertEqual(cancelEvent.waits, [launcher._ANNOUNCEMENT_POLL_INTERVAL] * 2)
+
 	def test_normal_package_exit_finishes_without_reconnect(self) -> None:
 		lease = MagicMock()
 		lease.owned = False
@@ -242,6 +382,11 @@ class LauncherLifecycleTests(unittest.TestCase):
 				"_waitForInitialAttachment",
 				return_value=(MagicMock(), session, {"readyStateAtInstall": "complete"}, lambda: None),
 			),
+			patch.object(
+				launcher,
+				"_forwardCompanionAnnouncements",
+				side_effect=LoaderError("cdp.closed"),
+			),
 			patch.object(launcher, "reconnect") as reconnect,
 		):
 			result = launcher.launchOperation(Channel.STABLE, _CancelEvent(), states.append)
@@ -275,8 +420,9 @@ class LauncherLifecycleTests(unittest.TestCase):
 			patch.object(
 				launcher,
 				"findRunningPackageProcesses",
-				side_effect=[(), (41,), (41,), (41,), ()],
+				side_effect=[(), (41,), (41,), ()],
 			),
+			patch.object(launcher, "_TARGET_HEALTH_INTERVAL", 0.0),
 			patch.object(launcher, "reserveLoopbackPort", return_value=12345),
 			patch.object(launcher, "RegistryLease", return_value=lease),
 			patch.object(launcher, "activateAumid"),
@@ -298,6 +444,11 @@ class LauncherLifecycleTests(unittest.TestCase):
 				launcher,
 				"_connectAndInstall",
 				return_value=(replacementSession, {"state": "ready"}, replacementUnregister),
+			),
+			patch.object(
+				launcher,
+				"_forwardCompanionAnnouncements",
+				side_effect=[None, LoaderError("cdp.closed")],
 			),
 			patch.object(launcher, "reconnect", side_effect=reconnectOnce),
 		):

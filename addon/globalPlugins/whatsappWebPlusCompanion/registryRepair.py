@@ -4,12 +4,11 @@ import ctypes
 import hashlib
 import json
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from ctypes import wintypes
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Mapping
 
 try:
 	from logHandler import log
@@ -23,8 +22,8 @@ from .policy import CHANNELS
 from .registry import (
 	RegistryApi,
 	WinRegistry,
-	_acquireRegistryMutex,
-	_releaseRegistryMutex,
+	acquireRegistryMutex,
+	releaseRegistryMutex,
 	recoverPendingRegistryState,
 )
 from .registryJournal import JournalError, RegistryJournal, currentUserSid
@@ -113,7 +112,7 @@ class _FILETIME(ctypes.Structure):
 
 def tryAcquireRegistryMutex() -> int | None:
 	try:
-		return _acquireRegistryMutex()
+		return acquireRegistryMutex()
 	except LoaderError as error:
 		if error.code == "registry.mutex.busy":
 			return None
@@ -127,12 +126,15 @@ def diagnoseRegistryPermissions(
 	tryAcquireMutex: Callable[[], int | None],
 	releaseMutex: Callable[[int], None],
 	whatsappRunning: Callable[[], bool],
+	isCancelled: Callable[[], bool] = lambda: False,
 ) -> RegistryPermissionStatus:
 	"""Read-only diagnosis of the fixed per-user WebView2 policy leaf.
 
 	Never writes, deletes, or probes a Registry value. Only access denied on
 	the exact leaf is classified as repairable.
 	"""
+	if isCancelled():
+		raise LoaderError("operation.cancelled")
 	if probe.secureDesktop or probe.locked or not probe.canWrite or probe.elevated:
 		return RegistryPermissionStatus.UNSUPPORTED
 	if whatsappRunning():
@@ -141,9 +143,13 @@ def diagnoseRegistryPermissions(
 	if handle is None:
 		return RegistryPermissionStatus.BUSY
 	try:
+		if isCancelled():
+			raise LoaderError("operation.cancelled")
 		machineError = ""
 		try:
 			for channel in CHANNELS.values():
+				if isCancelled():
+					raise LoaderError("operation.cancelled")
 				if registry.readMachinePolicy(channel.aumid) is not None:
 					return RegistryPermissionStatus.MACHINE_POLICY
 			if registry.readMachinePolicy("*") is not None:
@@ -153,14 +159,17 @@ def diagnoseRegistryPermissions(
 			# denial; the repair only touches HKCU. Surface the machine error
 			# only when the user key does not already decide the outcome.
 			machineError = error.code
-			log.warning("WhatsApp Web Plus Companion machine policy probe: code=%s", error.code)
+			log.warning("WhatsApp Companion machine policy probe: code=%s", error.code)
 		try:
-			key = registry.openOrCreateUserLeaf()
-			registry.closeUserLeaf(key)
+			if isCancelled():
+				raise LoaderError("operation.cancelled")
+			key = registry.openUserLeafReadOnly()
+			if key is not None:
+				registry.closeUserLeaf(key)
 		except LoaderError as error:
-			if error.code == "registry.user.openCreateAccessDenied":
+			if error.code == "registry.user.openAccessDenied":
 				return RegistryPermissionStatus.REPAIRABLE_ACCESS_DENIED
-			log.warning("WhatsApp Web Plus Companion user leaf probe: code=%s", error.code)
+			log.warning("WhatsApp Companion user leaf probe: code=%s", error.code)
 			if machineError:
 				raise LoaderError(machineError, "stage=diagnosis.machine")
 			return RegistryPermissionStatus.MANAGED_OR_UNKNOWN
@@ -324,7 +333,7 @@ def _postcheckLeafUsable(registry: RegistryApi) -> bool:
 		key = registry.openOrCreateUserLeaf()
 		registry.closeUserLeaf(key)
 	except LoaderError as error:
-		log.warning("WhatsApp Web Plus Companion repair postcheck: code=%s", error.code)
+		log.warning("WhatsApp Companion repair postcheck: code=%s", error.code)
 		return False
 	return True
 
@@ -346,7 +355,7 @@ def _recoverJournalAfterRepair() -> str:
 		code, _detail = recoverPendingRegistryState(WinRegistry(), journal)
 		return code
 	finally:
-		_releaseRegistryMutex(handle)
+		releaseRegistryMutex(handle)
 
 
 def runRegistryRepair(
@@ -360,10 +369,16 @@ def runRegistryRepair(
 ) -> RegistryRepairOutcome:
 	"""Diagnose, elevate the fixed helper, postcheck, and retry journal recovery."""
 	batPath, _ps1Path = verifyHelperIntegrity(helperDir)
-	elevateFn = elevate or (lambda path, ident, owner: elevateHelper(path, ident, hwnd=owner))
+	elevateFn: Callable[[Path, RepairIdentity, int], tuple[int | None, int | None]]
+	if elevate is None:
+
+		def elevateFn(path: Path, ident: RepairIdentity, owner: int, /) -> tuple[int | None, int | None]:
+			return elevateHelper(path, ident, hwnd=owner)
+	else:
+		elevateFn = elevate
 	exitCode, winerror = elevateFn(batPath, identity, hwnd)
 	log.info(
-		"WhatsApp Web Plus Companion registry repair helper exit: code=%s winerror=%s",
+		"WhatsApp Companion registry repair helper exit: code=%s winerror=%s",
 		exitCode,
 		winerror,
 	)

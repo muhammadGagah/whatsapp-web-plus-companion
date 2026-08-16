@@ -1,1 +1,1 @@
-"""Tests for WhatsApp Web Plus Companion."""
+"""Tests for WhatsApp Companion."""

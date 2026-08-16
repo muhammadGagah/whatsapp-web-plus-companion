@@ -1,6 +1,7 @@
 import builtins
 import importlib
 import sys
+import threading
 import time
 import types
 import unittest
@@ -182,6 +183,7 @@ def _installFakeEnvironment() -> None:
 		"gui.message": fakeGuiMessage,
 		"addonHandler": types.SimpleNamespace(initTranslation=lambda: None),
 		"braille": types.SimpleNamespace(handler=types.SimpleNamespace(message=lambda text: None)),
+		"config": types.SimpleNamespace(conf={"braille": {"messageTimeout": 4, "showMessages": 1}}),
 		"globalVars": types.SimpleNamespace(appArgs=types.SimpleNamespace(secure=False)),
 		"globalPluginHandler": fakeGlobalPluginHandler,
 		"logHandler": fakeLogHandler,
@@ -238,6 +240,57 @@ class PluginUiFlowTests(unittest.TestCase):
 		)
 		self.assertEqual(self.plugin.lastResult.code, "registry.repair.notNeeded")
 		self.assertEqual(_FakeNativeDialog.instances, [])
+
+	def test_terminate_cancels_and_reaps_registry_diagnosis_worker_cooperatively(self) -> None:
+		started = threading.Event()
+
+		def waitForCancellation(*_args, **kwargs):
+			started.set()
+			cancelled = kwargs["isCancelled"]
+			for _ in range(1000):
+				if cancelled():
+					raise self.module.LoaderError("operation.cancelled")
+				time.sleep(0.001)
+			raise AssertionError("diagnosis was not cancelled")
+
+		with mock.patch.object(
+			self.module,
+			"diagnoseRegistryPermissions",
+			side_effect=waitForCancellation,
+		):
+			self.plugin._startRegistryDiagnosis()
+			self.assertTrue(started.wait(1))
+			worker = self.plugin._registryDiagnosisWorker
+			self.assertIsNotNone(worker)
+			self.plugin.terminate()
+			worker.join(1)
+
+		self.assertFalse(worker.is_alive())
+		self.assertTrue(self.plugin._registryDiagnosisCancel.is_set())
+
+	def test_renderer_session_change_clears_all_pending_braille(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import OperationResult
+
+		queue = mock.Mock()
+		self.plugin._brailleMessages = queue
+		self.plugin._companionSession = "old-session"
+		self.plugin._companionLastSequence = 7
+		result = OperationResult(
+			True,
+			"companion.invalidate",
+			"companion.invalidate",
+			{
+				"session": "new-session",
+				"generation": 1,
+				"context": "new-session:1",
+				"source": "message-log",
+			},
+		)
+
+		self.assertTrue(self.plugin._applyCompanionInvalidation(result))
+		queue.clearPending.assert_called_once_with()
+		queue.discardPending.assert_not_called()
+		self.assertEqual(self.plugin._companionLastSequence, 0)
 
 	def test_diagnosis_repairable_shows_confirmation_dialog(self) -> None:
 		from globalPlugins.whatsappWebPlusCompanion.registryRepair import RegistryPermissionStatus
@@ -365,6 +418,25 @@ class PluginUiFlowTests(unittest.TestCase):
 			self.plugin._continueRegistryDiagnosisAfterForceClose(generation)
 			self.assertIsNone(self.plugin._registryDiagnosisResumeGeneration)
 			startDiagnosis.assert_called_once_with()
+
+	def test_launch_progress_replaces_stale_last_result_while_whatsapp_is_loading(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import OperationResult
+
+		self.plugin.lastResult = OperationResult(False, "internal.error", "internal.error", {})
+		with mock.patch.object(self.plugin.controller, "start", return_value=True):
+			self.plugin._launch(self.module.Channel.STABLE)
+
+		self.assertEqual(self.plugin.lastResult.code, "operation.loading")
+		self.assertIn(
+			"WhatsApp Stable is still loading with WhatsApp Companion. Please wait.",
+			self.uiMessages,
+		)
+		self.uiMessages.clear()
+		self.plugin.script_reportLastResult(None)
+		self.assertEqual(
+			self.uiMessages,
+			["WhatsApp Stable is still loading with WhatsApp Companion. Please wait."],
+		)
 
 	def test_dead_stale_dialog_is_cleared_and_diagnosis_proceeds(self) -> None:
 		self.plugin._dialog = types.SimpleNamespace(

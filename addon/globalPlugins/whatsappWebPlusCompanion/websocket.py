@@ -69,6 +69,7 @@ def readServerFrame(stream) -> tuple[int, bytes, bool]:
 
 class WebSocket:
 	def __init__(self, sock: socket.socket, stream) -> None:
+		super().__init__()
 		self.sock = sock
 		self.stream = stream
 		self.closed = False
@@ -87,6 +88,7 @@ class WebSocket:
 		):
 			raise LoaderError("websocket.url")
 		key = base64.b64encode(os.urandom(16)).decode("ascii")
+		sock: socket.socket | None = None
 		try:
 			sock = socket.create_connection((LOOPBACK_HOST, parsed.port), timeout=timeout)
 			sock.settimeout(timeout)
@@ -117,13 +119,14 @@ class WebSocket:
 					raise LoaderError("websocket.handshake")
 				headers[name] = value.strip()
 		except LoaderError:
-			if "sock" in locals():
+			if sock is not None:
 				sock.close()
 			raise
 		except (OSError, UnicodeError, ValueError) as error:
-			if "sock" in locals():
+			if sock is not None:
 				sock.close()
 			raise LoaderError("websocket.handshake", type(error).__name__) from error
+		assert sock is not None
 		expected = base64.b64encode(
 			hashlib.sha1((key + _GUID).encode("ascii"), usedforsecurity=False).digest(),
 		).decode("ascii")

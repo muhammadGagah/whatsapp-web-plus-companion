@@ -5,7 +5,7 @@ import re
 import winreg
 from ctypes import wintypes
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import NoReturn, Protocol
 
 from .models import LoaderError
 from .policy import REGISTRY_PATH, ChannelPolicy
@@ -23,7 +23,7 @@ _ACCESS_DENIED_WINERROR = 5
 _SUPPORTED_VALUE_TYPES = frozenset({winreg.REG_SZ, winreg.REG_EXPAND_SZ})
 
 
-def _raiseStageError(stage: str, error: OSError) -> None:
+def _raiseStageError(stage: str, error: OSError) -> NoReturn:
 	winerror = getattr(error, "winerror", None)
 	# winreg reports ERROR_ACCESS_DENIED through winerror; some Python paths
 	# surface EACCES through errno only. Both mean the same user-visible denial.
@@ -35,7 +35,7 @@ def _raiseStageError(stage: str, error: OSError) -> None:
 	raise LoaderError(code, f"stage={stage};winerror={winerror}")
 
 
-def _acquireRegistryMutex() -> int:
+def acquireRegistryMutex() -> int:
 	kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 	createMutex = kernel32.CreateMutexW
 	createMutex.argtypes = (wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR)
@@ -66,7 +66,7 @@ def _acquireRegistryMutex() -> int:
 	return int(handle)
 
 
-def _releaseRegistryMutex(handle: int) -> None:
+def releaseRegistryMutex(handle: int) -> None:
 	kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 	releaseMutex = kernel32.ReleaseMutex
 	releaseMutex.argtypes = (wintypes.HANDLE,)
@@ -92,6 +92,10 @@ class RegistryApi(Protocol):
 	def readUserValue(self, valueName: str) -> RegistryValue | None: ...
 
 	def openOrCreateUserLeaf(self, stage: str = "user.openCreate") -> object: ...
+
+	def openUserLeafReadOnly(self, stage: str = "user.open") -> object | None: ...
+
+	def closeUserLeaf(self, key: object) -> None: ...
 
 	def setUserValue(
 		self,
@@ -140,7 +144,8 @@ class RegistryLease:
 		if self.owned:
 			raise LoaderError("registry.alreadyOwned")
 		if isinstance(self.registry, WinRegistry):
-			self._mutexHandle = _acquireRegistryMutex()
+			self._mutexHandle = acquireRegistryMutex()
+		mutationAttempted = False
 		try:
 			self._checkMachinePolicy()
 			self.prior = self.registry.readUserValue(self.policy.aumid)
@@ -160,6 +165,10 @@ class RegistryLease:
 					"registry.recovery.unreadable",
 					f"stage=journal.prepare;code={error.code}",
 				) from error
+			# Treat the write as possibly committed even when the API raises. A
+			# provider can fail after changing the live value, so every path from
+			# here must compare-and-restore before releasing the mutex.
+			mutationAttempted = True
 			self._writeValue(
 				self.policy.aumid,
 				temporary,
@@ -175,8 +184,26 @@ class RegistryLease:
 					"registry.recovery.unreadable",
 					f"stage=journal.apply;code={error.code}",
 				) from error
-		except Exception:
+		except Exception as acquireError:
+			rollbackError: Exception | None = None
+			if mutationAttempted:
+				try:
+					self._restoreValue()
+				except Exception as error:
+					rollbackError = error
 			self._releaseMutex()
+			if rollbackError is not None:
+				if isinstance(rollbackError, LoaderError):
+					raise rollbackError from acquireError
+				if isinstance(rollbackError, JournalError):
+					raise LoaderError(
+						"registry.recovery.unreadable",
+						f"stage=journal.rollback;code={rollbackError.code}",
+					) from acquireError
+				raise LoaderError(
+					"registry.restore.verifyMismatch",
+					"stage=acquire.rollback",
+				) from rollbackError
 			raise
 		self.owned = True
 
@@ -250,7 +277,7 @@ class RegistryLease:
 	def _releaseMutex(self) -> None:
 		if self._mutexHandle is None:
 			return
-		_releaseRegistryMutex(self._mutexHandle)
+		releaseRegistryMutex(self._mutexHandle)
 		self._mutexHandle = None
 
 	def __enter__(self) -> RegistryLease:
@@ -285,7 +312,7 @@ class WinRegistry:
 	def readUserValue(self, valueName: str) -> RegistryValue | None:
 		return self._read(winreg.HKEY_CURRENT_USER, valueName, "user.read")
 
-	def openOrCreateUserLeaf(self, stage: str = "user.openCreate") -> int:
+	def openOrCreateUserLeaf(self, stage: str = "user.openCreate") -> winreg.HKEYType:
 		try:
 			return winreg.CreateKeyEx(
 				winreg.HKEY_CURRENT_USER,
@@ -293,6 +320,19 @@ class WinRegistry:
 				0,
 				winreg.KEY_QUERY_VALUE | winreg.KEY_SET_VALUE,
 			)
+		except OSError as error:
+			_raiseStageError(stage, error)
+
+	def openUserLeafReadOnly(self, stage: str = "user.open") -> winreg.HKEYType | None:
+		try:
+			return winreg.OpenKey(
+				winreg.HKEY_CURRENT_USER,
+				REGISTRY_PATH,
+				0,
+				winreg.KEY_QUERY_VALUE | winreg.KEY_SET_VALUE,
+			)
+		except FileNotFoundError:
+			return None
 		except OSError as error:
 			_raiseStageError(stage, error)
 
@@ -324,6 +364,7 @@ class WinRegistry:
 
 class MemoryRegistry:
 	def __init__(self, prior: RegistryValue | None = None, machinePolicy: bool = False) -> None:
+		super().__init__()
 		self.current = prior
 		self.machinePolicy = machinePolicy
 
@@ -334,6 +375,9 @@ class MemoryRegistry:
 		return self.current
 
 	def openOrCreateUserLeaf(self, stage: str = "user.openCreate") -> object:
+		return object()
+
+	def openUserLeafReadOnly(self, stage: str = "user.open") -> object | None:
 		return object()
 
 	def closeUserLeaf(self, key: object) -> None:

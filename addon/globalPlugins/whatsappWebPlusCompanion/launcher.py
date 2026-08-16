@@ -28,7 +28,7 @@ from .processes import collectProcessTopology, validateListener
 from .registry import (
 	RegistryLease,
 	WinRegistry,
-	_releaseRegistryMutex,
+	releaseRegistryMutex,
 	recoverPendingRegistryState,
 )
 from .registryJournal import JournalError, RegistryJournal, newOperationId
@@ -41,7 +41,8 @@ GateCallback = Callable[[str], None]
 RegisterCloser = Callable[[Callable[[], None]], Callable[[], None]]
 ReportCallback = Callable[[OperationResult], bool | None]
 
-_ANNOUNCEMENT_POLL_INTERVAL = 0.25
+_ANNOUNCEMENT_POLL_INTERVAL = 0.1
+_TARGET_HEALTH_INTERVAL = 1.0
 
 _TRANSIENT_INITIAL_ATTACH_ERRORS = frozenset(
 	{
@@ -75,7 +76,7 @@ def _raiseBundleInstallError(bundle: object, error: LoaderError) -> None:
 		digest = getattr(bundle, "sha256", "")
 		quarantined = quarantineUpdatedBundle(digest)
 		log.warning(
-			"WhatsApp Web Plus Companion update health failure: code=%s quarantined=%s",
+			"WhatsApp Companion update health failure: code=%s quarantined=%s",
 			error.code,
 			quarantined,
 		)
@@ -102,6 +103,12 @@ def _forwardCompanionAnnouncements(
 		state.generation,
 	)
 	sessionChanged = bool(state.sessionToken) and batch.sessionToken != state.sessionToken
+	if sessionChanged:
+		# The first read used the previous renderer's cursor. Sequence numbers
+		# restart in a replacement renderer, so read again from zero before any
+		# entry can be filtered or acknowledged under the new session identity.
+		batch = readCompanionAnnouncements(session, 0, 0)
+		sessionChanged = batch.sessionToken != state.sessionToken
 	contextChanged = (
 		not state.sessionToken
 		or sessionChanged
@@ -166,6 +173,9 @@ def _forwardCompanionAnnouncements(
 		):
 			return
 		state.lastAcknowledgedSequence = announcement.sequence
+	# Entries omitted by the bridge/parser have either been invalidated or
+	# intentionally rejected. Advance past them only after every report above
+	# succeeded, otherwise an invalidated tail can trigger overflow forever.
 	state.lastAcknowledgedSequence = max(state.lastAcknowledgedSequence, batch.latestSequence)
 
 
@@ -254,9 +264,9 @@ def _recoverPendingRegistryState() -> None:
 		raise LoaderError("registry.mutex.busy", "stage=recovery.mutex")
 	try:
 		code, detail = recoverPendingRegistryState(registry, journal)
-		log.info("WhatsApp Web Plus Companion registry recovery: code=%s detail=%s", code, detail)
+		log.info("WhatsApp Companion registry recovery: code=%s detail=%s", code, detail)
 	finally:
-		_releaseRegistryMutex(handle)
+		releaseRegistryMutex(handle)
 
 
 def _connectAndInstall(
@@ -376,7 +386,7 @@ def launchOperation(
 		bundle = selectEmbeddedBundle()
 		setState(OperationState.ATTACHING)
 		try:
-			target, session, health, unregisterSession = _waitForInitialAttachment(
+			target, session, _health, unregisterSession = _waitForInitialAttachment(
 				port,
 				target,
 				bundle.source,
@@ -396,19 +406,16 @@ def launchOperation(
 			return OperationResult(True, "attached", "active", {"channel": channel.value})
 
 		announcementState = _AnnouncementState()
+		nextTargetHealthCheck = time.monotonic() + _TARGET_HEALTH_INTERVAL
 		while not cancelEvent.wait(_ANNOUNCEMENT_POLL_INTERVAL):
-			if not findRunningPackageProcesses(package):
-				return OperationResult(
-					True,
-					"package.closed",
-					"package.closed",
-					{"channel": channel.value},
-				)
 			try:
-				current = _discoverTarget(port)
-				if current.id != target.id:
-					raise LoaderError("target.replaced")
 				_forwardCompanionAnnouncements(session, announcementState, reportObserver)
+				now = time.monotonic()
+				if now >= nextTargetHealthCheck:
+					current = _discoverTarget(port)
+					nextTargetHealthCheck = now + _TARGET_HEALTH_INTERVAL
+					if current.id != target.id:
+						raise LoaderError("target.replaced")
 			except LoaderError:
 				if not findRunningPackageProcesses(package):
 					return OperationResult(
@@ -436,11 +443,12 @@ def launchOperation(
 						),
 					)
 
-				target, session, health, unregisterSession = reconnect(
+				target, session, _health, unregisterSession = reconnect(
 					lambda: _discoverTarget(port),
 					connect,
 					cancelEvent,
 				)
+				nextTargetHealthCheck = time.monotonic() + _TARGET_HEALTH_INTERVAL
 				gateObserver("pageReady")
 				setState(OperationState.ATTACHED)
 		raise LoaderError("operation.cancelled")

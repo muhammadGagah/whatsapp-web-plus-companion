@@ -1,4 +1,4 @@
-# WhatsApp Web Plus Companion — agent guide
+# WhatsApp Companion — agent guide
 
 This repository contains the NVDA companion add-on. The maintained JavaScript
 source lives in the sibling `whatsapp-web-plus` repository. The embedded bundle
@@ -12,9 +12,12 @@ and brailles, whether commands remain usable in speech On-demand mode, and
 where keyboard focus lands. Never perform blocking network, process, registry,
 or Chrome DevTools Protocol work on NVDA's GUI thread.
 
-Use **WhatsApp Web Plus Companion** for the add-on, manifest, Input Gestures
-category, commands, lifecycle messages, and help. Use **WhatsApp Web Plus
-userscript** only for the embedded upstream JavaScript project.
+Use **WhatsApp Companion** for every user-visible add-on name: the manifest,
+Input Gestures category, commands, lifecycle messages, and help. Keep the
+published repository name, package filename, source directory, and
+`addon_name="whatsappWebPlusCompanion"` unchanged so existing installations
+continue to upgrade in place. Use **WhatsApp Web Plus userscript** only for the
+embedded upstream JavaScript project.
 
 ## Repository layout
 

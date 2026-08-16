@@ -1,5 +1,6 @@
 import json
 import subprocess
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -15,12 +16,37 @@ from globalPlugins.whatsappWebPlusCompanion.packages import (
 	forceClosePackageProcesses,
 	resolvePackage,
 	runPowerShell,
+	runPowerShellCancellable,
 )
 from globalPlugins.whatsappWebPlusCompanion.policy import CHANNELS
 from globalPlugins.whatsappWebPlusCompanion.processes import Listener, validateListener
 
 
 class PackageProcessTests(unittest.TestCase):
+	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.Popen")
+	def test_cancellable_power_shell_kills_child_when_diagnosis_stops(self, popen) -> None:
+		class Process:
+			returncode = None
+
+			def __init__(self) -> None:
+				self.killed = False
+
+			def kill(self) -> None:
+				self.killed = True
+
+			def communicate(self, timeout=None):
+				return "", ""
+
+		process = Process()
+		popen.return_value = process
+		cancel = threading.Event()
+		cancel.set()
+
+		with self.assertRaisesRegex(LoaderError, "operation.cancelled"):
+			runPowerShellCancellable("Get-AppxPackage", cancel)
+
+		self.assertTrue(process.killed)
+
 	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.run")
 	def test_power_shell_does_not_inherit_nvda_stdin(self, run) -> None:
 		run.return_value = subprocess.CompletedProcess([], 0, "[]", "")

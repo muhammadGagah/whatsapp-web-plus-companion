@@ -35,6 +35,7 @@ class Controller:
 		forceCloseOperation: ForceCloseOperation | None = None,
 		launchNotify: LaunchNotify | None = None,
 	) -> None:
+		super().__init__()
 		self.operation = operation
 		self.notify = notify
 		self.forceCloseOperation = forceCloseOperation
@@ -158,13 +159,13 @@ class Controller:
 			result = run()
 		except LoaderError as error:
 			log.warning(
-				"WhatsApp Web Plus Companion registry repair failed: code=%s detail=%s",
+				"WhatsApp Companion registry repair failed: code=%s detail=%s",
 				error.code,
 				error.safeDetail,
 			)
 			result = OperationResult(False, error.code, error.code, dict(error.values))
 		except Exception:
-			log.exception("Unexpected WhatsApp Web Plus Companion registry repair failure")
+			log.exception("Unexpected WhatsApp Companion registry repair failure")
 			result = OperationResult(False, "internal.error", "internal.error", {})
 		with self.lock:
 			stopping = not self.accepting
@@ -184,13 +185,13 @@ class Controller:
 			)
 		except LoaderError as error:
 			log.warning(
-				"WhatsApp Web Plus Companion launch failed: code=%s detail=%s",
+				"WhatsApp Companion launch failed: code=%s detail=%s",
 				error.code,
 				error.safeDetail,
 			)
 			result = OperationResult(False, error.code, error.code, dict(error.values))
 		except Exception:
-			log.exception("Unexpected WhatsApp Web Plus Companion launch failure")
+			log.exception("Unexpected WhatsApp Companion launch failure")
 			result = OperationResult(False, "internal.error", "internal.error", {})
 		with self.lock:
 			stopping = not self.accepting
@@ -261,14 +262,14 @@ class Controller:
 			)
 		except LoaderError as error:
 			log.warning(
-				"WhatsApp Web Plus Companion force close failed: code=%s detail=%s",
+				"WhatsApp Companion force close failed: code=%s detail=%s",
 				error.code,
 				error.safeDetail,
 			)
 			messageKey = "processes.context" if error.code.startswith("security.") else "processes.failed"
 			result = OperationResult(False, error.code, messageKey, dict(error.values))
 		except Exception:
-			log.exception("Unexpected WhatsApp Web Plus Companion force close failure")
+			log.exception("Unexpected WhatsApp Companion force close failure")
 			result = OperationResult(False, "internal.error", "processes.failed", {})
 		with self.lock:
 			stopping = not self.accepting
@@ -281,7 +282,7 @@ class Controller:
 				try:
 					onComplete(result)
 				except Exception:
-					log.exception("Unexpected WhatsApp Web Plus Companion force-close completion failure")
+					log.exception("Unexpected WhatsApp Companion force-close completion failure")
 
 	def stop(self) -> None:
 		with self.lock:

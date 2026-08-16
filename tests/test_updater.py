@@ -432,7 +432,7 @@ class UpdaterTests(unittest.TestCase):
 			self.assertEqual(source.encode(), newPackagedPayload)
 
 	def test_bundled_version_is_read_from_packaged_metadata(self) -> None:
-		self.assertEqual(updater.loadBundledVersion(), "2.6.74")
+		self.assertEqual(updater.loadBundledVersion(), "2.6.76")
 
 
 if __name__ == "__main__":

@@ -19,6 +19,7 @@ class CompanionMenu:
 		helpText: str,
 		sections: Sequence[Sequence[MenuSpec]],
 	) -> None:
+		super().__init__()
 		mainFrame = gui.mainFrame
 		if mainFrame is None:
 			raise RuntimeError("NVDA main frame is not available")

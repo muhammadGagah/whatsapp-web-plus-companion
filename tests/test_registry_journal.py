@@ -1,6 +1,10 @@
 import json
+import pathlib
+import sys
+import types
 import unittest
 from dataclasses import asdict
+from unittest import mock
 
 from _path import installPackagePath
 
@@ -11,6 +15,7 @@ from globalPlugins.whatsappWebPlusCompanion.registryJournal import (
 	JournalError,
 	RegistryJournal,
 	_parseEntry,
+	defaultJournalPath,
 )
 
 
@@ -64,6 +69,39 @@ def _entry(**overrides) -> JournalEntry:
 
 
 class RegistryJournalTests(unittest.TestCase):
+	def test_default_path_uses_nvda_write_paths_config_directory(self) -> None:
+		with mock.patch.dict(
+			sys.modules,
+			{
+				"NVDAState": types.SimpleNamespace(
+					WritePaths=types.SimpleNamespace(configDir="X:/portable/userConfig"),
+				),
+			},
+		):
+			path = defaultJournalPath()
+
+		self.assertEqual(
+			path,
+			pathlib.Path("X:/portable/userConfig/whatsappWebPlusCompanion/registry-recovery.bin"),
+		)
+
+	def test_default_path_falls_back_to_active_legacy_config_path(self) -> None:
+		with mock.patch.dict(
+			sys.modules,
+			{
+				"NVDAState": types.SimpleNamespace(),
+				"globalVars": types.SimpleNamespace(
+					appArgs=types.SimpleNamespace(configPath="Y:/custom-nvda"),
+				),
+			},
+		):
+			path = defaultJournalPath()
+
+		self.assertEqual(
+			path,
+			pathlib.Path("Y:/custom-nvda/whatsappWebPlusCompanion/registry-recovery.bin"),
+		)
+
 	def test_prepared_and_applied_phases_round_trip(self) -> None:
 		storage = _MemoryStorage()
 		journal = _MemoryJournal("S-1-5-21-test", storage)

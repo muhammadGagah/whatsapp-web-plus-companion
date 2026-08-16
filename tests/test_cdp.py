@@ -73,10 +73,43 @@ class CancelAfterOneReadinessCheck:
 		return self.waits > 1
 
 
+def semanticHealth(**overrides) -> dict:
+	checks = {
+		"settingsMenu": "pass",
+		"statusRegion": "pass",
+		"messageLog": "pass",
+		"messageGrid": "notApplicable",
+		"messageGridName": "notApplicable",
+		"messageGridTabStop": "notApplicable",
+		"messageGridFocusTarget": "notApplicable",
+		"messageInput": "notApplicable",
+		"messageInputName": "notApplicable",
+		"messageInputFocusTarget": "notApplicable",
+	}
+	checks.update(overrides.pop("checks", {}))
+	value = {
+		"contractVersion": 1,
+		"overall": "pass",
+		"checks": checks,
+		"errorCode": "",
+	}
+	value.update(overrides)
+	return value
+
+
 class HealthSession:
-	def __init__(self, version: str = "2.6.73") -> None:
+	def __init__(
+		self,
+		version: str = "2.6.73",
+		semantic: dict | None = None,
+		postInstallSemantic: bool = True,
+		postInstallBridge: int = 2,
+	) -> None:
 		self.version = version
 		self.activated = False
+		self.semantic = semantic or semanticHealth()
+		self.postInstallSemantic = postInstallSemantic
+		self.postInstallBridge = postInstallBridge
 
 	def readiness(self, state: str = "ready") -> dict:
 		return {
@@ -136,6 +169,7 @@ class HealthSession:
 									"statusRegion": True,
 									"messageLog": True,
 								},
+								"semanticHealth": self.semantic,
 								"errorCode": "",
 							}
 							if self.activated
@@ -147,7 +181,15 @@ class HealthSession:
 				},
 			}
 		if expression.startswith("({bridgeContractVersion:"):
-			return {"result": {"value": {"bridgeContractVersion": 2, "chatListReady": True}}}
+			return {
+				"result": {
+					"value": {
+						"bridgeContractVersion": self.postInstallBridge,
+						"chatListReady": True,
+						"semanticNodesReady": self.postInstallSemantic,
+					},
+				},
+			}
 		if "const gate = globalThis.__whatsappWebPlusCompanionReadiness" in expression:
 
 			def activate():
@@ -167,6 +209,36 @@ class HealthSession:
 class WaitingHealthSession(HealthSession):
 	def readiness(self, state: str = "waiting") -> dict:
 		return super().readiness("waiting")
+
+
+class StaleHealthWhileWaitingSession(WaitingHealthSession):
+	def __init__(self) -> None:
+		super().__init__()
+		self.activated = True
+
+
+class PostInstallChatListSession(HealthSession):
+	def __init__(self, states: tuple[bool, ...]) -> None:
+		super().__init__()
+		self.states = states
+		self.postInstallChecks = 0
+
+	def request(
+		self,
+		method: str,
+		params: dict,
+		deadline: float = 5.0,
+		*,
+		cancelEvent: object | None = None,
+	) -> dict:
+		response = super().request(method, params, deadline, cancelEvent=cancelEvent)
+		if method == "Runtime.evaluate" and params["expression"].startswith(
+			"({bridgeContractVersion:",
+		):
+			index = min(self.postInstallChecks, len(self.states) - 1)
+			response["result"]["value"]["chatListReady"] = self.states[index]
+			self.postInstallChecks += 1
+		return response
 
 
 class NeverHealthySession(HealthSession):
@@ -222,6 +294,18 @@ class CancelDuringReadyStatusSession(HealthSession):
 		if method == "Runtime.evaluate" and params["expression"].startswith("({health:"):
 			self.cancelEvent.set()
 		return response
+
+
+class CancelAfterTwoStatusChecks:
+	def __init__(self) -> None:
+		self.waits = 0
+
+	def is_set(self) -> bool:
+		return False
+
+	def wait(self, timeout: float) -> bool:
+		self.waits += 1
+		return self.waits > 2
 
 
 class PauseBeforeSubmissionEvent(CancellationEvent):
@@ -312,12 +396,105 @@ class CdpTests(unittest.TestCase):
 		)
 		self.assertEqual(identifier, "registered")
 		self.assertEqual(health["readyStateAtInstall"], "complete")
+		self.assertEqual(health["semanticHealth"], semanticHealth())
+
+	def test_semantic_health_failures_wait_for_recovery_then_time_out(self) -> None:
+		failing = semanticHealth(
+			overall="fail",
+			checks={"messageInputName": "fail"},
+			errorCode="semantic.messageInputName",
+		)
+		with self.assertRaisesRegex(LoaderError, "bundle.healthTimeout"):
+			installAndVerify(
+				HealthSession(semantic=failing),
+				"window.loaded=true;",
+				"2.6.73",
+				"a" * 64,
+				ImmediateCancel(),
+				healthDeadline=0.001,
+			)
+
+	def test_malformed_or_privacy_expanding_semantic_health_is_rejected(self) -> None:
+		for malformed in (
+			semanticHealth(contractVersion=2),
+			semanticHealth(messageText="must not cross the contract"),
+			semanticHealth(overall="pass", checks={"messageInputName": "fail"}),
+			semanticHealth(overall="fail", checks={"messageInputName": "fail"}, errorCode="raw DOM"),
+		):
+			with (
+				self.subTest(malformed=malformed),
+				self.assertRaisesRegex(
+					LoaderError,
+					"bundle.healthMismatch",
+				),
+			):
+				installAndVerify(
+					HealthSession(semantic=malformed),
+					"window.loaded=true;",
+					"2.6.73",
+					"a" * 64,
+					ImmediateCancel(),
+					healthDeadline=0.001,
+				)
+
+	def test_post_install_bridge_and_semantic_nodes_are_rechecked(self) -> None:
+		for session in (
+			HealthSession(postInstallSemantic=False),
+			HealthSession(postInstallBridge=1),
+		):
+			with (
+				self.subTest(session=session),
+				self.assertRaisesRegex(
+					LoaderError,
+					"bundle.healthMismatch",
+				),
+			):
+				installAndVerify(
+					session,
+					"window.loaded=true;",
+					"2.6.73",
+					"a" * 64,
+					ImmediateCancel(),
+					healthDeadline=0.001,
+				)
+
+	def test_post_install_chat_list_loading_recovers_without_bundle_failure(self) -> None:
+		session = PostInstallChatListSession((False, True))
+		health, identifier = installAndVerify(
+			session,
+			"window.loaded=true;",
+			"2.6.73",
+			"a" * 64,
+			ImmediateCancel(),
+			healthDeadline=0.001,
+		)
+
+		self.assertEqual(health["state"], "ready")
+		self.assertEqual(identifier, "registered")
+		self.assertEqual(session.postInstallChecks, 2)
+
+	def test_post_install_chat_list_loading_remains_cancellable(self) -> None:
+		session = PostInstallChatListSession((False,))
+		with self.assertRaisesRegex(LoaderError, "operation.cancelled"):
+			installAndVerify(
+				session,
+				"window.loaded=true;",
+				"2.6.73",
+				"a" * 64,
+				CancelAfterTwoStatusChecks(),
+				healthDeadline=0.001,
+			)
+		self.assertEqual(session.postInstallChecks, 1)
 
 	def test_readiness_gate_does_not_inject_until_whatsapp_shell_is_stable(self) -> None:
 		sources = json.dumps(
 			{
 				"readiness": makeReadinessWrapper("a" * 64),
-				"injection": makeInjectionWrapper("window.loaded=true;", "a" * 64),
+				"injection": makeInjectionWrapper(
+					"window.loaded=true; if (globalThis.replaceDuringInjection) { side=makeSide(); "
+					"globalThis.replaceDuringInjection=false; }",
+					"a" * 64,
+				),
 			},
 		)
 		harness = textwrap.dedent(
@@ -396,8 +573,15 @@ class CdpTests(unittest.TestCase):
 			const afterReplacement = {state: globalThis.__whatsappWebPlusCompanionReadiness.state,
 				loaded: Boolean(window.loaded), activated: staleActivation};
 			while (frames.length) frames.shift()();
+			globalThis.replaceDuringInjection = true;
+			const midInjectionActivation = eval(sources.injection);
+			const afterMidInjectionReplacement = {
+				state: globalThis.__whatsappWebPlusCompanionReadiness.state,
+				loaded: Boolean(window.loaded), activated: midInjectionActivation};
+			while (frames.length) frames.shift()();
 			const activation = eval(sources.injection);
-			console.log(JSON.stringify({before, genericGrid, waitingFinished, afterReplacement, activation,
+			console.log(JSON.stringify({before, genericGrid, waitingFinished, afterReplacement,
+				afterMidInjectionReplacement, activation,
 				loaded: Boolean(window.loaded), bridge: globalThis.__whatsappWebPlusCompanionBridge?.contractVersion,
 				finalState: globalThis.__whatsappWebPlusCompanionReadiness.state,
 				attributeFilter: readinessObserverOptions?.attributeFilter || []}));
@@ -415,6 +599,10 @@ class CdpTests(unittest.TestCase):
 		self.assertEqual(value["genericGrid"], {"state": "waiting", "loaded": False})
 		self.assertEqual(value["waitingFinished"], {"state": "ready", "loaded": False})
 		self.assertEqual(value["afterReplacement"], {"state": "waiting", "loaded": False, "activated": False})
+		self.assertEqual(
+			value["afterMidInjectionReplacement"],
+			{"state": "waiting", "loaded": True, "activated": False},
+		)
 		self.assertTrue(value["activation"])
 		self.assertTrue(value["loaded"])
 		self.assertEqual(value["bridge"], 2)
@@ -440,6 +628,17 @@ class CdpTests(unittest.TestCase):
 				"2.6.73",
 				"a" * 64,
 				CancelAfterOneReadinessCheck(),
+			)
+
+	def test_stale_ready_health_during_renderer_loading_is_not_a_terminal_mismatch(self) -> None:
+		with self.assertRaisesRegex(LoaderError, "operation.cancelled"):
+			installAndVerify(
+				StaleHealthWhileWaitingSession(),
+				"window.loaded=true;",
+				"2.6.73",
+				"a" * 64,
+				CancelAfterOneReadinessCheck(),
+				healthDeadline=0.001,
 			)
 
 	def test_health_deadline_starts_after_injection_and_times_out_missing_health(self) -> None:
@@ -574,6 +773,49 @@ class CdpTests(unittest.TestCase):
 		self.assertEqual(len(batch.entries[0].text), 1800)
 		self.assertTrue(batch.entries[0].text.endswith("…"))
 
+	def test_entries_from_a_stale_session_or_context_are_not_delivered(self) -> None:
+		batch = readCompanionAnnouncements(
+			AnnouncementSession(
+				announcementBatch(
+					[
+						{
+							"sequence": 1,
+							"generation": 3,
+							"sessionToken": "session-1",
+							"context": "chat-old",
+							"source": "status",
+							"language": "en",
+							"privacy": False,
+							"text": "Old chat",
+						},
+						{
+							"sequence": 2,
+							"generation": 3,
+							"sessionToken": "session-old",
+							"context": "chat-current",
+							"source": "status",
+							"language": "en",
+							"privacy": False,
+							"text": "Old renderer",
+						},
+						{
+							"sequence": 3,
+							"generation": 3,
+							"sessionToken": "session-1",
+							"context": "chat-current",
+							"source": "status",
+							"language": "en",
+							"privacy": False,
+							"text": "Current chat",
+						},
+					],
+					context="chat-current",
+				),
+			),
+		)
+
+		self.assertEqual([entry.text for entry in batch.entries], ["Current chat"])
+
 	def test_bridge_mutations_publish_metadata_and_privacy_change_invalidates_before_delivery(self) -> None:
 		harness = textwrap.dedent(
 			r"""
@@ -617,8 +859,16 @@ class CdpTests(unittest.TestCase):
 			log.parentElement = root;
 			alert.parentElement = root;
 			customAlert.parentElement = root;
+			let language = 'id';
 			let privacy = 'false';
-			global.localStorage = { getItem: () => privacy };
+			global.localStorage = {
+				getItem(key) {
+					if (key === 'wa-plus-language') return language;
+					if (key === 'wa-plus-privacy') return privacy;
+					return null;
+				}
+			};
+			global.crypto = require('node:crypto').webcrypto;
 			global.document = {
 				documentElement: root,
 				querySelector(selector) {
@@ -635,17 +885,39 @@ class CdpTests(unittest.TestCase):
 			eval(source);
 			const bridge = global.__whatsappWebPlusCompanionBridge;
 			if (!bridge || bridge.contractVersion !== 2) throw new Error('missing bridge v2');
+			const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+			const startup = bridge.readSince(0, 0);
+			if (!uuidPattern.test(startup.sessionToken) || !uuidPattern.test(startup.context)) {
+				throw new Error('secure tokens');
+			}
+			if (startup.sessionToken === startup.context) throw new Error('token collision');
 			status.textContent = 'Pesan status';
 			observerCallback([{ target: status, addedNodes: [] }]);
 			const first = bridge.readSince(0, 1);
 			if (first.entries.length !== 1 || first.entries[0].source !== 'status') throw new Error('status');
 			if (first.entries[0].language !== 'id' || first.entries[0].privacy !== false) throw new Error('metadata');
+			if (first.entries[0].sessionToken !== first.sessionToken || first.entries[0].context !== first.context) {
+				throw new Error('entry tokens');
+			}
 			title.textContent = 'Chat B';
 			const chatInvalidated = bridge.readSince(first.latestSequence, first.generation);
 			if (!chatInvalidated.invalidated || chatInvalidated.entries.length !== 0) throw new Error('chat invalidation');
+			if (chatInvalidated.lastInvalidation !== 'chat-context-changed' ||
+				chatInvalidated.context === first.context || chatInvalidated.context.includes('Chat')) {
+				throw new Error('chat context token');
+			}
+			language = 'en';
+			const languageInvalidated = bridge.readSince(first.latestSequence, chatInvalidated.generation);
+			if (!languageInvalidated.invalidated || languageInvalidated.entries.length !== 0 ||
+				languageInvalidated.lastInvalidation !== 'language-changed' ||
+				languageInvalidated.context === chatInvalidated.context) {
+				throw new Error('language invalidation');
+			}
 			privacy = 'true';
-			const invalidated = bridge.readSince(first.latestSequence, chatInvalidated.generation);
+			const invalidated = bridge.readSince(first.latestSequence, languageInvalidated.generation);
 			if (!invalidated.invalidated || invalidated.entries.length !== 0) throw new Error('privacy invalidation');
+			if (invalidated.lastInvalidation !== 'privacy-changed' ||
+				invalidated.context === languageInvalidated.context) throw new Error('privacy context token');
 			alert.textContent = 'Pengaturan tidak dapat disimpan.';
 			observerCallback([{ target: alert, addedNodes: [] }]);
 			const alertBatch = bridge.readSince(first.latestSequence, invalidated.generation);
@@ -671,3 +943,41 @@ class CdpTests(unittest.TestCase):
 			check=False,
 		)
 		self.assertEqual(completed.returncode, 0, completed.stderr)
+		self.assertNotIn("Math.random", _COMPANION_BRIDGE_SOURCE)
+
+	def test_scoped_invalidation_retains_other_source_from_prior_generation(self) -> None:
+		batch = readCompanionAnnouncements(
+			AnnouncementSession(
+				announcementBatch(
+					[
+						{
+							"sequence": 7,
+							"generation": 2,
+							"source": "status",
+							"language": "id",
+							"privacy": False,
+							"text": "Status tetap berlaku",
+						},
+						{
+							"sequence": 8,
+							"generation": 2,
+							"source": "message-log",
+							"language": "id",
+							"privacy": False,
+							"text": "Log lama",
+						},
+					],
+					generation=3,
+					context="session-1:3",
+					invalidated=True,
+					lastInvalidation="message-log-reset",
+					invalidatedSource="message-log",
+				),
+			),
+			0,
+			2,
+		)
+
+		self.assertEqual([entry.text for entry in batch.entries], ["Status tetap berlaku"])
+		self.assertEqual(batch.entries[0].generation, 3)
+		self.assertEqual(batch.entries[0].context, "session-1:3")
