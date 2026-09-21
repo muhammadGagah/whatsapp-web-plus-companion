@@ -97,7 +97,7 @@ class Controller:
 
 	def registerCloser(self, closer: Callable[[], None]) -> Callable[[], None]:
 		with self.lock:
-			if not self.accepting:
+			if not self.accepting or self.cancelEvent.is_set():
 				closer()
 				return lambda: None
 			self.closers.append(closer)
@@ -242,7 +242,21 @@ class Controller:
 			with contextlib.suppress(Exception):
 				closer()
 		if launchWorker is not None and launchWorker is not threading.current_thread():
-			launchWorker.join()
+			launchWorker.join(timeout=5.0)
+			if launchWorker.is_alive():
+				# Do not kill the app or start another Registry lease while cleanup still owns it.
+				with self.lock:
+					self.forceCloseWorker = None
+					accepting = self.accepting
+				if accepting:
+					result = OperationResult(False, "registry.busy", "registry.busy", {})
+					self.notify(result)
+					if onComplete is not None:
+						try:
+							onComplete(result)
+						except Exception:
+							log.exception("Unexpected WhatsApp Companion force-close completion failure")
+				return
 		with self.lock:
 			if not self.accepting:
 				if self.forceCloseWorker is threading.current_thread():

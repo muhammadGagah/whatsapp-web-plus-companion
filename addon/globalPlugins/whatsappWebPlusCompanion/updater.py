@@ -13,14 +13,19 @@ from urllib import request
 from .bundle import (
 	SCRIPT_DOWNLOAD_URL,
 	SCRIPT_METADATA_URL,
+	SIGNED_MANIFEST_SIGNATURE_URL,
+	SIGNED_MANIFEST_URL,
+	TRUST_STORE,
 	UPDATE_MANIFEST,
 	loadEmbeddedBundle,
 	loadPackagedBundle,
 	selectEmbeddedBundle,
+	resourcesPath,
 	updateStoreLock,
 	updateStorePath,
 	updateAssetName,
 )
+from .updateSignature import SignedManifestError, SignedRelease, verifySignedManifest
 
 
 _MAX_METADATA_BYTES = 16 * 1024
@@ -52,6 +57,7 @@ class UpdateCheckResult:
 	latestVersion: str = ""
 	errorCode: str = ""
 	contentChanged: bool = False
+	latestSequence: int = 0
 
 
 class UpdateCheckError(RuntimeError):
@@ -151,6 +157,35 @@ def fetchLatestVersion(
 	)
 
 
+def fetchSignedRelease(
+	opener: Any | None = None,
+	cancelEvent: threading.Event | None = None,
+	*,
+	resources: Path | None = None,
+) -> SignedRelease:
+	httpOpener = opener if opener is not None else _opener()
+	manifestBytes = _readBounded(
+		httpOpener,
+		SIGNED_MANIFEST_URL,
+		_MAX_METADATA_BYTES,
+		cancelEvent,
+	)
+	signatureBytes = _readBounded(
+		httpOpener,
+		SIGNED_MANIFEST_SIGNATURE_URL,
+		256,
+		cancelEvent,
+	)
+	try:
+		return verifySignedManifest(
+			manifestBytes,
+			signatureBytes,
+			(resources if resources is not None else resourcesPath()) / TRUST_STORE,
+		)
+	except SignedManifestError as error:
+		raise UpdateCheckError(error.code) from error
+
+
 def _directives(source: str) -> dict[str, list[str]]:
 	start = source.find("// ==UserScript==")
 	end = source.find("// ==/UserScript==")
@@ -194,6 +229,25 @@ def fetchScript(
 		cancelEvent,
 	)
 	_source, digest = validateDownloadedScript(payload, expectedVersion)
+	return payload, digest
+
+
+def fetchReleaseScript(
+	release: SignedRelease,
+	opener: Any | None = None,
+	cancelEvent: threading.Event | None = None,
+) -> tuple[bytes, str]:
+	payload = _readBounded(
+		opener if opener is not None else _opener(),
+		release.downloadUrl,
+		_MAX_SCRIPT_BYTES,
+		cancelEvent,
+	)
+	if len(payload) != release.bytes:
+		raise UpdateCheckError("assetMismatch")
+	_source, digest = validateDownloadedScript(payload, release.version)
+	if digest != release.sha256:
+		raise UpdateCheckError("assetMismatch")
 	return payload, digest
 
 
@@ -242,18 +296,18 @@ def _atomicWrite(path: Path, payload: bytes) -> None:
 
 def installDownloadedBundle(
 	payload: bytes,
-	version: str,
-	digest: str,
+	release: SignedRelease,
 	*,
 	resources: Path | None = None,
 	updateStore: Path | None = None,
 	cancelEvent: threading.Event | None = None,
 	expectedCurrentVersion: str | None = None,
 	expectedCurrentDigest: str | None = None,
+	expectedCurrentSequence: int | None = None,
 ) -> bool:
-	_source, actualDigest = validateDownloadedScript(payload, version)
-	if actualDigest != digest:
-		raise UpdateCheckError("validation")
+	_source, actualDigest = validateDownloadedScript(payload, release.version)
+	if actualDigest != release.sha256 or len(payload) != release.bytes:
+		raise UpdateCheckError("assetMismatch")
 	root = updateStore if updateStore is not None else updateStorePath()
 	if root is None:
 		raise UpdateCheckError("save")
@@ -261,21 +315,25 @@ def installDownloadedBundle(
 		root.mkdir(parents=True, exist_ok=True)
 	except OSError as error:
 		raise UpdateCheckError("save") from error
-	if expectedCurrentVersion is None or expectedCurrentDigest is None:
+	if expectedCurrentVersion is None or expectedCurrentDigest is None or expectedCurrentSequence is None:
 		try:
 			expected = selectEmbeddedBundle(resources, root)
 		except Exception as error:
 			raise UpdateCheckError("validation") from error
 		expectedCurrentVersion = expected.version
 		expectedCurrentDigest = expected.sha256
-	assetName = updateAssetName(digest)
+		expectedCurrentSequence = expected.releaseSequence
+	assetName = updateAssetName(release.sha256)
 	manifest = {
-		"schemaVersion": 1,
+		"schemaVersion": 2,
 		"asset": assetName,
-		"version": version,
-		"sha256": digest,
+		"version": release.version,
+		"sha256": release.sha256,
 		"bytes": len(payload),
-		"source": SCRIPT_DOWNLOAD_URL,
+		"source": release.downloadUrl,
+		"releaseSequence": release.releaseSequence,
+		"keyId": release.keyId,
+		"signedManifestSha256": release.manifestSha256,
 	}
 	try:
 		_packagedSource, _packagedVersion, packagedDigest = loadPackagedBundle(resources)
@@ -287,14 +345,13 @@ def installDownloadedBundle(
 			if cancelEvent is not None and cancelEvent.is_set():
 				raise UpdateCheckError("cancelled")
 			selected = selectEmbeddedBundle(resources, root)
-			candidateComparison = compareVersions(version, selected.version)
-			if candidateComparison < 0 or (
-				candidateComparison == 0
-				and (
-					selected.sha256 == digest
-					or selected.version != expectedCurrentVersion
-					or selected.sha256 != expectedCurrentDigest
-				)
+			candidateComparison = compareVersions(release.version, selected.version)
+			if (
+				release.releaseSequence <= selected.releaseSequence
+				or candidateComparison < 0
+				or selected.version != expectedCurrentVersion
+				or selected.sha256 != expectedCurrentDigest
+				or selected.releaseSequence != expectedCurrentSequence
 			):
 				return False
 			_atomicWrite(root / assetName, payload)
@@ -316,7 +373,7 @@ def installDownloadedBundle(
 			else:
 				verificationError = (
 					None
-					if installedVersion == version and installedDigest == digest
+					if installedVersion == release.version and installedDigest == release.sha256
 					else UpdateCheckError("save")
 				)
 			if verificationError is not None:
@@ -345,33 +402,61 @@ def checkForUpdate(
 ) -> UpdateCheckResult:
 	currentVersion = ""
 	try:
-		currentVersion, currentDigest = loadBundledIdentity(resources, updateStore)
+		try:
+			current = selectEmbeddedBundle(resources, updateStore)
+		except Exception as error:
+			raise UpdateCheckError("validation") from error
+		currentVersion = current.version
+		currentDigest = current.sha256
 		httpOpener = opener if opener is not None else _opener()
-		latestVersion = fetchLatestVersion(httpOpener, cancelEvent)
-		comparison = compareVersions(latestVersion, currentVersion)
+		release = fetchSignedRelease(httpOpener, cancelEvent, resources=resources)
+		if release.releaseSequence < current.releaseSequence:
+			raise UpdateCheckError("replay")
+		if release.releaseSequence == current.releaseSequence:
+			if (
+				release.version == current.version
+				and release.sha256 == current.sha256
+				and release.keyId == current.keyId
+				and (
+					current.signedManifestSha256 is None
+					or release.manifestSha256 == current.signedManifestSha256
+				)
+			):
+				return UpdateCheckResult(
+					UpdateStatus.CURRENT,
+					currentVersion,
+					release.version,
+					latestSequence=release.releaseSequence,
+				)
+			raise UpdateCheckError("replay")
+		comparison = compareVersions(release.version, currentVersion)
 		if comparison < 0:
-			return UpdateCheckResult(UpdateStatus.CURRENT, currentVersion, latestVersion)
-		payload, digest = fetchScript(latestVersion, httpOpener, cancelEvent)
-		if comparison == 0 and digest == currentDigest:
-			return UpdateCheckResult(UpdateStatus.CURRENT, currentVersion, latestVersion)
+			raise UpdateCheckError("downgrade")
+		payload, _digest = fetchReleaseScript(release, httpOpener, cancelEvent)
 		installed = installDownloadedBundle(
 			payload,
-			latestVersion,
-			digest,
+			release,
 			resources=resources,
 			updateStore=updateStore,
 			cancelEvent=cancelEvent,
 			expectedCurrentVersion=currentVersion,
 			expectedCurrentDigest=currentDigest,
+			expectedCurrentSequence=current.releaseSequence,
 		)
 		if not installed:
 			selectedVersion, _selectedDigest = loadBundledIdentity(resources, updateStore)
-			return UpdateCheckResult(UpdateStatus.CURRENT, selectedVersion, latestVersion)
+			return UpdateCheckResult(
+				UpdateStatus.CURRENT,
+				selectedVersion,
+				release.version,
+				latestSequence=release.releaseSequence,
+			)
 	except UpdateCheckError as error:
 		return UpdateCheckResult(UpdateStatus.ERROR, currentVersion, errorCode=error.code)
 	return UpdateCheckResult(
 		UpdateStatus.UPDATED,
 		currentVersion,
-		latestVersion,
+		release.version,
 		contentChanged=comparison == 0,
+		latestSequence=release.releaseSequence,
 	)

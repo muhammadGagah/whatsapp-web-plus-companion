@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -6,11 +7,23 @@ import threading
 import unittest
 from unittest import mock
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 from _path import installPackagePath
 
 installPackagePath()
 
-from globalPlugins.whatsappWebPlusCompanion import bundle, updater
+from globalPlugins.whatsappWebPlusCompanion import bundle, updater, updateSignature
+
+
+TEST_KEY_ID = "test-ed25519-2026-01"
+BASE_SEQUENCE = 2026082001
+TEST_PRIVATE_KEY = Ed25519PrivateKey.generate()
+TEST_PUBLIC_KEY = TEST_PRIVATE_KEY.public_key().public_bytes(
+	serialization.Encoding.Raw,
+	serialization.PublicFormat.Raw,
+)
 
 
 def userscript(version: str, *, name: str = "WhatsApp Web Plus") -> bytes:
@@ -29,15 +42,79 @@ def userscript(version: str, *, name: str = "WhatsApp Web Plus") -> bytes:
 """.encode()
 
 
-def writePackagedBundle(root: Path, version: str) -> bytes:
+def writePackagedBundle(root: Path, version: str, *, releaseSequence: int = BASE_SEQUENCE) -> bytes:
 	payload = userscript(version)
 	digest = hashlib.sha256(payload).hexdigest()
 	(root / bundle.PACKAGED_ASSET).write_bytes(payload)
 	(root / bundle.PACKAGED_MANIFEST).write_text(
-		json.dumps({"version": version, "sha256": digest, "bytes": len(payload)}),
+		json.dumps(
+			{
+				"version": version,
+				"sha256": digest,
+				"bytes": len(payload),
+				"releaseSequence": releaseSequence,
+				"keyId": TEST_KEY_ID,
+			},
+		),
+		encoding="utf-8",
+	)
+	(root / bundle.TRUST_STORE).write_text(
+		json.dumps(
+			{
+				"schemaVersion": 1,
+				"keys": [
+					{
+						"keyId": TEST_KEY_ID,
+						"algorithm": "Ed25519",
+						"publicKey": base64.b64encode(TEST_PUBLIC_KEY).decode("ascii"),
+						"status": "active",
+						"minimumReleaseSequence": BASE_SEQUENCE,
+						"fingerprint": hashlib.sha256(TEST_PUBLIC_KEY).hexdigest(),
+					},
+				],
+			},
+		),
 		encoding="utf-8",
 	)
 	return payload
+
+
+def releaseForPayload(payload: bytes, version: str, sequence: int) -> updateSignature.SignedRelease:
+	return updateSignature.SignedRelease(
+		keyId=TEST_KEY_ID,
+		releaseSequence=sequence,
+		version=version,
+		downloadUrl=updater.SCRIPT_DOWNLOAD_URL,
+		sha256=hashlib.sha256(payload).hexdigest(),
+		bytes=len(payload),
+		manifestSha256="b" * 64,
+	)
+
+
+def signedRemote(
+	version: str,
+	payload: bytes,
+	sequence: int,
+	*,
+	manifestVersion: str | None = None,
+) -> tuple[bytes, bytes, bytes]:
+	release = releaseForPayload(
+		payload,
+		manifestVersion if manifestVersion is not None else version,
+		sequence,
+	)
+	value = {
+		"schemaVersion": 2,
+		"keyId": release.keyId,
+		"releaseSequence": release.releaseSequence,
+		"version": release.version,
+		"downloadUrl": release.downloadUrl,
+		"sha256": release.sha256,
+		"bytes": release.bytes,
+	}
+	manifest = (f"{json.dumps(value, indent=2)}\n").encode()
+	signature = base64.b64encode(TEST_PRIVATE_KEY.sign(manifest)) + b"\n"
+	return manifest, signature, payload
 
 
 class FakeResponse:
@@ -112,14 +189,21 @@ class UpdaterTests(unittest.TestCase):
 			updater.validateDownloadedScript(missingRunAt, "2.6.75")
 
 	def test_fetch_uses_only_fixed_urls_no_redirects_and_timeout(self) -> None:
-		fakeOpener = FakeOpener(b"// @version 2.6.75\n", userscript("2.6.75"))
-		self.assertEqual(updater.fetchLatestVersion(fakeOpener), "2.6.75")
-		_payload, _digest = updater.fetchScript("2.6.75", fakeOpener)
-		self.assertEqual(
-			[httpRequest.full_url for httpRequest in fakeOpener.requests],
-			[updater.SCRIPT_METADATA_URL, updater.SCRIPT_DOWNLOAD_URL],
-		)
-		self.assertEqual(fakeOpener.timeouts, [updater._REQUEST_TIMEOUT_SECONDS] * 2)
+		with tempfile.TemporaryDirectory() as directory:
+			root = Path(directory)
+			writePackagedBundle(root, "2.6.74")
+			fakeOpener = FakeOpener(*signedRemote("2.6.75", userscript("2.6.75"), BASE_SEQUENCE + 1))
+			release = updater.fetchSignedRelease(fakeOpener, resources=root)
+			_payload, _digest = updater.fetchReleaseScript(release, fakeOpener)
+			self.assertEqual(
+				[httpRequest.full_url for httpRequest in fakeOpener.requests],
+				[
+					updater.SIGNED_MANIFEST_URL,
+					updater.SIGNED_MANIFEST_SIGNATURE_URL,
+					updater.SCRIPT_DOWNLOAD_URL,
+				],
+			)
+		self.assertEqual(fakeOpener.timeouts, [updater._REQUEST_TIMEOUT_SECONDS] * 3)
 		handler = updater._NoRedirectHandler()
 		self.assertIsNone(handler.redirect_request(None, None, 302, "Found", None, "https://example.test"))
 
@@ -151,7 +235,7 @@ class UpdaterTests(unittest.TestCase):
 		with tempfile.TemporaryDirectory() as directory:
 			root = Path(directory)
 			packagedPayload = writePackagedBundle(root, "2.6.74")
-			opener = FakeOpener(b"// @version 2.6.74\n", packagedPayload)
+			opener = FakeOpener(*signedRemote("2.6.74", packagedPayload, BASE_SEQUENCE))
 			result = updater.checkForUpdate(resources=root, updateStore=root / "updates", opener=opener)
 		self.assertEqual(result.status, updater.UpdateStatus.CURRENT)
 		self.assertEqual(len(opener.requests), 2)
@@ -161,7 +245,7 @@ class UpdaterTests(unittest.TestCase):
 			root = Path(directory)
 			store = root / "updates"
 			writePackagedBundle(root, "2.6.74")
-			opener = FakeOpener(b"// @version 2.6.75\n", userscript("2.6.75"))
+			opener = FakeOpener(*signedRemote("2.6.75", userscript("2.6.75"), BASE_SEQUENCE + 1))
 			result = updater.checkForUpdate(resources=root, updateStore=store, opener=opener)
 			_source, version, digest = bundle.loadEmbeddedBundle(root, store)
 			manifest = json.loads((store / bundle.UPDATE_MANIFEST).read_text(encoding="utf-8"))
@@ -181,28 +265,27 @@ class UpdaterTests(unittest.TestCase):
 			newerPayload = userscript("2.6.76")
 			newerDigest = hashlib.sha256(newerPayload).hexdigest()
 			stalePayload = userscript("2.6.75")
-			staleDigest = hashlib.sha256(stalePayload).hexdigest()
 
 			self.assertTrue(
 				updater.installDownloadedBundle(
 					newerPayload,
-					"2.6.76",
-					newerDigest,
+					releaseForPayload(newerPayload, "2.6.76", BASE_SEQUENCE + 2),
 					resources=root,
 					updateStore=store,
 					expectedCurrentVersion="2.6.74",
 					expectedCurrentDigest=packagedDigest,
+					expectedCurrentSequence=BASE_SEQUENCE,
 				),
 			)
 			self.assertFalse(
 				updater.installDownloadedBundle(
 					stalePayload,
-					"2.6.75",
-					staleDigest,
+					releaseForPayload(stalePayload, "2.6.75", BASE_SEQUENCE + 1),
 					resources=root,
 					updateStore=store,
 					expectedCurrentVersion="2.6.74",
 					expectedCurrentDigest=packagedDigest,
+					expectedCurrentSequence=BASE_SEQUENCE,
 				),
 			)
 			_source, version, digest = bundle.loadEmbeddedBundle(root, store)
@@ -217,28 +300,27 @@ class UpdaterTests(unittest.TestCase):
 			firstPayload = userscript("2.6.75")
 			firstDigest = hashlib.sha256(firstPayload).hexdigest()
 			stalePayload = firstPayload.replace(b"globalThis.testVersion", b"globalThis.staleVersion")
-			staleDigest = hashlib.sha256(stalePayload).hexdigest()
 
 			self.assertTrue(
 				updater.installDownloadedBundle(
 					firstPayload,
-					"2.6.75",
-					firstDigest,
+					releaseForPayload(firstPayload, "2.6.75", BASE_SEQUENCE + 1),
 					resources=root,
 					updateStore=store,
 					expectedCurrentVersion="2.6.74",
 					expectedCurrentDigest=packagedDigest,
+					expectedCurrentSequence=BASE_SEQUENCE,
 				),
 			)
 			self.assertFalse(
 				updater.installDownloadedBundle(
 					stalePayload,
-					"2.6.75",
-					staleDigest,
+					releaseForPayload(stalePayload, "2.6.75", BASE_SEQUENCE + 1),
 					resources=root,
 					updateStore=store,
 					expectedCurrentVersion="2.6.74",
 					expectedCurrentDigest=packagedDigest,
+					expectedCurrentSequence=BASE_SEQUENCE,
 				),
 			)
 			_source, version, digest = bundle.loadEmbeddedBundle(root, store)
@@ -250,7 +332,7 @@ class UpdaterTests(unittest.TestCase):
 			store = root / "updates"
 			packagedPayload = writePackagedBundle(root, "2.6.74")
 			changedPayload = packagedPayload.replace(b"globalThis.testVersion", b"globalThis.changedVersion")
-			opener = FakeOpener(b"// @version 2.6.74\n", changedPayload)
+			opener = FakeOpener(*signedRemote("2.6.74", changedPayload, BASE_SEQUENCE + 1))
 			result = updater.checkForUpdate(resources=root, updateStore=store, opener=opener)
 			source, version, digest = bundle.loadEmbeddedBundle(root, store)
 
@@ -266,7 +348,14 @@ class UpdaterTests(unittest.TestCase):
 			root = Path(directory)
 			store = root / "updates"
 			writePackagedBundle(root, "2.6.74")
-			opener = FakeOpener(b"// @version 2.6.75\n", userscript("2.6.76"))
+			opener = FakeOpener(
+				*signedRemote(
+					"2.6.76",
+					userscript("2.6.76"),
+					BASE_SEQUENCE + 1,
+					manifestVersion="2.6.75",
+				),
+			)
 			result = updater.checkForUpdate(resources=root, updateStore=store, opener=opener)
 			_source, version, _digest = bundle.loadEmbeddedBundle(root, store)
 			self.assertEqual(result.status, updater.UpdateStatus.ERROR)
@@ -274,17 +363,72 @@ class UpdaterTests(unittest.TestCase):
 			self.assertEqual(version, "2.6.74")
 			self.assertFalse((store / bundle.UPDATE_MANIFEST).exists())
 
+	def test_invalid_signature_never_changes_selected_bundle(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			root = Path(directory)
+			store = root / "updates"
+			writePackagedBundle(root, "2.6.74")
+			manifest, signature, payload = signedRemote(
+				"2.6.75",
+				userscript("2.6.75"),
+				BASE_SEQUENCE + 1,
+			)
+			changedSignature = bytearray(signature)
+			changedSignature[3] = ord("A") if changedSignature[3] != ord("A") else ord("B")
+			result = updater.checkForUpdate(
+				resources=root,
+				updateStore=store,
+				opener=FakeOpener(manifest, bytes(changedSignature), payload),
+			)
+			self.assertEqual(result.status, updater.UpdateStatus.ERROR)
+			self.assertEqual(result.errorCode, "signatureInvalid")
+			self.assertEqual(bundle.selectEmbeddedBundle(root, store).version, "2.6.74")
+			self.assertFalse((store / bundle.UPDATE_MANIFEST).exists())
+
+	def test_replayed_signed_release_is_rejected_before_asset_download(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			root = Path(directory)
+			store = root / "updates"
+			writePackagedBundle(root, "2.6.76", releaseSequence=BASE_SEQUENCE + 2)
+			opener = FakeOpener(*signedRemote("2.6.75", userscript("2.6.75"), BASE_SEQUENCE + 1))
+			result = updater.checkForUpdate(resources=root, updateStore=store, opener=opener)
+			self.assertEqual(result.status, updater.UpdateStatus.ERROR)
+			self.assertEqual(result.errorCode, "replay")
+			self.assertEqual(len(opener.requests), 2)
+			self.assertFalse((store / bundle.UPDATE_MANIFEST).exists())
+
+	def test_signed_asset_mismatch_never_reaches_installation(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			root = Path(directory)
+			store = root / "updates"
+			writePackagedBundle(root, "2.6.74")
+			manifest, signature, _payload = signedRemote(
+				"2.6.75",
+				userscript("2.6.75"),
+				BASE_SEQUENCE + 1,
+			)
+			wrongPayload = userscript("2.6.75").replace(b"testVersion", b"wrongValue1")
+			result = updater.checkForUpdate(
+				resources=root,
+				updateStore=store,
+				opener=FakeOpener(manifest, signature, wrongPayload),
+			)
+			self.assertEqual(result.status, updater.UpdateStatus.ERROR)
+			self.assertEqual(result.errorCode, "assetMismatch")
+			self.assertFalse((store / bundle.UPDATE_MANIFEST).exists())
+
 	def test_older_remote_version_is_current_and_is_not_downloaded(self) -> None:
 		with tempfile.TemporaryDirectory() as directory:
 			root = Path(directory)
 			store = root / "updates"
 			writePackagedBundle(root, "2.6.74")
-			opener = FakeOpener(b"// @version 2.6.73\n")
+			opener = FakeOpener(*signedRemote("2.6.73", userscript("2.6.73"), BASE_SEQUENCE + 1))
 			result = updater.checkForUpdate(resources=root, updateStore=store, opener=opener)
 			_source, version, _digest = bundle.loadEmbeddedBundle(root, store)
-			self.assertEqual(result.status, updater.UpdateStatus.CURRENT)
-			self.assertEqual(result.latestVersion, "2.6.73")
-			self.assertEqual(len(opener.requests), 1)
+			self.assertEqual(result.status, updater.UpdateStatus.ERROR)
+			self.assertEqual(result.errorCode, "downgrade")
+			self.assertEqual(result.latestVersion, "")
+			self.assertEqual(len(opener.requests), 2)
 			self.assertEqual(version, "2.6.74")
 			self.assertFalse((store / bundle.UPDATE_MANIFEST).exists())
 
@@ -299,8 +443,7 @@ class UpdaterTests(unittest.TestCase):
 			with self.assertRaises(updater.UpdateCheckError) as raised:
 				updater.installDownloadedBundle(
 					payload,
-					"2.6.75",
-					hashlib.sha256(payload).hexdigest(),
+					releaseForPayload(payload, "2.6.75", BASE_SEQUENCE + 1),
 					resources=root,
 					updateStore=store,
 					cancelEvent=cancel,
@@ -318,8 +461,7 @@ class UpdaterTests(unittest.TestCase):
 			_source, digest = updater.validateDownloadedScript(payload, "2.6.75")
 			updater.installDownloadedBundle(
 				payload,
-				"2.6.75",
-				digest,
+				releaseForPayload(payload, "2.6.75", BASE_SEQUENCE + 1),
 				resources=root,
 				updateStore=store,
 			)
@@ -339,8 +481,7 @@ class UpdaterTests(unittest.TestCase):
 			_source, firstDigest = updater.validateDownloadedScript(firstPayload, "2.6.75")
 			updater.installDownloadedBundle(
 				firstPayload,
-				"2.6.75",
-				firstDigest,
+				releaseForPayload(firstPayload, "2.6.75", BASE_SEQUENCE + 1),
 				resources=root,
 				updateStore=store,
 			)
@@ -350,8 +491,7 @@ class UpdaterTests(unittest.TestCase):
 				with self.assertRaises(updater.UpdateCheckError) as raised:
 					updater.installDownloadedBundle(
 						secondPayload,
-						"2.6.76",
-						secondDigest,
+						releaseForPayload(secondPayload, "2.6.76", BASE_SEQUENCE + 2),
 						resources=root,
 						updateStore=store,
 					)
@@ -369,8 +509,7 @@ class UpdaterTests(unittest.TestCase):
 			_source, digest = updater.validateDownloadedScript(payload, "2.6.75")
 			updater.installDownloadedBundle(
 				payload,
-				"2.6.75",
-				digest,
+				releaseForPayload(payload, "2.6.75", BASE_SEQUENCE + 1),
 				resources=root,
 				updateStore=store,
 			)
@@ -397,13 +536,16 @@ class UpdaterTests(unittest.TestCase):
 			(store / bundle.UPDATE_MANIFEST).write_text(
 				json.dumps(
 					{
-						"schemaVersion": 1,
+						"schemaVersion": 2,
 						"asset": assetName,
 						"version": "2.6.75.0",
 						"sha256": digest,
 						"bytes": len(overlayPayload),
 						"source": updater.SCRIPT_DOWNLOAD_URL,
 						"baseSha256": packagedDigest,
+						"releaseSequence": BASE_SEQUENCE + 1,
+						"keyId": TEST_KEY_ID,
+						"signedManifestSha256": "b" * 64,
 					},
 				),
 				encoding="utf-8",
@@ -423,6 +565,8 @@ class UpdaterTests(unittest.TestCase):
 						"version": "2.6.75",
 						"sha256": newPackagedDigest,
 						"bytes": len(newPackagedPayload),
+						"releaseSequence": BASE_SEQUENCE + 2,
+						"keyId": TEST_KEY_ID,
 					},
 				),
 				encoding="utf-8",
@@ -432,7 +576,8 @@ class UpdaterTests(unittest.TestCase):
 			self.assertEqual(source.encode(), newPackagedPayload)
 
 	def test_bundled_version_is_read_from_packaged_metadata(self) -> None:
-		self.assertEqual(updater.loadBundledVersion(), "2.6.76")
+		locked = json.loads((Path(__file__).parents[1] / "upstream.json").read_text(encoding="utf-8"))
+		self.assertEqual(updater.loadBundledVersion(), locked["version"])
 
 
 if __name__ == "__main__":

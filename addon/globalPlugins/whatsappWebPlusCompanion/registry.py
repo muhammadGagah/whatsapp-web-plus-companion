@@ -246,7 +246,6 @@ class RegistryLease:
 	def _restoreValue(self) -> None:
 		current = self.registry.readUserValue(self.policy.aumid)
 		if current == self.prior:
-			# Already at the prior state: consider restoration complete.
 			if self.journal is not None:
 				self.journal.clear()
 			return

@@ -49,7 +49,17 @@ def runPowerShell(script: str) -> str:
 	return completed.stdout
 
 
-def runPowerShellCancellable(script: str, cancelEvent: CancellationEvent) -> str:
+def runPowerShellCancellable(
+	script: str,
+	cancelEvent: CancellationEvent,
+	*,
+	deadline: float | None = None,
+) -> str:
+	if cancelEvent.is_set():
+		raise LoaderError("operation.cancelled")
+	end = min(time.monotonic() + 10, deadline) if deadline is not None else time.monotonic() + 10
+	if time.monotonic() >= end:
+		raise LoaderError("powershell.failed", "timeout")
 	process = subprocess.Popen(
 		["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
 		stdin=subprocess.DEVNULL,
@@ -60,16 +70,13 @@ def runPowerShellCancellable(script: str, cancelEvent: CancellationEvent) -> str
 		errors="strict",
 		creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
 	)
-	deadline = time.monotonic() + 10
 	while True:
 		if cancelEvent.is_set():
-			process.kill()
-			_ = process.communicate()
+			_stopPowerShell(process)
 			raise LoaderError("operation.cancelled")
-		remaining = deadline - time.monotonic()
+		remaining = end - time.monotonic()
 		if remaining <= 0:
-			process.kill()
-			_ = process.communicate()
+			_stopPowerShell(process)
 			raise LoaderError("powershell.failed", "timeout")
 		try:
 			stdout, _stderr = process.communicate(timeout=min(0.1, remaining))
@@ -78,6 +85,21 @@ def runPowerShellCancellable(script: str, cancelEvent: CancellationEvent) -> str
 		if process.returncode:
 			raise LoaderError("powershell.failed", f"exit={process.returncode}")
 		return stdout
+
+
+def _stopPowerShell(process) -> None:
+	try:
+		process.kill()
+	except OSError:
+		pass
+	try:
+		process.communicate(timeout=1.0)
+	except (subprocess.TimeoutExpired, OSError, UnicodeError):
+		# On Windows communicate() uses daemon pipe readers. A descendant may
+		# keep a pipe open after its parent is killed. Closing a buffered stream
+		# here can block on that reader's lock; let the reader close it on EOF.
+		# The operation worker must return even if that OS pipe outlives it.
+		pass
 
 
 def _rows(rawText: str) -> list[object]:

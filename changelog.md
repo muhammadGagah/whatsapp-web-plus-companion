@@ -1,76 +1,38 @@
 # WhatsApp Companion changelog
 
-## 2026.08.16
+## 2026.09.21
 
-* Renamed the user-visible add-on to **WhatsApp Companion** while preserving the
-published package filename, internal add-on ID, source directory, and GitHub
-repository so existing installations continue to upgrade in place. The
-English and Indonesian guides now include the complete WhatsApp keyboard
-shortcut reference directly.
-* Added random per-launch session tokens, per-context nonces, and semantic
-health validation so a replaced WhatsApp renderer cannot reuse stale Companion
-state.
-* Hardened speech and braille announcement invalidation across renderer,
-language, and Privacy Mode changes so stale queued output is not delivered.
-* Updated the verified embedded WhatsApp Web Plus userscript to version 2.6.76.
+### Added
 
-## 2026.08.14
+- Native WhatsApp call shortcuts for answering, declining, camera, microphone,
+  reactions, raising/lowering a hand, screen sharing, and ending calls. Call
+  commands appear in Input Gestures when opened from WhatsApp.
+- A Call control labels menu with English and Indonesian help. Add labels in
+  several languages, one per line, while keeping built-in labels. Settings apply
+  across NVDA profiles and survive add-on updates in the same NVDA configuration.
+- Native NVDA message reading for `Alt+Shift+C`, preserving message paragraphs,
+  lists, safe links, and sent time without opening a desktop browser window.
+- Signed userscript update verification with trusted Ed25519 keys. If
+  verification fails or is unavailable, the existing bundle stays unchanged.
 
-* Simplified the force-close confirmation title and action button so the dialog
-is faster to understand with speech and braille while keeping the safe action
-selected by default.
-* Reworded computer-policy, Registry coordination, force-close, update, and
-permission-request guidance as shorter, more natural sentences in both
-English and Indonesian.
-* Reorganized the English and Indonesian guides around a beginner-friendly
-first-launch workflow, everyday tasks, plain-language explanations, and
-optional technical sections.
+### Improved
 
-## 2026.08.13
+- Recovery from the compact call view when a requested control is unavailable.
+  Once the full call view is restored, press the shortcut again to perform the action.
+- Recognition of reaction and screen-sharing checkbox controls, including call
+  controls while sharing a screen.
+- Delayed command feedback in NVDA speech On-demand mode.
+- Startup recovery when WhatsApp reloads, without duplicate userscript injection
+  into the same document.
+- Permission diagnosis stops when the WhatsApp process state cannot be verified,
+  instead of treating an unknown state as closed.
 
-* The userscript update command now downloads, validates, and atomically selects
-newer official bundles or changed content at the same version for the next
-Companion launch. Store transactions are serialized, failed runtime health
-checks quarantine the downloaded manifest, and the packaged bundle remains a
-verified fallback. The separate browser installer command and confirmation
-flow have been removed.
-* When permission diagnosis finds WhatsApp running, it now offers an accessible
-confirmation to force close Store Stable and Beta processes and continue the
-diagnosis automatically after a verified close.
-* Hardened the WebView2 policy permission repair helper: exact stage error
-codes, real effective-access verification, parent-process identity binding
-through the process token, and diagnostic logging. Any helper failure is
-reported honestly instead of being mistaken for success.
+### Compatibility and bundled script
 
-## 2026.08.12
-
-* Added stage-specific Registry error codes so every failed read, write,
-restore, or mutex operation reports exactly what happened instead of a
-generic restore message.
-* Added a read-only WebView2 policy permission diagnosis and a confirmed
-**Diagnose and repair WebView2 policy permissions** command that requests
-User Account Control approval for a fixed-purpose helper only when needed.
-* Added compare-and-restore lease restoration, a DPAPI-protected recovery
-journal, and pre-launch recovery so a temporary WebView2 value is never
-lost or overwritten after a crash or interrupted restore.
-* Restarting NVDA is no longer suggested as a fix for a permission problem.
-
-## 2026.08.11
-
-* Added runtime compatibility for NVDA 2024.1 through 2026.1, covering Python
-3.11 32-bit and Python 3.13 64-bit NVDA releases.
-* Added separate launch commands for Microsoft Store WhatsApp Stable and Beta.
-* Bundled and verified the WhatsApp Web Plus userscript without downloading or
-executing remote JavaScript at runtime.
-* Added a native WhatsApp Companion submenu under NVDA Tools with the
-same seven actions available in Input Gestures.
-* Added a confirmed command that force closes verified Microsoft Store WhatsApp
-Stable and Beta processes, including instances left running in the background.
-* Added a background metadata-only userscript update check and a separate,
-confirmed action for opening the fixed official browser installer.
-* Added automatic recovery when WhatsApp replaces its renderer.
-* Delayed userscript activation until the WhatsApp document, application shell,
-navigation, and chat list are structurally ready, without using a fixed
-loading delay.
-* Treat normal WhatsApp closure as a clean companion shutdown instead of a connection failure.
-* Added English and Indonesian messages and beginner instructions.
+- Raised the minimum NVDA version to 2025.1 to use its bundled cryptography library
+  for signed updates. The manifest's last-tested version is set to 2026.2.
+- Bundled WhatsApp Web Plus 2.6.83, including text-formatting toolbar navigation,
+  message-reader improvements, corrected media-close feedback, and incoming
+  video-call shortcuts. Companion continues to handle native call-window commands.
+- Moved publisher signing guides into the script repository, with English and
+  Indonesian versions and configurable example paths.

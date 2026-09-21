@@ -33,7 +33,6 @@ REGISTRY_PATH = r"Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArg
 # KEY_QUERY_VALUE | KEY_SET_VALUE: the only rights the Companion needs on the
 # fixed per-user WebView2 policy leaf, and the only rights repair may grant.
 REGISTRY_REQUIRED_RIGHTS = 0x0001 | 0x0002
-# Version of the fixed privileged-helper request protocol (Phase 3+).
 REGISTRY_HELPER_PROTOCOL_VERSION = 1
 ENDPOINT_DEADLINE = 20.0
 TARGET_DEADLINE = 15.0

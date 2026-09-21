@@ -24,6 +24,16 @@ const text = bytes.toString('utf8');
 const version = text.match(/^\/\/ @version\s+(.+)$/m)?.[1];
 const sha256 = createHash('sha256').update(bytes).digest('hex');
 
+if (lock.schemaVersion !== 2 || lock.signedManifestSchemaVersion !== 2) {
+  throw new Error('Upstream lock does not use the signed update manifest protocol');
+}
+if (!Number.isSafeInteger(lock.releaseSequence) || lock.releaseSequence <= 0) {
+  throw new Error('Upstream lock has an invalid release sequence');
+}
+if (!/^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/.test(lock.keyId)) {
+  throw new Error('Upstream lock has an invalid signing key ID');
+}
+
 if (!version) throw new Error('Generated userscript has no @version');
 if (version !== lock.version) {
   throw new Error(`Userscript version ${version} does not match upstream lock ${lock.version}`);
@@ -38,7 +48,9 @@ const metadata = {
   version,
   sha256,
   bytes: bytes.length,
-  upstream: lock.source
+  upstream: lock.source,
+  releaseSequence: lock.releaseSequence,
+  keyId: lock.keyId
 };
 await writeFile(
   resolve(destinationDirectory, 'bundle.json'),

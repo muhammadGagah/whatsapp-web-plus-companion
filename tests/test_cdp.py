@@ -3,6 +3,7 @@ import subprocess
 import textwrap
 import threading
 import unittest
+from unittest.mock import patch
 
 from _path import installPackagePath
 
@@ -10,6 +11,7 @@ installPackagePath()
 
 from globalPlugins.whatsappWebPlusCompanion.cdp import (
 	_COMPANION_BRIDGE_SOURCE,
+	_documentTokenExpression,
 	CdpSession,
 	installAndVerify,
 	makeInjectionWrapper,
@@ -40,10 +42,10 @@ class FakeWebSocket:
 		self.sent: list[dict] = []
 		self.messages = [json.dumps({"id": 1, "result": {"identifier": "x"}})]
 
-	def sendText(self, text: str) -> None:
+	def sendText(self, text: str, *, budget=None) -> None:
 		self.sent.append(json.loads(text))
 
-	def receiveText(self) -> str:
+	def receiveText(self, *, budget=None) -> str:
 		return self.messages.pop(0)
 
 	def close(self) -> None:
@@ -110,6 +112,8 @@ class HealthSession:
 		self.semantic = semantic or semanticHealth()
 		self.postInstallSemantic = postInstallSemantic
 		self.postInstallBridge = postInstallBridge
+		self.documentToken = "1" * 32
+		self.injectionDocuments = []
 
 	def readiness(self, state: str = "ready") -> dict:
 		return {
@@ -148,6 +152,7 @@ class HealthSession:
 						"health": None,
 						"sentinel": None,
 						"readiness": self.readiness(),
+						"documentToken": self.documentToken,
 					},
 				},
 			}
@@ -177,6 +182,7 @@ class HealthSession:
 						),
 						"sentinel": {"contractVersion": 1} if self.activated else None,
 						"readiness": self.readiness(),
+						"documentToken": self.documentToken,
 					},
 				},
 			}
@@ -185,6 +191,7 @@ class HealthSession:
 				"result": {
 					"value": {
 						"bridgeContractVersion": self.postInstallBridge,
+						"documentToken": self.documentToken,
 						"chatListReady": True,
 						"semanticNodesReady": self.postInstallSemantic,
 					},
@@ -194,6 +201,7 @@ class HealthSession:
 
 			def activate():
 				self.activated = True
+				self.injectionDocuments.append(self.documentToken)
 				return {"result": {"value": True}}
 
 			submitUnlessSet = getattr(cancelEvent, "submitUnlessSet", None)
@@ -209,6 +217,31 @@ class HealthSession:
 class WaitingHealthSession(HealthSession):
 	def readiness(self, state: str = "waiting") -> dict:
 		return super().readiness("waiting")
+
+
+class NavigatingHealthSession(HealthSession):
+	def __init__(self, documents: tuple[str, ...]) -> None:
+		super().__init__()
+		self.documents = iter(documents)
+
+	def request(self, method, params, deadline=5.0, *, cancelEvent=None):
+		status = method == "Runtime.evaluate" and params["expression"].startswith("({health:")
+		if status and self.activated:
+			nextDocument = next(self.documents, None)
+			if nextDocument is not None:
+				self.documentToken = nextDocument
+				self.activated = False
+		response = super().request(method, params, deadline, cancelEvent=cancelEvent)
+		return response
+
+
+class AdvancingCancel(ImmediateCancel):
+	def __init__(self):
+		self.now = 0.0
+
+	def wait(self, timeout):
+		self.now += timeout
+		return False
 
 
 class StaleHealthWhileWaitingSession(WaitingHealthSession):
@@ -397,6 +430,120 @@ class CdpTests(unittest.TestCase):
 		self.assertEqual(identifier, "registered")
 		self.assertEqual(health["readyStateAtInstall"], "complete")
 		self.assertEqual(health["semanticHealth"], semanticHealth())
+
+	def test_document_reload_after_injection_installs_once_in_the_new_document(self) -> None:
+		session = NavigatingHealthSession(("2" * 32,))
+		clock = AdvancingCancel()
+		with patch("globalPlugins.whatsappWebPlusCompanion.cdp.time.monotonic", lambda: clock.now):
+			health, _identifier = installAndVerify(
+				session,
+				"window.loaded=true;",
+				"2.6.73",
+				"a" * 64,
+				clock,
+				healthDeadline=1.0,
+			)
+		self.assertEqual(health["state"], "ready")
+		self.assertEqual(session.injectionDocuments, ["1" * 32, "2" * 32])
+
+	def test_missing_health_does_not_reinject_the_same_or_previously_injected_document(self) -> None:
+		for documents, expected in (
+			(("1" * 32,), ["1" * 32]),
+			(("2" * 32, "1" * 32), ["1" * 32, "2" * 32]),
+		):
+			with self.subTest(documents=documents):
+				session = NavigatingHealthSession(documents)
+				clock = AdvancingCancel()
+				with (
+					patch("globalPlugins.whatsappWebPlusCompanion.cdp.time.monotonic", lambda: clock.now),
+					self.assertRaisesRegex(LoaderError, "bundle.healthTimeout"),
+				):
+					installAndVerify(
+						session,
+						"window.loaded=true;",
+						"2.6.73",
+						"a" * 64,
+						clock,
+						healthDeadline=1.0,
+					)
+				self.assertEqual(session.injectionDocuments, expected)
+
+	def test_navigation_between_status_and_injection_or_final_probe_recovers(self) -> None:
+		for boundary in ("injection", "post-install"):
+			with self.subTest(boundary=boundary):
+
+				class BoundarySession(HealthSession):
+					def request(self, method, params, deadline=5.0, *, cancelEvent=None):
+						expression = params.get("expression", "")
+						atBoundary = (
+							"const gate = globalThis.__whatsappWebPlusCompanionReadiness" in expression
+							if boundary == "injection"
+							else expression.startswith("({bridgeContractVersion:")
+						)
+						if atBoundary and self.documentToken == "1" * 32:
+							self.documentToken = "2" * 32
+							self.activated = False
+							if boundary == "injection":
+								return {"result": {"value": False}}
+						return super().request(method, params, deadline, cancelEvent=cancelEvent)
+
+				session = BoundarySession()
+				clock = AdvancingCancel()
+				with patch("globalPlugins.whatsappWebPlusCompanion.cdp.time.monotonic", lambda: clock.now):
+					health, _identifier = installAndVerify(
+						session,
+						"window.loaded=true;",
+						"2.6.73",
+						"a" * 64,
+						clock,
+						healthDeadline=1.0,
+					)
+				self.assertEqual(health["state"], "ready")
+				self.assertEqual(
+					session.injectionDocuments,
+					["2" * 32] if boundary == "injection" else ["1" * 32, "2" * 32],
+				)
+
+	def test_document_identity_survives_health_reset_and_rejects_stale_injection(self) -> None:
+		sources = json.dumps(
+			{
+				"first": _documentTokenExpression(),
+				"second": _documentTokenExpression(),
+				"staleInjection": makeInjectionWrapper(
+					"throw new Error('must not inject');",
+					"a" * 64,
+					"0" * 32,
+				),
+			},
+		)
+		program = (
+			"const sources = "
+			+ sources
+			+ ";"
+			+ textwrap.dedent("""
+			globalThis.window = globalThis;
+			window.top = window;
+			globalThis.location = {origin: 'https://web.whatsapp.com'};
+			globalThis.document = {};
+			const first = eval(sources.first);
+			globalThis.__whatsappWebPlusCompanionReadiness = null;
+			globalThis.__whatsappWebPlusLoaderHealth = null;
+			const same = eval(sources.second);
+			const staleInjection = eval(sources.staleInjection);
+			const descriptor = Object.getOwnPropertyDescriptor(document, '__whatsappWebPlusCompanionDocumentToken');
+			globalThis.document = {};
+			const replacement = eval(sources.second);
+			console.log(JSON.stringify({first, same, replacement, staleInjection,
+				writable: descriptor.writable, configurable: descriptor.configurable}));
+		""")
+		)
+		result = subprocess.run(["node", "-e", program], capture_output=True, text=True, check=True)
+		value = json.loads(result.stdout)
+		self.assertEqual(value["first"], value["same"])
+		self.assertNotEqual(value["first"], value["replacement"])
+		self.assertFalse(value["staleInjection"])
+		self.assertFalse(value["writable"])
+		self.assertFalse(value["configurable"])
 
 	def test_semantic_health_failures_wait_for_recovery_then_time_out(self) -> None:
 		failing = semanticHealth(

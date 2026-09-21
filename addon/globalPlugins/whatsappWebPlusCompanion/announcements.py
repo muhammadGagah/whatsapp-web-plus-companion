@@ -41,9 +41,12 @@ class BrailleMessageQueue:
 		overflowMessage: OverflowMessage | None = None,
 		clearedMessage: ClearedMessage | None = None,
 		enabled: bool | EnabledProvider = True,
+		outputAllowed: EnabledProvider = lambda: True,
 	) -> None:
 		super().__init__()
 		self._showMessage = showMessage
+		self._outputAllowed = outputAllowed
+		self._suppressed = False
 		self._scheduleLater = scheduleLater
 		if callable(dwellMilliseconds):
 			self._getDwellMilliseconds = dwellMilliseconds
@@ -70,7 +73,7 @@ class BrailleMessageQueue:
 		self._disposed = False
 
 	def enqueue(self, message: str, source: str = "") -> None:
-		if self._disposed or not message:
+		if self._disposed or not message or not self._checkOutputAllowed():
 			return
 		if not self._effectiveEnabled():
 			self._disable()
@@ -90,7 +93,7 @@ class BrailleMessageQueue:
 		if not self._waiting:
 			self._showPendingBatch()
 
-	def clearPending(self) -> None:
+	def clearPending(self, *, silent: bool = False) -> None:
 		"""Discard queued and displayed bridge messages across a context boundary."""
 
 		hadOutput = bool(self._current or self._nativeEntries)
@@ -101,7 +104,7 @@ class BrailleMessageQueue:
 		self._nativeEntries.clear()
 		self._nativeSkipped = 0
 		self._waiting = False
-		if hadOutput:
+		if hadOutput and not silent:
 			_ = self._safeShow(self._clearedMessage())
 		self._retryCount = 0
 
@@ -218,7 +221,7 @@ class BrailleMessageQueue:
 		return skipped + 1
 
 	def _showNativeAggregate(self) -> None:
-		if self._disposed:
+		if self._disposed or not self._checkOutputAllowed():
 			return
 		self._stopTimer()
 		self._trimNativeToCharacterLimit()
@@ -228,7 +231,7 @@ class BrailleMessageQueue:
 			self._scheduleNativeRetry()
 
 	def _showPendingBatch(self) -> None:
-		if self._disposed or not self._pending:
+		if self._disposed or not self._checkOutputAllowed() or not self._pending:
 			self._waiting = False
 			return
 		entries: list[tuple[str, str]] = []
@@ -247,6 +250,8 @@ class BrailleMessageQueue:
 				self._pending.appendleft(entry)
 			self._pendingSkipped += skipped
 			self._scheduleRetry()
+			return
+		if self._suppressed:
 			return
 		self._retryCount = 0
 		self._current = entries
@@ -317,7 +322,20 @@ class BrailleMessageQueue:
 			except (AttributeError, RuntimeError):
 				pass
 
+	def _checkOutputAllowed(self) -> bool:
+		try:
+			allowed = self._outputAllowed() is True
+		except Exception:
+			allowed = False
+		self._suppressed = not allowed
+		if not allowed:
+			self._disable()
+		return allowed
+
 	def _safeShow(self, message: str) -> bool:
+		if not self._checkOutputAllowed():
+			# Consumed, not failed: never enqueue a security-suppressed retry.
+			return True
 		try:
 			self._showMessage(message)
 		except Exception:

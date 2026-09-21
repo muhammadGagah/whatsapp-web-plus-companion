@@ -105,10 +105,11 @@ class MenuTests(unittest.TestCase):
 		self.assertTrue(menu._menu.destroyed)
 		self.assertIn(parentItem.Id, self.owner.toolsMenu.removed)
 
-	def test_plugin_menu_has_seven_actions_and_repair_command(self) -> None:
+	def test_plugin_menu_has_eight_actions_including_call_labels(self) -> None:
 		path = pathlib.Path(__file__).parents[1] / "addon/globalPlugins/whatsappWebPlusCompanion/__init__.py"
 		source = path.read_text(encoding="utf-8")
-		self.assertEqual(source.count("MenuSpec("), 7)
+		self.assertEqual(source.count("MenuSpec("), 8)
+		self.assertIn("self._onCallLabelsMenu", source)
 		self.assertIn('_("Diagnose and repair WebView2 &policy permissions...")', source)
 		self.assertIn("self._onDiagnoseRepairMenu", source)
 		self.assertIn('_("&Check for WhatsApp Web Plus userscript updates")', source)

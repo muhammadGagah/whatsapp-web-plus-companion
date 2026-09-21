@@ -1,7 +1,7 @@
 import json
-import socket
 
 from .models import LoaderError
+from .ioDeadline import Deadline, connectLoopback, noopRegister, sendAll, receive
 from .policy import (
 	ALLOWED_HTTP_PATHS,
 	LOOPBACK_HOST,
@@ -45,7 +45,15 @@ def _contentLength(headers: dict[str, str]) -> int:
 	return contentLength
 
 
-def httpGetJson(port: int, path: str, timeout: float = REQUEST_DEADLINE) -> object:
+def httpGetJson(
+	port: int,
+	path: str,
+	timeout: float = REQUEST_DEADLINE,
+	*,
+	cancelEvent=None,
+	registerCloser=noopRegister,
+	deadline: float | None = None,
+) -> object:
 	if path not in ALLOWED_HTTP_PATHS or not 1024 <= port <= 65535:
 		raise LoaderError("http.request")
 	request = (
@@ -54,36 +62,50 @@ def httpGetJson(port: int, path: str, timeout: float = REQUEST_DEADLINE) -> obje
 		"Accept: application/json\r\n"
 		"Connection: close\r\n\r\n"
 	).encode("ascii")
+	budget = Deadline.after(timeout, cancelEvent, deadline)
+	sock = None
+
+	def unregister():
+		return None
+
 	data = bytearray()
 	headerEnd = -1
 	expectedLength: int | None = None
 	try:
-		with socket.create_connection((LOOPBACK_HOST, port), timeout=timeout) as sock:
-			sock.settimeout(timeout)
-			sock.sendall(request)
-			while True:
-				chunk = sock.recv(65536)
-				if not chunk:
+		sock, unregister = connectLoopback(port, budget, registerCloser)
+		sendAll(sock, request, budget)
+		while True:
+			chunk = receive(sock, 65536, budget)
+			if not chunk:
+				break
+			data.extend(chunk)
+			if len(data) > MAX_HTTP_HEADER_BYTES + 4 + MAX_HTTP_BYTES:
+				raise LoaderError("http.tooLarge")
+			if headerEnd < 0:
+				headerEnd = data.find(b"\r\n\r\n")
+				# Keep up to three delimiter bytes when it spans recv() calls.
+				if headerEnd < 0 and len(data) > MAX_HTTP_HEADER_BYTES + 3:
+					raise LoaderError("http.headers")
+				if headerEnd > MAX_HTTP_HEADER_BYTES:
+					raise LoaderError("http.headers")
+				if headerEnd >= 0:
+					_headerStatus, headers = _parseHeaders(bytes(data[:headerEnd]))
+					expectedLength = headerEnd + 4 + _contentLength(headers)
+			if expectedLength is not None:
+				if len(data) > expectedLength:
+					raise LoaderError("http.length")
+				if len(data) == expectedLength:
 					break
-				data.extend(chunk)
-				if len(data) > MAX_HTTP_HEADER_BYTES + MAX_HTTP_BYTES:
-					raise LoaderError("http.tooLarge")
-				if headerEnd < 0:
-					headerEnd = data.find(b"\r\n\r\n")
-					if headerEnd > MAX_HTTP_HEADER_BYTES:
-						raise LoaderError("http.headers")
-					if headerEnd >= 0:
-						_headerStatus, headers = _parseHeaders(bytes(data[:headerEnd]))
-						expectedLength = headerEnd + 4 + _contentLength(headers)
-				if expectedLength is not None:
-					if len(data) > expectedLength:
-						raise LoaderError("http.length")
-					if len(data) == expectedLength:
-						break
 	except LoaderError:
 		raise
 	except (OSError, TimeoutError) as error:
+		if cancelEvent is not None and cancelEvent.is_set():
+			raise LoaderError("operation.cancelled") from error
 		raise LoaderError("http.transport", type(error).__name__) from error
+	finally:
+		if sock is not None:
+			sock.close()
+		unregister()
 
 	headerEnd = data.find(b"\r\n\r\n")
 	if headerEnd < 0 or headerEnd > MAX_HTTP_HEADER_BYTES:
@@ -103,9 +125,11 @@ def httpGetJson(port: int, path: str, timeout: float = REQUEST_DEADLINE) -> obje
 		raise LoaderError("http.json", type(error).__name__) from error
 
 
-def endpointResponds(port: int) -> bool:
+def endpointResponds(port: int, **kwargs) -> bool:
 	try:
-		value = httpGetJson(port, "/json/version", timeout=0.5)
+		value = httpGetJson(port, "/json/version", timeout=0.5, **kwargs)
 		return isinstance(value, dict)
-	except LoaderError:
+	except LoaderError as error:
+		if error.code == "operation.cancelled":
+			raise
 		return False

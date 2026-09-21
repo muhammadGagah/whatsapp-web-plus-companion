@@ -4,21 +4,21 @@
 
 Many NVDA add-ons use the NVDA Add-ons Crowdin project (`nvdaaddons`) to manage translations.
 
-This project allows translators to contribute both interface translations and documentation translations.
+You can contribute translations for both the interface and the documentation.
 
 Translations are synchronized back to add-on repositories through the localization workflow provided by the NVDA Add-on Template.
 
 ## Joining the Translation Community
 
-Before contributing translations, translators are encouraged to subscribe to the NVDA Translations mailing list.
+Before you start translating, consider subscribing to the NVDA Translations mailing list.
 
-The mailing list is the primary place for discussing translation-related topics within the NVDA community.
+It is the main place to discuss translation in the NVDA community.
 
 ## NVDA Translations Mailing List
 
 The NVDA community maintains the NVDA Translations mailing list on Groups.io.
 
-This mailing list is used to:
+Use the mailing list to:
 
 * Discuss translation-related topics.
 * Request access to translation teams.
@@ -26,11 +26,11 @@ This mailing list is used to:
 * Report translation issues.
 * Discuss problems affecting translation tools or workflows.
 
-Translators are encouraged to subscribe to the mailing list:
+You can subscribe at:
 
 https://groups.io/g/nvda-translations
 
-The mailing list is often the best place to ask questions, request access to a translation team, and seek assistance from other translators and project maintainers.
+You can ask questions, request access to a translation team, and get help from other translators and maintainers on the list.
 
 ## Joining the Translation Project
 
@@ -40,23 +40,23 @@ To contribute translations:
 1. Subscribe to the NVDA Translations mailing list.
 1. Request access to the appropriate translation team if necessary.
 1. Join the NVDA Add-ons Crowdin project.
-1. Select the language you wish to translate.
+1. Select the language you want to translate.
 1. Begin translating interface strings and documentation.
 
 ## Translation Methods
 
-Translations can be performed using either the Crowdin web interface or local translation tools.
+You can translate in Crowdin's web interface or use translation tools on your computer.
 
 ### Crowdin Web Editor
 
-Crowdin provides a web-based editor that allows translators to:
+With Crowdin's web editor, you can:
 
 * Translate strings online.
 * Review existing translations.
 * Suggest improvements.
 * Vote on translation proposals.
 
-This method does not require any additional software installation.
+You do not need to install any extra software.
 
 ### Poedit
 
@@ -97,7 +97,7 @@ When translating documentation:
 
 ## Uploading Offline Translations
 
-After translating files locally, they can be uploaded to Crowdin using [l10nUtil.exe](https://github.com/nvaccess/nvdaL10n/releases/latest)
+After translating files on your computer, upload them to Crowdin with [l10nUtil.exe](https://github.com/nvaccess/nvdaL10n/releases/latest).
 
 Examples:
 
@@ -109,7 +109,7 @@ l10nUtil.exe uploadTranslationFile fr addonName.po -c addon
 l10nUtil.exe uploadTranslationFile fr addonName.xliff -c addon
 ```
 
-Where:
+In these examples:
 
 * `fr` is the Crowdin language code.
 * `addonName.po` is a translated interface file.
@@ -156,9 +156,7 @@ The add-on maintainer runs a synchronization workflow that:
 1. Verifies their translation completion percentage.
 1. Synchronizes eligible translations back into the repository.
 
-Depending on the repository configuration, translations may only be synchronized after reaching a minimum completion percentage.
-
-This threshold is controlled by the add-on maintainer.
+The add-on maintainer can set a minimum completion percentage. Translations must reach this threshold before the workflow imports them.
 
 ## Why Has My Translation Not Appeared Yet?
 
@@ -173,7 +171,7 @@ Possible reasons include:
 
 To improve translation quality:
 
-* Maintain consistency with existing terminology.
+* Use existing terminology consistently.
 * Preserve placeholders and formatting.
 * Review existing translations before introducing new terminology.
 * Coordinate with other translators whenever possible.
@@ -185,35 +183,27 @@ If you encounter translation issues:
 
 * Contact the add-on maintainer.
 * Open an issue in the add-on repository if appropriate.
-* Ask for assistance on the NVDA Translations mailing list.
+* Ask for help on the NVDA Translations mailing list.
 * Discuss translation-related issues with the NVDA translation community.
 
 ## Frequently Asked Questions
 
 ### Can I translate both documentation and interface strings?
 
-Yes.
-
-The NVDA Add-ons Crowdin project supports both interface translations (`.po`) and documentation translations (`.xliff`).
+Yes. The NVDA Add-ons Crowdin project supports both interface translations (`.po`) and documentation translations (`.xliff`).
 
 ### Do I need to use the Crowdin web interface?
 
-No.
-
-Many translators work directly in Crowdin, while others prefer to use Poedit and upload their completed translations afterwards using `l10nUtil.exe`.
+No. You can work directly in Crowdin, or use Poedit and upload your completed translations with `l10nUtil.exe`.
 
 Both approaches are supported by the NVDA Add-ons translation workflow.
 
 ### Do I need access to GitHub?
 
-Not necessarily.
+Not necessarily. Most translators use Crowdin or local translation tools with `l10nUtil.exe`.
 
-Most translators work exclusively through Crowdin or through local translation tools combined with `l10nUtil.exe`.
-
-The synchronization workflow is managed by the add-on maintainer and automatically imports translations into GitHub repositories.
+The add-on maintainer manages the workflow that automatically imports translations into GitHub repositories.
 
 ### Can I force synchronization?
 
-No.
-
-Synchronization is controlled by the add-on maintainer through the localization workflow provided by the NVDA Add-on Template.
+No. The add-on maintainer controls synchronization through the localization workflow provided by the NVDA Add-on Template.

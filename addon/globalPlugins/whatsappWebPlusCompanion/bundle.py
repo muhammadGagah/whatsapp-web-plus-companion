@@ -23,6 +23,11 @@ from .models import LoaderError
 
 SCRIPT_METADATA_URL = "https://update.greasyfork.org/scripts/587557/WhatsApp%20Web%20Plus.meta.js"
 SCRIPT_DOWNLOAD_URL = "https://update.greasyfork.org/scripts/587557/WhatsApp%20Web%20Plus.user.js"
+SIGNED_MANIFEST_URL = (
+	"https://raw.githubusercontent.com/muhammadGagah/whatsapp-web-plus/main/update-manifest.json"
+)
+SIGNED_MANIFEST_SIGNATURE_URL = f"{SIGNED_MANIFEST_URL}.sig"
+TRUST_STORE = "update-public-keys.json"
 PACKAGED_ASSET = "whatsapp_web_plus.user.js"
 PACKAGED_MANIFEST = "bundle.json"
 UPDATE_MANIFEST = "bundle-update.json"
@@ -37,6 +42,9 @@ class EmbeddedBundle:
 	version: str
 	sha256: str
 	asset: Path
+	releaseSequence: int
+	keyId: str
+	signedManifestSha256: str | None = None
 	baseSha256: str | None = None
 	isUpdate: bool = False
 
@@ -133,6 +141,9 @@ def _loadCandidate(resources: Path, manifestName: str, *, updated: bool) -> Embe
 	version = metadata.get("version")
 	digest = metadata.get("sha256")
 	byteCount = metadata.get("bytes")
+	releaseSequence = metadata.get("releaseSequence")
+	keyId = metadata.get("keyId")
+	signedManifestSha256 = metadata.get("signedManifestSha256") if updated else None
 	baseDigest = metadata.get("baseSha256") if updated else None
 	if (
 		not isinstance(version, str)
@@ -140,18 +151,25 @@ def _loadCandidate(resources: Path, manifestName: str, *, updated: bool) -> Embe
 		or not isinstance(byteCount, int)
 		or isinstance(byteCount, bool)
 		or not isinstance(assetName, str)
+		or not isinstance(releaseSequence, int)
+		or isinstance(releaseSequence, bool)
+		or releaseSequence <= 0
+		or not isinstance(keyId, str)
+		or re.fullmatch(r"[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?", keyId) is None
 	):
 		raise LoaderError("bundle.integrity")
 	_ = _versionParts(version)
 	if updated:
 		match = _UPDATE_ASSET_PATTERN.fullmatch(assetName)
 		if (
-			metadata.get("schemaVersion") != 1
+			metadata.get("schemaVersion") != 2
 			or metadata.get("source") != SCRIPT_DOWNLOAD_URL
 			or match is None
 			or match.group(1) != digest
 			or not isinstance(baseDigest, str)
 			or re.fullmatch(r"[0-9a-f]{64}", baseDigest) is None
+			or not isinstance(signedManifestSha256, str)
+			or re.fullmatch(r"[0-9a-f]{64}", signedManifestSha256) is None
 		):
 			raise LoaderError("bundle.integrity")
 	elif assetName != PACKAGED_ASSET:
@@ -167,7 +185,17 @@ def _loadCandidate(resources: Path, manifestName: str, *, updated: bool) -> Embe
 		source = sourceBytes.decode("utf-8", "strict")
 	except UnicodeDecodeError as error:
 		raise LoaderError("bundle.encoding") from error
-	return EmbeddedBundle(source, version, digest, resources / assetName, baseDigest, updated)
+	return EmbeddedBundle(
+		source,
+		version,
+		digest,
+		resources / assetName,
+		releaseSequence,
+		keyId,
+		signedManifestSha256,
+		baseDigest,
+		updated,
+	)
 
 
 def loadPackagedBundle(resources: Path | None = None) -> tuple[str, str, str]:

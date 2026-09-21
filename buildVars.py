@@ -10,24 +10,29 @@ addon_info = AddonInfo(
 	addon_name="whatsappWebPlusCompanion",
 	addon_summary=_("WhatsApp Companion"),
 	addon_description=_(
-		"WhatsApp Companion brings fast keyboard navigation and clearer screen-reader feedback from WhatsApp Web Plus to Microsoft Store WhatsApp Stable and Beta. It securely loads a bundled, verified userscript and restores the connection automatically when WhatsApp replaces its renderer.",
+		"WhatsApp Companion makes Microsoft Store WhatsApp Stable and Beta easier to use with NVDA. It brings WhatsApp Web Plus features to the desktop app, with keyboard navigation, message reading, and call controls with customizable labels.",
 	),
-	addon_version="2026.08.16",
+	addon_version="2026.09.21",
 	addon_changelog=_(
-		"Renamed the visible add-on to WhatsApp Companion, added random session tokens, context nonces, and semantic health validation across renderer reloads, hardened stale speech and braille announcement invalidation, and bundled WhatsApp Web Plus 2.6.76.",
+		"You can now control calls with keyboard shortcuts, add call labels in multiple languages, and read messages in NVDA. Startup recovery and spoken feedback are also improved. This release includes WhatsApp Web Plus 2.6.83 and requires NVDA 2025.1 or later.",
 	),
 	addon_author="Muhammad",
 	addon_url="https://github.com/muhammadGagah/whatsapp-web-plus-companion",
 	addon_sourceURL="https://github.com/muhammadGagah/whatsapp-web-plus-companion",
 	addon_docFileName="readme.html",
-	addon_minimumNVDAVersion="2024.1.0",
-	addon_lastTestedNVDAVersion="2026.1.1",
+	addon_minimumNVDAVersion="2025.1",
+	addon_lastTestedNVDAVersion="2026.2",
 	addon_updateChannel=None,
 	addon_license="GPL-2.0",
 	addon_licenseURL="https://www.gnu.org/licenses/gpl-2.0.html",
 )
 
-pythonSources = ["addon/globalPlugins/whatsappWebPlusCompanion/*.py"]
+pythonSources = [
+	"addon/globalPlugins/whatsappWebPlusCompanion/*.py",
+	"addon/appModules/*.py",
+	"addon/appModules/wwpCallSupport/*.py",
+]
+packageResourceSources = ["addon/globalPlugins/whatsappWebPlusCompanion/resources/**/*"]
 i18nSources: list[str] = pythonSources + ["buildVars.py"]
 excludedFiles = ["*.pyc", "__pycache__"]
 baseLanguage: str = "en"

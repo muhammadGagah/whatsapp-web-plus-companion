@@ -1,4 +1,5 @@
 import ctypes
+import threading
 from ctypes import wintypes
 from dataclasses import dataclass
 
@@ -108,3 +109,62 @@ def buildSecurityProbe() -> SecurityProbe:
 		locked=desktopName is not None and desktopName.casefold() != "default",
 		elevated=_isElevated(),
 	)
+
+
+def announcementOutputAllowed() -> bool:
+	"""Fail closed on lock, secure desktop, unknown session state or missing NVDA APIs."""
+	try:
+		import globalVars
+		import NVDAState
+		from utils.security import isRunningOnSecureDesktop
+		from winAPI import sessionTracking
+
+		if globalVars.appArgs.secure or not NVDAState.shouldWriteToDisk() or isRunningOnSecureDesktop():
+			return False
+		if (_inputDesktopName() or "").casefold() != "default":
+			return False
+		# The public predicate intentionally treats an unknown WTS state as unlocked.
+		# Private WhatsApp content needs the stricter result. Both supported NVDA
+		# branches expose this helper; a future incompatible API fails closed.
+		state = sessionTracking._getSessionLockedValue()
+		return int(state) == 1 and not sessionTracking.isLockScreenModeActive()
+	except Exception:
+		return False
+
+
+class AnnouncementGuard:
+	"""Share a security generation across the worker, GUI queue and braille timers."""
+
+	def __init__(self, probe=None):
+		self._probe = probe or announcementOutputAllowed
+		self._lock = threading.RLock()
+		self._blocks = set()
+		self._allowed = None
+		self._epoch = 0
+
+	def setBlocked(self, source: str, blocked: bool) -> None:
+		with self._lock:
+			before = source in self._blocks
+			if blocked:
+				self._blocks.add(source)
+			else:
+				self._blocks.discard(source)
+			if before != blocked:
+				# Invalidate even a short lock/unlock that occurs between worker polls.
+				self._epoch += 1
+				self._allowed = None
+
+	def snapshot(self) -> tuple[bool, int]:
+		with self._lock:
+			try:
+				allowed = not self._blocks and self._probe() is True
+			except Exception:
+				allowed = False
+			if self._allowed is not None and allowed != self._allowed:
+				self._epoch += 1
+			self._allowed = allowed
+			return allowed, self._epoch
+
+	def permits(self, epoch: int | None = None) -> bool:
+		allowed, current = self.snapshot()
+		return allowed and (epoch is None or current == epoch)

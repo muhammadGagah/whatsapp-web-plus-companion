@@ -419,7 +419,7 @@ class ControllerPluginTests(unittest.TestCase):
 			},
 		)
 		self.assertTrue(all("speakOnDemand=True" in item for item in decorators))
-		self.assertTrue(all("gesture=" not in item for item in decorators))
+		self.assertEqual(sum("gesture=" in item for item in decorators), 0)
 		self.assertIn('if result.messageKey == "package.closed":', source)
 		self.assertIn('if result.messageKey != "operation.busy":', source)
 		self.assertIn('if result.messageKey == "companion.announcement":', source)
@@ -427,7 +427,7 @@ class ControllerPluginTests(unittest.TestCase):
 		self.assertIn("LangChangeCommand(language.replace", source)
 		self.assertIn("BrailleMessageQueue(", source)
 		self.assertIn("self._brailleMessages.enqueue(text, source)", source)
-		self.assertIn("completed.wait(_DELIVERY_TIMEOUT)", source)
+		self.assertIn("completed.wait(min(0.05, max(0.0, end - time.monotonic())))", source)
 		self.assertIn("self._updateCancel.set()", source)
 		self.assertIn("if self._disposed:", source)
 		self.assertIn("worker is not self._updateWorker", source)
