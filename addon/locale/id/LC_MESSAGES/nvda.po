@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: whatsappWebPlusCompanion 2026.08.16\n"
-"PO-Revision-Date: 2026-08-16 00:00+0700\n"
+"Project-Id-Version: whatsappWebPlusCompanion 2026.09.21\n"
+"PO-Revision-Date: 2026-09-21 00:00+0700\n"
 "Last-Translator: Muhammad Gagah\n"
 "Language-Team: Indonesian\n"
 "Language: id\n"
@@ -10,185 +10,168 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+#. Translators: Category name shown in NVDA's Input Gestures dialog.
 msgid "WhatsApp Companion"
 msgstr "WhatsApp Companion"
 
-msgid "WhatsApp Companion brings fast keyboard navigation and clearer screen-reader feedback from WhatsApp Web Plus to Microsoft Store WhatsApp Stable and Beta. It securely loads a bundled, verified userscript and restores the connection automatically when WhatsApp replaces its renderer."
-msgstr "WhatsApp Companion menghadirkan navigasi keyboard yang cepat dan informasi pembaca layar yang lebih jelas dari WhatsApp Web Plus ke WhatsApp Stable dan Beta dari Microsoft Store. Add-on ini memuat userscript terverifikasi yang sudah disertakan secara aman dan memulihkan koneksi secara otomatis ketika WhatsApp mengganti renderer."
+msgid "Answer native WhatsApp call"
+msgstr "Jawab panggilan WhatsApp native"
 
-msgid "WhatsApp {channel} is running with WhatsApp Companion."
-msgstr "WhatsApp {channel} berjalan dengan WhatsApp Companion."
+msgid "Decline native WhatsApp call"
+msgstr "Tolak panggilan WhatsApp native"
 
-msgid "WhatsApp Companion is already running. Close WhatsApp first."
-msgstr "WhatsApp Companion sudah berjalan. Tutup WhatsApp terlebih dahulu."
+msgid "The call action could not be confirmed. Check the WhatsApp call window."
+msgstr "Tindakan panggilan tidak dapat dipastikan. Periksa jendela panggilan WhatsApp."
 
-msgid "WhatsApp {channel} was closed. WhatsApp Companion stopped."
-msgstr "WhatsApp {channel} telah ditutup. WhatsApp Companion berhenti."
+msgid "Capture native WhatsApp call diagnostics"
+msgstr "Ambil diagnostik panggilan WhatsApp native"
 
-msgid "WhatsApp is already running. Close it normally and try again."
-msgstr "WhatsApp sudah berjalan. Tutup secara normal lalu coba lagi."
+msgid "Call control mapping is not available yet. No call action was performed."
+msgstr "Pemetaan kontrol panggilan belum tersedia. Tidak ada tindakan pada panggilan yang dilakukan."
 
-msgid "WhatsApp Companion launch was cancelled."
-msgstr "Peluncuran WhatsApp Companion dibatalkan."
+msgid "Call diagnostics are unavailable in this NVDA session."
+msgstr "Diagnostik panggilan tidak tersedia dalam sesi NVDA ini."
 
-msgid "The companion connection was lost. Close WhatsApp, then launch it again."
-msgstr "Koneksi companion terputus. Tutup WhatsApp, lalu luncurkan kembali."
+msgid "Focus the WhatsApp call window before capturing diagnostics."
+msgstr "Fokuskan jendela panggilan WhatsApp sebelum mengambil diagnostik."
 
-msgid "Unlock Windows and run a normal, non-administrator copy of NVDA, then try again."
-msgstr "Buka kunci Windows dan jalankan NVDA normal, bukan sebagai administrator, lalu coba lagi."
+msgid "Call diagnostics could not be captured."
+msgstr "Diagnostik panggilan tidak dapat diambil."
 
-msgid "Install the selected WhatsApp channel from Microsoft Store, then try again."
-msgstr "Pasang kanal WhatsApp yang dipilih dari Microsoft Store, lalu coba lagi."
+msgid "Call diagnostics written to the NVDA log. Call controls were not activated."
+msgstr "Diagnostik panggilan ditulis ke log NVDA. Kontrol panggilan tidak diaktifkan."
 
-msgid "The Companion is still cleaning up after the previous launch. Wait a moment and try again. If the problem continues, restart NVDA."
-msgstr "Companion masih menyelesaikan pembersihan setelah peluncuran sebelumnya. Tunggu sebentar lalu coba lagi. Jika masalah berlanjut, mulai ulang NVDA."
+#, python-brace-format
+msgid "Skipped WhatsApp Web Plus braille announcements: {count}."
+msgstr "Pengumuman braille WhatsApp Web Plus yang dilewati: {count}."
 
-msgid "The temporary WebView2 setting could not be restored. Restart NVDA before trying again."
-msgstr "Pengaturan WebView2 sementara tidak dapat dipulihkan. Mulai ulang NVDA sebelum mencoba lagi."
+msgid "WhatsApp Web Plus announcement cleared."
+msgstr "Pengumuman WhatsApp Web Plus telah dibersihkan."
 
-msgid "WhatsApp opened, but the companion could not connect. Close WhatsApp and try again."
-msgstr "WhatsApp terbuka, tetapi companion tidak dapat tersambung. Tutup WhatsApp lalu coba lagi."
-
-msgid "The bundled WhatsApp Web Plus userscript did not start. Close WhatsApp and try again."
-msgstr "Userscript WhatsApp Web Plus yang disertakan tidak berjalan. Tutup WhatsApp lalu coba lagi."
-
-msgid "The downloaded WhatsApp Web Plus userscript did not start and was disabled. Close WhatsApp, then launch it again through the Companion to use the packaged fallback."
-msgstr "Userscript WhatsApp Web Plus yang diunduh tidak berjalan dan telah dinonaktifkan. Tutup WhatsApp, lalu luncurkan kembali melalui Companion untuk memakai fallback bawaan paket."
-
-msgid "WhatsApp Companion could not start. Close WhatsApp and try again."
-msgstr "WhatsApp Companion tidak dapat dimulai. Tutup WhatsApp lalu coba lagi."
-
-msgid "Beta"
-msgstr "Beta"
-
-msgid "Stable"
-msgstr "Stable"
-
-msgid "Launching WhatsApp {channel} with WhatsApp Companion."
-msgstr "Meluncurkan WhatsApp {channel} dengan WhatsApp Companion."
-
-msgid "WhatsApp {channel} is still loading with WhatsApp Companion. Please wait."
-msgstr "WhatsApp {channel} masih dimuat dengan WhatsApp Companion. Harap tunggu."
-
-msgid "Launch WhatsApp Stable with WhatsApp Companion"
-msgstr "Luncurkan WhatsApp Stable dengan WhatsApp Companion"
-
-msgid "Launch WhatsApp Beta with WhatsApp Companion"
-msgstr "Luncurkan WhatsApp Beta dengan WhatsApp Companion"
-
-msgid "Launch the last selected WhatsApp channel with WhatsApp Companion"
-msgstr "Luncurkan kanal WhatsApp terakhir yang dipilih dengan WhatsApp Companion"
-
-msgid "Report the last WhatsApp Companion result"
-msgstr "Laporkan hasil WhatsApp Companion terakhir"
-
-msgid "No WhatsApp Companion result is available yet."
-msgstr "Belum ada hasil WhatsApp Companion."
-
+#. Translators: Submenu label shown under NVDA's Tools menu.
 msgid "&WhatsApp Companion"
 msgstr "&WhatsApp Companion"
-
-msgid "Launch WhatsApp &Stable with WhatsApp Companion"
-msgstr "Luncurkan WhatsApp &Stable dengan WhatsApp Companion"
-
-msgid "Launch WhatsApp &Beta with WhatsApp Companion"
-msgstr "Luncurkan WhatsApp &Beta dengan WhatsApp Companion"
-
-msgid "Launch the &last selected WhatsApp channel with WhatsApp Companion"
-msgstr "Luncurkan &kanal WhatsApp terakhir yang dipilih dengan WhatsApp Companion"
-
-msgid "&Report the last WhatsApp Companion result"
-msgstr "&Laporkan hasil WhatsApp Companion terakhir"
-
-msgid "&Check for WhatsApp Web Plus userscript updates"
-msgstr "&Periksa pembaruan userscript WhatsApp Web Plus"
-
-msgid "Check for and install WhatsApp Web Plus userscript updates"
-msgstr "Periksa dan pasang pembaruan userscript WhatsApp Web Plus"
-
-msgid "Check for WhatsApp Web Plus userscript updates and automatically install a newer or changed official version in the Companion"
-msgstr "Periksa pembaruan userscript WhatsApp Web Plus dan pasang versi resmi yang lebih baru atau berubah secara otomatis di Companion"
-
-msgid "WhatsApp Web Plus userscript was updated from version {currentVersion} to {latestVersion}. The new version will be used the next time WhatsApp is launched through the Companion."
-msgstr "Userscript WhatsApp Web Plus telah diperbarui dari versi {currentVersion} ke {latestVersion}. Versi baru akan digunakan saat WhatsApp diluncurkan lagi melalui Companion."
-
-msgid "WhatsApp Web Plus userscript was refreshed at version {currentVersion} because the official script differed from the Companion bundle. The refreshed version will be used the next time WhatsApp is launched through the Companion."
-msgstr "Userscript WhatsApp Web Plus telah disegarkan pada versi {currentVersion} karena script resmi berbeda dari bundle Companion. Versi yang disegarkan akan digunakan saat WhatsApp diluncurkan lagi melalui Companion."
-
-msgid "The WhatsApp Web Plus userscript is up to date at version {currentVersion}."
-msgstr "Userscript WhatsApp Web Plus sudah terbaru pada versi {currentVersion}."
-
-msgid "The WhatsApp Web Plus userscript update could not be downloaded. Check your internet connection and try again. The existing Companion bundle was not changed."
-msgstr "Pembaruan userscript WhatsApp Web Plus tidak dapat diunduh. Periksa koneksi internet lalu coba lagi. Bundle Companion yang ada tidak diubah."
-
-msgid "The downloaded WhatsApp Web Plus userscript update could not be verified. The existing Companion bundle was not changed."
-msgstr "Pembaruan userscript WhatsApp Web Plus yang diunduh tidak dapat diverifikasi. Bundle Companion yang ada tidak diubah."
-
-msgid "The verified WhatsApp Web Plus userscript update could not be installed. The existing Companion bundle was not changed."
-msgstr "Pembaruan userscript WhatsApp Web Plus yang telah diverifikasi tidak dapat dipasang. Bundle Companion yang ada tidak diubah."
-
-msgid "The WhatsApp Web Plus userscript could not be updated. The existing Companion bundle was not changed."
-msgstr "Userscript WhatsApp Web Plus tidak dapat diperbarui. Bundle Companion yang ada tidak diubah."
-
-msgid "A WhatsApp Web Plus userscript update check is already in progress."
-msgstr "Pemeriksaan pembaruan userscript WhatsApp Web Plus sedang berlangsung."
-
-msgid "The userscript bundle cannot be updated in this NVDA context. Use a normal NVDA session."
-msgstr "Bundle userscript tidak dapat diperbarui dalam konteks NVDA ini. Gunakan sesi NVDA normal."
-
-msgid "Checking for WhatsApp Web Plus userscript updates. If the official userscript has a newer version or different content, the Companion will download and install it automatically."
-msgstr "Memeriksa pembaruan userscript WhatsApp Web Plus. Jika userscript resmi memiliki versi yang lebih baru atau isi yang berbeda, Companion akan mengunduh dan memasangnya secara otomatis."
-
-msgid "WhatsApp Companion last result"
-msgstr "Hasil terakhir WhatsApp Companion"
-
-msgid "Some WhatsApp Web Plus announcements were skipped while reconnecting."
-msgstr "Beberapa pengumuman WhatsApp Web Plus terlewat saat menyambungkan kembali."
 
 msgid "Launch or force close Microsoft Store WhatsApp, and manage WhatsApp Web Plus userscript updates."
 msgstr "Luncurkan atau tutup paksa WhatsApp dari Microsoft Store, serta kelola pembaruan userscript WhatsApp Web Plus."
 
+#. Translators: Tools submenu command. The ampersand marks the mnemonic.
+msgid "Launch WhatsApp &Stable with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp &Stable dengan WhatsApp Companion"
+
+#. Translators: Command description in NVDA's Input Gestures dialog.
+msgid "Launch WhatsApp Stable with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp Stable dengan WhatsApp Companion"
+
+#. Translators: Tools submenu command. The ampersand marks the mnemonic.
+msgid "Launch WhatsApp &Beta with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp &Beta dengan WhatsApp Companion"
+
+#. Translators: Command description in NVDA's Input Gestures dialog.
+msgid "Launch WhatsApp Beta with WhatsApp Companion"
+msgstr "Luncurkan WhatsApp Beta dengan WhatsApp Companion"
+
+#. Translators: Tools submenu command. The ampersand marks the mnemonic.
+msgid "Launch the &last selected WhatsApp channel with WhatsApp Companion"
+msgstr "Luncurkan &kanal WhatsApp terakhir yang dipilih dengan WhatsApp Companion"
+
+msgid "Launch the last selected WhatsApp channel with WhatsApp Companion"
+msgstr "Luncurkan kanal WhatsApp terakhir yang dipilih dengan WhatsApp Companion"
+
+#. Translators: Destructive Tools submenu command. The ampersand marks the mnemonic.
 msgid "Force close &all Microsoft Store WhatsApp processes..."
 msgstr "Tutup paksa semu&a proses WhatsApp dari Microsoft Store..."
 
 msgid "Force close all running Microsoft Store WhatsApp Stable and Beta processes"
 msgstr "Tutup paksa semua proses WhatsApp Stable dan Beta dari Microsoft Store yang sedang berjalan"
 
+#. Translators: Tools submenu command. The ellipsis is required because activation may show a confirmation dialog.
+msgid "Diagnose and repair WebView2 &policy permissions..."
+msgstr "Diagnosa dan perbaiki &izin kebijakan WebView2..."
+
+msgid "Check the per-user WebView2 policy permissions and offer a repair when the Companion cannot use them"
+msgstr "Periksa izin kebijakan WebView2 per pengguna dan tawarkan perbaikan ketika Companion tidak dapat menggunakannya"
+
+#. Translators: Tools submenu command. The ampersand marks the mnemonic.
+msgid "&Report the last WhatsApp Companion result"
+msgstr "&Laporkan hasil WhatsApp Companion terakhir"
+
+#. Translators: Command description in NVDA's Input Gestures dialog.
+msgid "Report the last WhatsApp Companion result"
+msgstr "Laporkan hasil WhatsApp Companion terakhir"
+
+#. Translators: Tools submenu command. The ampersand marks the mnemonic.
+msgid "&Check for WhatsApp Web Plus userscript updates"
+msgstr "&Periksa pembaruan userscript WhatsApp Web Plus"
+
+msgid "Check for WhatsApp Web Plus userscript updates and automatically install a newer or changed official version in the Companion"
+msgstr "Periksa pembaruan userscript WhatsApp Web Plus dan pasang versi resmi yang lebih baru atau berubah secara otomatis di Companion"
+
+msgid "Some WhatsApp Web Plus announcements were skipped while reconnecting."
+msgstr "Beberapa pengumuman WhatsApp Web Plus terlewat saat menyambungkan kembali."
+
+msgid "The Companion is still cleaning up after the previous launch. Wait a moment and try again. If the problem continues, restart NVDA."
+msgstr "Companion masih menyelesaikan pembersihan setelah peluncuran sebelumnya. Tunggu sebentar lalu coba lagi. Jika masalah berlanjut, mulai ulang NVDA."
+
+#. Translators: Spoken and brailled after the companion has loaded successfully.
+#, python-brace-format
+msgid "WhatsApp {channel} is running with WhatsApp Companion."
+msgstr "WhatsApp {channel} berjalan dengan WhatsApp Companion."
+
+#, python-brace-format
+msgid "WhatsApp {channel} is still loading with WhatsApp Companion. Please wait."
+msgstr "WhatsApp {channel} masih dimuat dengan WhatsApp Companion. Harap tunggu."
+
+#. Translators: Spoken and brailled when a launch command is invoked while a session is active.
+msgid "WhatsApp Companion is already running. Close WhatsApp first."
+msgstr "WhatsApp Companion sudah berjalan. Tutup WhatsApp terlebih dahulu."
+
+#. Translators: Spoken and brailled when the user closes WhatsApp normally.
+#, python-brace-format
+msgid "WhatsApp {channel} was closed. WhatsApp Companion stopped."
+msgstr "WhatsApp {channel} telah ditutup. WhatsApp Companion berhenti."
+
+#. Translators: Recovery message when WhatsApp was already open before the companion started.
+msgid "WhatsApp is already running. Close it normally and try again."
+msgstr "WhatsApp sudah berjalan. Tutup secara normal lalu coba lagi."
+
+#. Translators: Spoken and brailled when NVDA stops an in-progress launch.
+msgid "WhatsApp Companion launch was cancelled."
+msgstr "Peluncuran WhatsApp Companion dibatalkan."
+
+#. Translators: Status when another force-close request is made while one is running.
 msgid "WhatsApp is already being force closed. Wait for the result."
 msgstr "WhatsApp sedang ditutup paksa. Tunggu hasilnya."
 
 msgid "Neither WhatsApp Stable nor WhatsApp Beta from Microsoft Store was running."
 msgstr "WhatsApp Stable maupun WhatsApp Beta dari Microsoft Store tidak sedang berjalan."
 
+#, python-brace-format
 msgid "The Companion force closed every running Microsoft Store WhatsApp Stable and Beta process. It closed {closedCount} in total."
 msgstr "Companion menutup paksa semua proses WhatsApp Stable dan Beta dari Microsoft Store yang sedang berjalan. Total proses yang ditutup: {closedCount}."
 
+#, python-brace-format
 msgid "The Companion force closed {closedCount} Microsoft Store WhatsApp processes, but WhatsApp {remainingChannels} may still be running. Restart Windows before launching the Companion again."
 msgstr "Companion menutup paksa {closedCount} proses WhatsApp dari Microsoft Store, tetapi WhatsApp {remainingChannels} mungkin masih berjalan. Mulai ulang Windows sebelum meluncurkan Companion lagi."
 
+#, python-brace-format
 msgid "The Companion could not force close WhatsApp {remainingChannels} from Microsoft Store or confirm that it had closed. Restart Windows before launching the Companion again."
 msgstr "Companion tidak dapat menutup paksa WhatsApp {remainingChannels} dari Microsoft Store atau memastikan bahwa aplikasi tersebut telah tertutup. Mulai ulang Windows sebelum meluncurkan Companion lagi."
 
 msgid "The Companion cannot force close WhatsApp in this NVDA session. Unlock Windows and run NVDA normally, not as administrator."
 msgstr "Companion tidak dapat menutup paksa WhatsApp dalam sesi NVDA ini. Buka kunci Windows dan jalankan NVDA seperti biasa, bukan sebagai administrator."
 
-msgid "Stable and Beta"
-msgstr "Stable dan Beta"
+#. Translators: Recovery message after renderer reconnection has failed.
+msgid "The companion connection was lost. Close WhatsApp, then launch it again."
+msgstr "Koneksi companion terputus. Tutup WhatsApp, lalu luncurkan kembali."
 
-msgid "This will immediately close every running Microsoft Store WhatsApp app, including Stable and Beta. Active calls and file transfers will be interrupted. Text you have not sent may be lost. Do you want to continue?"
-msgstr "Tindakan ini akan segera menutup setiap aplikasi WhatsApp dari Microsoft Store yang sedang berjalan, termasuk Stable dan Beta. Panggilan aktif dan transfer file akan terputus. Teks yang belum Anda kirim mungkin hilang. Apakah Anda ingin melanjutkan?"
+#. Translators: Recovery message for locked, secure, read-only, or elevated NVDA contexts.
+msgid "Unlock Windows and run a normal, non-administrator copy of NVDA, then try again."
+msgstr "Buka kunci Windows dan jalankan NVDA normal, bukan sebagai administrator, lalu coba lagi."
 
-msgid "Force close WhatsApp applications?"
-msgstr "Tutup paksa aplikasi WhatsApp?"
-
-msgid "&Keep WhatsApp open"
-msgstr "&Biarkan WhatsApp tetap terbuka"
-
-msgid "&Force close"
-msgstr "&Tutup paksa"
-
-msgid "Closing all running WhatsApp Stable and Beta apps from Microsoft Store."
-msgstr "Menutup semua aplikasi WhatsApp Stable dan Beta dari Microsoft Store yang sedang berjalan."
+#. Translators: Recovery message when the selected Microsoft Store WhatsApp channel is unavailable.
+msgid "Install the selected WhatsApp channel from Microsoft Store, then try again."
+msgstr "Pasang kanal WhatsApp yang dipilih dari Microsoft Store, lalu coba lagi."
 
 msgid "The Companion could not safely access the Windows Registry. Restart NVDA and try again. If the problem continues, report the error."
 msgstr "Companion tidak dapat mengakses Registry Windows dengan aman. Mulai ulang NVDA lalu coba lagi. Jika masalah berlanjut, laporkan kesalahan ini."
@@ -256,50 +239,11 @@ msgstr "Pengaturan WebView2 per pengguna yang dipulihkan tidak dapat diverifikas
 msgid "A saved WebView2 restoration record could not be verified for this Windows account. The Companion did not change it. Contact your administrator or restore the per-user WebView2 policy setting manually."
 msgstr "Catatan pemulihan WebView2 tersimpan tidak dapat diverifikasi untuk akun Windows ini. Companion tidak mengubahnya. Hubungi administrator atau pulihkan pengaturan kebijakan WebView2 per pengguna secara manual."
 
-msgid "Diagnose and repair WebView2 &policy permissions..."
-msgstr "Diagnosa dan perbaiki &izin kebijakan WebView2..."
-
-msgid "Check the per-user WebView2 policy permissions and offer a repair when the Companion cannot use them"
-msgstr "Periksa izin kebijakan WebView2 per pengguna dan tawarkan perbaikan ketika Companion tidak dapat menggunakannya"
-
-msgid "Diagnose and repair WebView2 policy permissions"
-msgstr "Diagnosa dan perbaiki izin kebijakan WebView2"
-
-msgid "Checking WebView2 policy permissions."
-msgstr "Memeriksa izin kebijakan WebView2."
-
-msgid "Opening the Windows permission request. NVDA will keep running without administrator privileges."
-msgstr "Membuka permintaan izin Windows. NVDA akan tetap berjalan tanpa hak administrator."
-
-msgid "Repair per-user WebView2 policy permissions?"
-msgstr "Perbaiki izin kebijakan WebView2 per pengguna?"
-
-msgid "WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?"
-msgstr "WhatsApp Companion membutuhkan pengaturan peluncuran WebView2 sementara sebelum membuka WhatsApp. Windows saat ini memblokir kunci Registry per pengguna yang menyimpan pengaturan ini. Perbaikan ini memberi akun Windows Anda izin untuk membaca, membuat, mengubah, dan menghapus nilai di dalam satu kunci kebijakan WebView2 itu. Windows melindungi seluruh kunci, bukan nilai individual, jadi program lain yang berjalan sebagai akun Anda juga dapat mengubah nilai dalam kunci tersebut. Perbaikan tidak akan mengubah nilai Registry apa pun, kebijakan tingkat komputer apa pun, aturan tolak administrator apa pun, data WhatsApp Anda, atau isi chat Anda. Hanya helper perbaikan kecil yang berjalan sebagai administrator, sementara NVDA dan WhatsApp tetap tanpa hak administrator. Izin ini tetap ada setelah Anda memulai ulang Windows atau menghapus add-on. Apakah Anda ingin melanjutkan ke permintaan izin Windows?"
-
-msgid "&Keep current permissions"
-msgstr "&Pertahankan izin saat ini"
-
-msgid "&Continue to User Account Control"
-msgstr "&Lanjut ke User Account Control"
-
 msgid "The required WebView2 policy permissions are already available. No changes were made."
 msgstr "Izin kebijakan WebView2 yang dibutuhkan sudah tersedia. Tidak ada perubahan yang dibuat."
 
 msgid "Close WhatsApp before diagnosing WebView2 policy permissions."
 msgstr "Tutup WhatsApp sebelum mendiagnosis izin kebijakan WebView2."
-
-msgid "WhatsApp is currently running. The Companion must force close all Microsoft Store WhatsApp Stable and Beta processes before it can diagnose WebView2 policy permissions. Active calls and file transfers will be interrupted, and text you have not sent may be lost. Do you want to force close WhatsApp and continue the diagnosis? If a repair is needed, you will review a separate confirmation before Windows asks for administrator approval."
-msgstr "WhatsApp sedang berjalan. Companion harus menutup paksa semua proses Microsoft Store WhatsApp Stable dan Beta sebelum dapat mendiagnosis izin kebijakan WebView2. Panggilan aktif dan transfer file akan terputus, dan teks yang belum dikirim mungkin hilang. Apakah Anda ingin menutup paksa WhatsApp dan melanjutkan diagnosis? Jika perbaikan diperlukan, Anda akan meninjau konfirmasi terpisah sebelum Windows meminta persetujuan administrator."
-
-msgid "Close WhatsApp to continue diagnosis?"
-msgstr "Tutup WhatsApp untuk melanjutkan diagnosis?"
-
-msgid "&Force close WhatsApp and continue"
-msgstr "&Tutup paksa WhatsApp dan lanjutkan"
-
-msgid "Force closing Microsoft Store WhatsApp Stable and Beta processes before continuing diagnosis."
-msgstr "Menutup paksa proses Microsoft Store WhatsApp Stable dan Beta sebelum melanjutkan diagnosis."
 
 msgid "Diagnose and repair requires a normal, non-administrator NVDA session with Windows unlocked."
 msgstr "Diagnosa dan perbaikan memerlukan sesi NVDA normal tanpa administrator dengan Windows terbuka."
@@ -310,9 +254,11 @@ msgstr "Izin kebijakan WebView2 tidak dapat didiagnosa. Tutup WhatsApp dan coba 
 msgid "A permission repair is available. Review the confirmation dialog to continue or keep the current permissions."
 msgstr "Perbaikan izin tersedia. Tinjau dialog konfirmasi untuk melanjutkan atau pertahankan izin saat ini."
 
+#. Translators: Status when the user cancels the Windows permission request.
 msgid "No permission change was made."
 msgstr "Tidak ada perubahan izin yang dibuat."
 
+#. Translators: Status when the packaged repair helper is absent.
 msgid "The repair helper is missing. Reinstall the add-on."
 msgstr "Helper perbaikan tidak ditemukan. Pasang ulang add-on."
 
@@ -361,11 +307,251 @@ msgstr "Pengaturan WebView2 tersimpan telah dipulihkan setelah perbaikan. Anda d
 msgid "A saved WebView2 setting changed outside the Companion. The Companion did not overwrite it. Review the per-user WebView2 policy setting manually."
 msgstr "Pengaturan WebView2 tersimpan berubah di luar Companion. Companion tidak menimpanya. Tinjau pengaturan kebijakan WebView2 per pengguna secara manual."
 
-msgid "Renamed the visible add-on to WhatsApp Companion, added random session tokens, context nonces, and semantic health validation across renderer reloads, hardened stale speech and braille announcement invalidation, and bundled WhatsApp Web Plus 2.6.76."
-msgstr "Nama add-on yang terlihat diubah menjadi WhatsApp Companion, token sesi acak, nonce konteks, dan validasi kesehatan semantik ditambahkan untuk pemuatan ulang renderer, invalidasi pengumuman ucapan dan braille yang usang diperkuat, serta WhatsApp Web Plus 2.6.76 disertakan."
+msgid "The temporary WebView2 setting could not be restored. Restart NVDA before trying again."
+msgstr "Pengaturan WebView2 sementara tidak dapat dipulihkan. Mulai ulang NVDA sebelum mencoba lagi."
 
-msgid "Skipped WhatsApp Web Plus braille announcements: {count}."
-msgstr "Pengumuman braille WhatsApp Web Plus yang dilewati: {count}."
+msgid "WhatsApp opened, but the companion could not connect. Close WhatsApp and try again."
+msgstr "WhatsApp terbuka, tetapi companion tidak dapat tersambung. Tutup WhatsApp lalu coba lagi."
 
-msgid "WhatsApp Web Plus announcement cleared."
-msgstr "Pengumuman WhatsApp Web Plus telah dibersihkan."
+msgid "The bundled WhatsApp Web Plus userscript did not start. Close WhatsApp and try again."
+msgstr "Userscript WhatsApp Web Plus yang disertakan tidak berjalan. Tutup WhatsApp lalu coba lagi."
+
+msgid "The downloaded WhatsApp Web Plus userscript did not start and was disabled. Close WhatsApp, then launch it again through the Companion to use the packaged fallback."
+msgstr "Userscript WhatsApp Web Plus yang diunduh tidak berjalan dan telah dinonaktifkan. Tutup WhatsApp, lalu luncurkan kembali melalui Companion untuk memakai fallback bawaan paket."
+
+#, python-brace-format
+msgid "WhatsApp Web Plus userscript was updated from version {currentVersion} to {latestVersion}. The new version will be used the next time WhatsApp is launched through the Companion."
+msgstr "Userscript WhatsApp Web Plus telah diperbarui dari versi {currentVersion} ke {latestVersion}. Versi baru akan digunakan saat WhatsApp diluncurkan lagi melalui Companion."
+
+#, python-brace-format
+msgid "WhatsApp Web Plus userscript was refreshed at version {currentVersion} because the official script differed from the Companion bundle. The refreshed version will be used the next time WhatsApp is launched through the Companion."
+msgstr "Userscript WhatsApp Web Plus telah disegarkan pada versi {currentVersion} karena script resmi berbeda dari bundle Companion. Versi yang disegarkan akan digunakan saat WhatsApp diluncurkan lagi melalui Companion."
+
+#, python-brace-format
+msgid "The WhatsApp Web Plus userscript is up to date at version {currentVersion}."
+msgstr "Userscript WhatsApp Web Plus sudah terbaru pada versi {currentVersion}."
+
+msgid "The WhatsApp Web Plus userscript update could not be downloaded. Check your internet connection and try again. The existing Companion bundle was not changed."
+msgstr "Pembaruan userscript WhatsApp Web Plus tidak dapat diunduh. Periksa koneksi internet lalu coba lagi. Bundle Companion yang ada tidak diubah."
+
+msgid "The downloaded WhatsApp Web Plus userscript update could not be verified. The existing Companion bundle was not changed."
+msgstr "Pembaruan userscript WhatsApp Web Plus yang diunduh tidak dapat diverifikasi. Bundle Companion yang ada tidak diubah."
+
+msgid "The signed WhatsApp Web Plus userscript update uses a key this version does not trust. Update WhatsApp Companion and try again. The existing Companion bundle was not changed."
+msgstr "Pembaruan userscript WhatsApp Web Plus yang ditandatangani menggunakan kunci yang tidak dipercaya oleh versi ini. Perbarui WhatsApp Companion lalu coba lagi. Bundle Companion yang ada tidak diubah."
+
+msgid "The verified WhatsApp Web Plus userscript update could not be installed. The existing Companion bundle was not changed."
+msgstr "Pembaruan userscript WhatsApp Web Plus yang telah diverifikasi tidak dapat dipasang. Bundle Companion yang ada tidak diubah."
+
+msgid "The WhatsApp Web Plus userscript could not be updated. The existing Companion bundle was not changed."
+msgstr "Userscript WhatsApp Web Plus tidak dapat diperbarui. Bundle Companion yang ada tidak diubah."
+
+msgid "The userscript bundle cannot be updated in this NVDA context. Use a normal NVDA session."
+msgstr "Bundle userscript tidak dapat diperbarui dalam konteks NVDA ini. Gunakan sesi NVDA normal."
+
+#. Translators: Fallback launch failure with a safe recovery action.
+msgid "WhatsApp Companion could not start. Close WhatsApp and try again."
+msgstr "WhatsApp Companion tidak dapat dimulai. Tutup WhatsApp lalu coba lagi."
+
+#. Translators: Appended only when the user explicitly reports a detailed update failure.
+#, python-brace-format
+msgid "Technical error code: {errorCode}."
+msgstr "Kode kesalahan teknis: {errorCode}."
+
+#. Translators: Microsoft Store WhatsApp release channel name.
+msgid "Beta"
+msgstr "Beta"
+
+#. Translators: Microsoft Store WhatsApp release channel name.
+msgid "Stable"
+msgstr "Stable"
+
+#. Translators: Combined Microsoft Store WhatsApp release channels in a force-close result.
+msgid "Stable and Beta"
+msgstr "Stable dan Beta"
+
+#. Translators: Immediate progress after the user starts the permission diagnosis.
+msgid "Checking WebView2 policy permissions."
+msgstr "Memeriksa izin kebijakan WebView2."
+
+msgid "WhatsApp is currently running. The Companion must force close all Microsoft Store WhatsApp Stable and Beta processes before it can diagnose WebView2 policy permissions. Active calls and file transfers will be interrupted, and text you have not sent may be lost. Do you want to force close WhatsApp and continue the diagnosis? If a repair is needed, you will review a separate confirmation before Windows asks for administrator approval."
+msgstr "WhatsApp sedang berjalan. Companion harus menutup paksa semua proses Microsoft Store WhatsApp Stable dan Beta sebelum dapat mendiagnosis izin kebijakan WebView2. Panggilan aktif dan transfer file akan terputus, dan teks yang belum dikirim mungkin hilang. Apakah Anda ingin menutup paksa WhatsApp dan melanjutkan diagnosis? Jika perbaikan diperlukan, Anda akan meninjau konfirmasi terpisah sebelum Windows meminta persetujuan administrator."
+
+#. Translators: Title of the confirmation shown when permission diagnosis requires closing WhatsApp.
+msgid "Close WhatsApp to continue diagnosis?"
+msgstr "Tutup WhatsApp untuk melanjutkan diagnosis?"
+
+#. Translators: Safe default button that cancels permission diagnosis without closing WhatsApp.
+#. Translators: Safe default button that cancels force closing WhatsApp.
+msgid "&Keep WhatsApp open"
+msgstr "&Biarkan WhatsApp tetap terbuka"
+
+#. Translators: Destructive button that closes WhatsApp and resumes permission diagnosis.
+msgid "&Force close WhatsApp and continue"
+msgstr "&Tutup paksa WhatsApp dan lanjutkan"
+
+msgid "Force closing Microsoft Store WhatsApp Stable and Beta processes before continuing diagnosis."
+msgstr "Menutup paksa proses Microsoft Store WhatsApp Stable dan Beta sebelum melanjutkan diagnosis."
+
+msgid "WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?"
+msgstr "WhatsApp Companion membutuhkan pengaturan peluncuran WebView2 sementara sebelum membuka WhatsApp. Windows saat ini memblokir kunci Registry per pengguna yang menyimpan pengaturan ini. Perbaikan ini memberi akun Windows Anda izin untuk membaca, membuat, mengubah, dan menghapus nilai di dalam satu kunci kebijakan WebView2 itu. Windows melindungi seluruh kunci, bukan nilai individual, jadi program lain yang berjalan sebagai akun Anda juga dapat mengubah nilai dalam kunci tersebut. Perbaikan tidak akan mengubah nilai Registry apa pun, kebijakan tingkat komputer apa pun, aturan tolak administrator apa pun, data WhatsApp Anda, atau isi chat Anda. Hanya helper perbaikan kecil yang berjalan sebagai administrator, sementara NVDA dan WhatsApp tetap tanpa hak administrator. Izin ini tetap ada setelah Anda memulai ulang Windows atau menghapus add-on. Apakah Anda ingin melanjutkan ke permintaan izin Windows?"
+
+#. Translators: Title of the WebView2 policy permission repair confirmation dialog.
+msgid "Repair per-user WebView2 policy permissions?"
+msgstr "Perbaiki izin kebijakan WebView2 per pengguna?"
+
+#. Translators: Safe default button that cancels the permission repair.
+msgid "&Keep current permissions"
+msgstr "&Pertahankan izin saat ini"
+
+#. Translators: Affirmative button that continues to the Windows permission request.
+msgid "&Continue to User Account Control"
+msgstr "&Lanjut ke User Account Control"
+
+msgid "Opening the Windows permission request. NVDA will keep running without administrator privileges."
+msgstr "Membuka permintaan izin Windows. NVDA akan tetap berjalan tanpa hak administrator."
+
+#. Translators: Warning shown before force closing all supported Microsoft Store WhatsApp processes.
+msgid "This will immediately close every running Microsoft Store WhatsApp app, including Stable and Beta. Active calls and file transfers will be interrupted. Text you have not sent may be lost. Do you want to continue?"
+msgstr "Tindakan ini akan segera menutup setiap aplikasi WhatsApp dari Microsoft Store yang sedang berjalan, termasuk Stable dan Beta. Panggilan aktif dan transfer file akan terputus. Teks yang belum Anda kirim mungkin hilang. Apakah Anda ingin melanjutkan?"
+
+#. Translators: Title of the Microsoft Store WhatsApp force-close confirmation dialog.
+msgid "Force close WhatsApp applications?"
+msgstr "Tutup paksa aplikasi WhatsApp?"
+
+#. Translators: Destructive confirmation button that closes all supported WhatsApp processes.
+msgid "&Force close"
+msgstr "&Tutup paksa"
+
+#. Translators: Immediate progress after the user confirms force closing both WhatsApp channels.
+msgid "Closing all running WhatsApp Stable and Beta apps from Microsoft Store."
+msgstr "Menutup semua aplikasi WhatsApp Stable dan Beta dari Microsoft Store yang sedang berjalan."
+
+msgid "A WhatsApp Web Plus userscript update check is already in progress."
+msgstr "Pemeriksaan pembaruan userscript WhatsApp Web Plus sedang berlangsung."
+
+msgid "Checking for a signed WhatsApp Web Plus userscript update."
+msgstr "Memeriksa pembaruan userscript WhatsApp Web Plus yang ditandatangani."
+
+#. Translators: Spoken and brailled when no companion operation has completed yet.
+msgid "No WhatsApp Companion result is available yet."
+msgstr "Belum ada hasil WhatsApp Companion."
+
+#. Translators: Title for a dialog that shows the most recent companion or update result.
+msgid "WhatsApp Companion last result"
+msgstr "Hasil terakhir WhatsApp Companion"
+
+msgid "Check for and install WhatsApp Web Plus userscript updates"
+msgstr "Periksa dan pasang pembaruan userscript WhatsApp Web Plus"
+
+#. Translators: Command description in NVDA's Input Gestures dialog.
+msgid "Diagnose and repair WebView2 policy permissions"
+msgstr "Diagnosa dan perbaiki izin kebijakan WebView2"
+
+msgid "WhatsApp Companion makes Microsoft Store WhatsApp Stable and Beta easier to use with NVDA. It brings WhatsApp Web Plus features to the desktop app, with keyboard navigation, message reading, and call controls with customizable labels."
+msgstr "WhatsApp Companion memudahkan penggunaan WhatsApp Stable dan Beta dari Microsoft Store dengan NVDA. Add-on ini menghadirkan fitur WhatsApp Web Plus ke aplikasi desktop, dengan navigasi keyboard, pembaca pesan, serta kontrol panggilan yang labelnya dapat disesuaikan."
+
+msgid "You can now control calls with keyboard shortcuts, add call labels in multiple languages, and read messages in NVDA. Startup recovery and spoken feedback are also improved. This release includes WhatsApp Web Plus 2.6.83 and requires NVDA 2025.1 or later."
+msgstr "Kini Anda dapat mengontrol panggilan dengan pintasan keyboard, menambahkan label panggilan dalam beberapa bahasa, dan membaca pesan melalui NVDA. Pemulihan saat membuka WhatsApp dan penyampaian hasil perintah juga diperbaiki. Rilis ini menyertakan WhatsApp Web Plus 2.6.83 dan memerlukan NVDA 2025.1 atau lebih baru."
+
+#~ msgid "Launching WhatsApp {channel} with WhatsApp Companion."
+#~ msgstr "Meluncurkan WhatsApp {channel} dengan WhatsApp Companion."
+
+#~ msgid "Checking for WhatsApp Web Plus userscript updates. If the official userscript has a newer version or different content, the Companion will download and install it automatically."
+#~ msgstr "Memeriksa pembaruan userscript WhatsApp Web Plus. Jika userscript resmi memiliki versi yang lebih baru atau isi yang berbeda, Companion akan mengunduh dan memasangnya secara otomatis."
+
+msgid "Toggle native WhatsApp call camera"
+msgstr "Aktifkan atau nonaktifkan kamera panggilan WhatsApp native"
+
+msgid "Toggle native WhatsApp call mute"
+msgstr "Bisukan atau aktifkan mikrofon panggilan WhatsApp native"
+
+msgid "Open native WhatsApp call reactions"
+msgstr "Buka reaksi panggilan WhatsApp native"
+
+msgid "Raise or lower hand in native WhatsApp call"
+msgstr "Angkat atau turunkan tangan dalam panggilan WhatsApp native"
+
+msgid "Start or stop screen sharing in native WhatsApp call"
+msgstr "Mulai atau hentikan berbagi layar panggilan WhatsApp native"
+
+msgid "End native WhatsApp call"
+msgstr "Akhiri panggilan WhatsApp native"
+
+msgid "Requested the full call view. Release the keys, check the window, then press the shortcut again."
+msgstr "Tampilan panggilan penuh sudah diminta. Lepaskan tombol, periksa jendela, lalu tekan shortcut lagi."
+
+msgid "Could not confirm call view recovery. Open the full call window manually."
+msgstr "Pemulihan tampilan panggilan tidak dapat dipastikan. Buka jendela panggilan penuh secara manual."
+
+msgid "Could not verify whether WhatsApp is running. Permission diagnosis stopped. Try again after checking WhatsApp."
+msgstr "Tidak dapat memastikan apakah WhatsApp sedang berjalan. Diagnosis izin dihentikan. Periksa WhatsApp lalu coba lagi."
+
+msgid "Call control lab&els..."
+msgstr "&Label kontrol panggilan..."
+
+msgid "Customize call control labels for the language used by WhatsApp"
+msgstr "Sesuaikan label kontrol panggilan dengan bahasa yang digunakan WhatsApp"
+
+msgid "Call control labels saved."
+msgstr "Label kontrol panggilan disimpan."
+
+msgid "Could not load call control labels. Your saved settings were not changed."
+msgstr "Tidak dapat memuat label kontrol panggilan. Pengaturan tersimpan tidak diubah."
+
+msgid "Answer incoming call"
+msgstr "Jawab panggilan masuk"
+
+msgid "Decline incoming call"
+msgstr "Tolak panggilan masuk"
+
+msgid "Camera on/off"
+msgstr "Aktifkan/nonaktifkan kamera"
+
+msgid "Microphone mute/unmute (including compact view)"
+msgstr "Bisukan/aktifkan mikrofon (termasuk tampilan kecil)"
+
+msgid "Reactions"
+msgstr "Reaksi"
+
+msgid "Raise/lower hand"
+msgstr "Angkat/turunkan tangan"
+
+msgid "Start/stop screen sharing"
+msgstr "Mulai/hentikan berbagi layar"
+
+msgid "End call"
+msgstr "Akhiri panggilan"
+
+msgid "Call control labels"
+msgstr "Label kontrol panggilan"
+
+msgid "Add the exact labels spoken by NVDA for WhatsApp call controls, one per line. For toggles, include both states. Built-in labels remain available; blank uses only built-in labels. Changes apply to all WhatsApp channels after Save."
+msgstr "Tambahkan label kontrol panggilan WhatsApp persis seperti yang dibacakan NVDA, satu per baris. Untuk kontrol dengan dua status, masukkan keduanya. Label bawaan tetap berlaku; kosongkan untuk memakai label bawaan saja. Perubahan berlaku untuk semua kanal WhatsApp setelah disimpan."
+
+msgid "&Reset all additional labels"
+msgstr "&Hapus semua label tambahan"
+
+msgid "&Save"
+msgstr "&Simpan"
+
+msgid "Cancel"
+msgstr "Batal"
+
+msgid "Additional labels cleared in this dialog. Choose Save to apply, or Cancel to keep your saved labels."
+msgstr "Label tambahan dikosongkan di dialog ini. Pilih Simpan untuk menerapkan, atau Batal untuk mempertahankan label tersimpan."
+
+msgid "&Call action:"
+msgstr "&Tindakan panggilan:"
+
+msgid "&Built-in labels (read only):"
+msgstr "Label &bawaan (hanya baca):"
+
+msgid "&Additional labels (one per line):"
+msgstr "Label t&ambahan (satu per baris):"
+
+msgid "Could not save labels for {action}. Use at most 20 labels per action, each at most 128 characters. The same label cannot belong to different actions. Check the selected action."
+msgstr "Tidak dapat menyimpan label untuk {action}. Gunakan maksimal 20 label per tindakan, masing-masing maksimal 128 karakter. Label yang sama tidak boleh digunakan untuk tindakan berbeda. Periksa tindakan yang dipilih."
+
+msgid "Could not save call control labels. Your changes are still in this dialog. Try again."
+msgstr "Tidak dapat menyimpan label kontrol panggilan. Perubahan Anda masih ada di dialog ini. Coba lagi."

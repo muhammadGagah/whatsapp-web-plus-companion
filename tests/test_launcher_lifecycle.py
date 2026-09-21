@@ -39,6 +39,12 @@ class _CancelAfterPolls(_CancelEvent):
 
 
 class LauncherLifecycleTests(unittest.TestCase):
+	def setUp(self) -> None:
+		# Lifecycle tests mock registry leases; do not query a real Windows SID.
+		journal = patch.object(launcher.RegistryJournal, "createDefault", return_value=MagicMock())
+		journal.start()
+		self.addCleanup(journal.stop)
+
 	def test_announcement_cursor_advances_only_after_delivery_and_retries_failure(self) -> None:
 		entry = CompanionAnnouncement(4, 2, "session", "chat", "status", "id", True, "Halo")
 		batch = CompanionAnnouncementBatch(
@@ -335,7 +341,7 @@ class LauncherLifecycleTests(unittest.TestCase):
 			patch.object(
 				launcher,
 				"_discoverTarget",
-				side_effect=lambda _port: order.append("target") or target,
+				side_effect=lambda _port, **_kwargs: order.append("target") or target,
 			),
 			self.assertRaisesRegex(LoaderError, "operation.cancelled"),
 		):
@@ -409,7 +415,8 @@ class LauncherLifecycleTests(unittest.TestCase):
 		initialUnregister = MagicMock()
 		replacementUnregister = MagicMock()
 
-		def reconnectOnce(_discover, connect, _cancelEvent):
+		def reconnectOnce(_discover, connect, _cancelEvent, **kwargs):
+			self.assertIn("deadline", kwargs)
 			return connect(replacement)
 
 		with (
@@ -455,7 +462,7 @@ class LauncherLifecycleTests(unittest.TestCase):
 			result = launcher.launchOperation(Channel.STABLE, _CancelEvent(), lambda _state: None)
 
 		self.assertEqual(result.messageKey, "package.closed")
-		discover.assert_called_once_with(12345)
+		discover.assert_called_once_with(12345, io=ANY)
 		initialSession.close.assert_called_once_with()
 		initialUnregister.assert_called_once_with()
 		replacementSession.close.assert_called_once_with()

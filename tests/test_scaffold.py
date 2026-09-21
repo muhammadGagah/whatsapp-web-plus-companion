@@ -11,8 +11,8 @@ class ScaffoldTests(unittest.TestCase):
 		buildVarsSource = (ROOT / "buildVars.py").read_text(encoding="utf-8")
 		buildVars = ast.parse(buildVarsSource)
 		text = ast.unparse(buildVars)
-		self.assertIn("2024.1.0", text)
-		self.assertIn("2026.1.1", text)
+		self.assertIn("2025.1", text)
+		self.assertIn("2026.2", text)
 		self.assertIn('addon_name="whatsappWebPlusCompanion"', buildVarsSource)
 		self.assertIn('addon_summary=_("WhatsApp Companion")', buildVarsSource)
 		self.assertIn('markdownExtensions: list[str] = ["tables"]', buildVarsSource)
@@ -25,6 +25,8 @@ class ScaffoldTests(unittest.TestCase):
 		buildVars = (ROOT / "buildVars.py").read_text(encoding="utf-8")
 		sconstruct = (ROOT / "sconstruct").read_text(encoding="utf-8")
 		self.assertIn('"addon/globalPlugins/whatsappWebPlusCompanion/*.py"', buildVars)
+		self.assertIn('"addon/globalPlugins/whatsappWebPlusCompanion/resources/**/*"', buildVars)
+		self.assertIn("buildVars.packageResourceSources", sconstruct)
 		self.assertNotIn("packageSources", buildVars)
 		self.assertIn('Path("readme.md")', sconstruct)
 		self.assertIn("env.md2html", sconstruct)
@@ -44,6 +46,8 @@ class ScaffoldTests(unittest.TestCase):
 			(runtimeRoot / "__init__.py").read_text(encoding="utf-8"),
 		)
 		self.assertTrue((runtimeRoot / "dialogs.py").is_file())
+		self.assertTrue((runtimeRoot / "updateSignature.py").is_file())
+		self.assertTrue((runtimeRoot / "resources/update-public-keys.json").is_file())
 
 
 if __name__ == "__main__":

@@ -216,6 +216,68 @@ class PluginUiFlowTests(unittest.TestCase):
 		self.module = pluginModule
 		self.plugin = pluginModule.GlobalPlugin()
 
+	def test_process_probe_failures_never_offer_permission_repair(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import LoaderError
+
+		def diagnosis(*args, **kwargs):
+			kwargs["whatsappRunning"]()
+			raise AssertionError("Diagnosis must stop on unknown process state")
+
+		self.plugin._registryDiagnosisPending = True
+		with (
+			mock.patch.object(self.module, "findPackage", side_effect=LoaderError("powershell.failed")),
+			mock.patch.object(self.module, "diagnoseRegistryPermissions", side_effect=diagnosis),
+			mock.patch.object(self.plugin, "_confirmRegistryRepair") as repair,
+			mock.patch.object(self.plugin, "_finishRegistryDiagnosis") as finished,
+		):
+			self.plugin._runRegistryDiagnosis(self.plugin._generation, threading.Event())
+			repair.assert_not_called()
+			finished.assert_not_called()
+		self.assertFalse(self.plugin._registryDiagnosisPending)
+		self.assertEqual(self.plugin.lastResult.code, "registry.repair.processUnknown")
+		self.assertTrue(
+			any("Could not verify whether WhatsApp is running" in text for text in self.uiMessages)
+		)
+
+	def test_process_probe_distinguishes_unknown_absent_and_running(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import LoaderError
+
+		with mock.patch.object(self.module, "findPackage", return_value=None):
+			self.assertFalse(self.plugin._whatsappRunning())
+		with (
+			mock.patch.object(self.module, "findPackage", return_value=object()),
+			mock.patch.object(
+				self.module, "findRunningPackageProcesses", side_effect=RuntimeError("unknown")
+			),
+		):
+			with self.assertRaises(LoaderError) as error:
+				self.plugin._whatsappRunning()
+			self.assertEqual(error.exception.code, "registry.repair.processUnknown")
+		with (
+			mock.patch.object(
+				self.module, "findPackage", side_effect=[LoaderError("powershell.failed"), object()]
+			),
+			mock.patch.object(self.module, "findRunningPackageProcesses", return_value=[object()]),
+		):
+			self.assertTrue(self.plugin._whatsappRunning())
+
+	def test_delayed_command_feedback_uses_helper_and_disposed_callback_is_silent(self) -> None:
+		callbacks = []
+		with (
+			mock.patch.object(
+				self.wx, "CallLater", side_effect=lambda delay, callback: callbacks.append(callback)
+			),
+			mock.patch.object(self.module.commandFeedback, "message") as feedback,
+		):
+			self.plugin._announce("requested result")
+			feedback.assert_not_called()
+			callbacks.pop()()
+			feedback.assert_called_once_with("requested result")
+			self.plugin._announce("stale result")
+			self.plugin._disposed = True
+			callbacks.pop()()
+			feedback.assert_called_once()
+
 	def test_diagnosis_usable_reports_not_needed_without_uac(self) -> None:
 		from globalPlugins.whatsappWebPlusCompanion.registryRepair import RegistryPermissionStatus
 
@@ -705,6 +767,83 @@ class PluginUiFlowTests(unittest.TestCase):
 			any("cannot be updated in this NVDA context" in message for message in self.uiMessages),
 		)
 		self.assertEqual(self.plugin.lastResult.code, "update.context")
+
+	def test_signed_update_failures_are_owned_once_and_preserve_safe_diagnostics(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.updater import UpdateCheckResult, UpdateStatus
+
+		for errorCode in (
+			"signatureInvalid",
+			"keyUnknown",
+			"replay",
+			"downgrade",
+			"assetMismatch",
+			"verifierUnavailable",
+		):
+			with self.subTest(errorCode=errorCode):
+				self.uiMessages.clear()
+				_FakeNativeDialog.instances.clear()
+				plugin = self.module.GlobalPlugin()
+				with (
+					mock.patch.object(self.module.threading.Thread, "start"),
+					mock.patch.object(plugin, "_deliverCompanionAnnouncement") as companionDelivery,
+					mock.patch.object(plugin, "_speakAndQueueBraille") as browserDelivery,
+				):
+					plugin._startUpdateCheck()
+					worker = plugin._updateWorker
+					self.assertIsNotNone(worker)
+					plugin._finishUpdateCheck(
+						plugin._generation,
+						plugin._updateOperationToken,
+						UpdateCheckResult(UpdateStatus.ERROR, "2.6.76", errorCode=errorCode),
+						worker,
+					)
+					companionDelivery.assert_not_called()
+					browserDelivery.assert_not_called()
+
+				self.assertEqual(len(self.uiMessages), 2)
+				self.assertEqual(
+					self.uiMessages[0],
+					"Checking for a signed WhatsApp Web Plus userscript update.",
+				)
+				self.assertIn("existing Companion bundle was not changed", self.uiMessages[1])
+				if errorCode == "keyUnknown":
+					self.assertIn("Update WhatsApp Companion and try again", self.uiMessages[1])
+				self.assertEqual(plugin.lastResult.code, f"update.{errorCode}")
+				self.assertEqual(plugin.lastResult.values["errorCode"], errorCode)
+				self.assertEqual(_FakeNativeDialog.instances, [])
+
+				self.uiMessages.clear()
+				plugin.script_reportLastResult(None)
+				self.assertEqual(len(self.uiMessages), 1)
+				self.assertIn(f"Technical error code: {errorCode}.", self.uiMessages[0])
+				plugin.terminate()
+
+	def test_termination_suppresses_delayed_signed_update_result(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.updater import UpdateCheckResult, UpdateStatus
+
+		scheduled: list[object] = []
+
+		def recordCallLater(delay, function, *args, **kwargs):
+			scheduled.append(lambda: function(*args, **kwargs))
+
+		with (
+			mock.patch.object(self.wx, "CallLater", side_effect=recordCallLater),
+			mock.patch.object(self.module.threading.Thread, "start"),
+		):
+			self.plugin._startUpdateCheck()
+			worker = self.plugin._updateWorker
+			self.plugin._finishUpdateCheck(
+				self.plugin._generation,
+				self.plugin._updateOperationToken,
+				UpdateCheckResult(UpdateStatus.ERROR, "2.6.76", errorCode="signatureInvalid"),
+				worker,
+			)
+			self.assertIsNotNone(self.plugin.lastResult)
+			self.plugin.terminate()
+			for callback in scheduled:
+				callback()
+
+		self.assertEqual(self.uiMessages, [])
 
 
 if __name__ == "__main__":

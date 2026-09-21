@@ -58,6 +58,7 @@ dev = [
 	{ include-group = "build" },
 	{ include-group = "l10n" },
 	{ include-group = "lint" },
+	"cryptography==46.0.5",
 ]
 
 [tool.ruff]
@@ -87,7 +88,7 @@ exclude = [
 
 [tool.ruff.format]
 indent-style = "tab"
-line-ending = "lf"
+line-ending = "auto"
 
 [tool.ruff.lint.mccabe]
 max-complexity = 15

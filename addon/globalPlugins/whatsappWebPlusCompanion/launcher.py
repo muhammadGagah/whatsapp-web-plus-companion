@@ -1,7 +1,7 @@
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 try:
 	from logHandler import log
@@ -21,10 +21,11 @@ from .cdp import (
 	selectTarget,
 )
 from .http import endpointResponds, httpGetJson
+from .ioDeadline import Deadline
 from .models import Channel, LoaderError, OperationResult, OperationState
-from .packages import findRunningPackageProcesses, resolvePackage
-from .policy import BUNDLE_HEALTH_DEADLINE, CHANNELS, CONNECT_DEADLINE, TARGET_DEADLINE
-from .processes import collectProcessTopology, validateListener
+from .packages import findRunningPackageProcesses, resolvePackage, runPowerShellCancellable
+from .policy import BUNDLE_HEALTH_DEADLINE, CHANNELS, CONNECT_DEADLINE, TARGET_DEADLINE, RECONNECT_DEADLINE
+from .processes import collectProcessTopology, validateListener, captureEndpointIdentity
 from .registry import (
 	RegistryLease,
 	WinRegistry,
@@ -33,7 +34,7 @@ from .registry import (
 )
 from .registryJournal import JournalError, RegistryJournal, newOperationId
 from .registryRepair import tryAcquireRegistryMutex
-from .security import buildSecurityProbe, checkPreflight
+from .security import buildSecurityProbe, checkPreflight, AnnouncementGuard
 from .websocket import WebSocket
 
 StateCallback = Callable[[OperationState], None]
@@ -69,6 +70,8 @@ class _AnnouncementState:
 	generation: int = 0
 	context: str = ""
 	lastAcknowledgedSequence: int = 0
+	securityEpoch: int | None = None
+	suppressed: bool = False
 
 
 def _raiseBundleInstallError(bundle: object, error: LoaderError) -> None:
@@ -96,12 +99,58 @@ def _forwardCompanionAnnouncements(
 	session: CdpSession,
 	state: _AnnouncementState,
 	reportObserver: ReportCallback,
+	announcementGuard: AnnouncementGuard | None = None,
 ) -> None:
+	epoch = None
+	if announcementGuard is not None:
+		allowed, epoch = announcementGuard.snapshot()
+		if not allowed:
+			state.suppressed = True
+			return
+		if state.securityEpoch is not None and state.securityEpoch != epoch:
+			state.suppressed = True
+		state.securityEpoch = epoch
+		originalObserver = reportObserver
+
+		def guardedReport(result):
+			if not announcementGuard.permits(epoch):
+				state.suppressed = True
+				return True
+			return originalObserver(replace(result, values={**result.values, "securityEpoch": epoch}))
+
+		reportObserver = guardedReport
 	batch = readCompanionAnnouncements(
 		session,
 		state.lastAcknowledgedSequence,
 		state.generation,
 	)
+	if announcementGuard is not None and not announcementGuard.permits(epoch):
+		state.suppressed = True
+		return
+	if state.suppressed:
+		# Do not replay content accumulated while locked, including a new renderer.
+		if not _reportDelivered(
+			reportObserver,
+			OperationResult(
+				True,
+				"companion.invalidate",
+				"companion.invalidate",
+				{
+					"session": batch.sessionToken,
+					"generation": batch.generation,
+					"context": batch.context,
+					"reason": "security-resumed",
+					"source": "",
+				},
+			),
+		):
+			return
+		state.sessionToken = batch.sessionToken
+		state.generation = batch.generation
+		state.context = batch.context
+		state.lastAcknowledgedSequence = batch.latestSequence
+		state.suppressed = False
+		return
 	sessionChanged = bool(state.sessionToken) and batch.sessionToken != state.sessionToken
 	if sessionChanged:
 		# The first read used the previous renderer's cursor. Sequence numbers
@@ -153,12 +202,13 @@ def _forwardCompanionAnnouncements(
 	):
 		return
 	for announcement in batch.entries:
+		messageKey = "companion.reader" if announcement.reader is not None else "companion.announcement"
 		if not _reportDelivered(
 			reportObserver,
 			OperationResult(
 				True,
-				"companion.announcement",
-				"companion.announcement",
+				messageKey,
+				messageKey,
 				{
 					"sequence": announcement.sequence,
 					"session": announcement.sessionToken,
@@ -168,6 +218,15 @@ def _forwardCompanionAnnouncements(
 					"language": announcement.language,
 					"privacy": announcement.privacy,
 					"text": announcement.text,
+					**(
+						{
+							"reader": announcement.reader,
+							"readerProcessIds": getattr(session, "readerProcessIds", ()),
+							"readerExpiresAt": announcement.readerExpiresAt,
+						}
+						if announcement.reader is not None
+						else {}
+					),
 				},
 			),
 		):
@@ -191,58 +250,98 @@ def _noopReport(result: OperationResult) -> None:
 	return
 
 
-def _discoverTarget(port: int) -> Target:
-	return selectTarget(
-		httpGetJson(port, "/json/version"),
-		httpGetJson(port, "/json/list"),
-		port,
-	)
+@dataclass(frozen=True)
+class _OperationIO:
+	cancelEvent: object
+	registerCloser: RegisterCloser
+	end: float
 
-
-def _waitForTarget(port: int, cancelEvent: threading.Event) -> Target:
-	end = time.monotonic() + TARGET_DEADLINE
-	lastError: LoaderError | None = None
-	while time.monotonic() < end:
-		if cancelEvent.is_set():
-			raise LoaderError("operation.cancelled")
+	def remaining(self):
 		try:
-			return _discoverTarget(port)
+			return Deadline(self.end, self.cancelEvent).remaining()
+		except TimeoutError as error:
+			raise LoaderError("operation.timeout") from error
+
+	def child(self, seconds):
+		return replace(self, end=min(self.end, time.monotonic() + seconds))
+
+	def runner(self, script):
+		self.remaining()
+		return runPowerShellCancellable(script, self.cancelEvent, deadline=self.end)
+
+	def httpOptions(self):
+		self.remaining()
+		return {"cancelEvent": self.cancelEvent, "registerCloser": self.registerCloser, "deadline": self.end}
+
+
+def _endpointValidator(port, package, io):
+	def validate(*, deadline=None, clientPort=None):
+		operation = replace(io, end=min(io.end, deadline)) if deadline is not None else io
+		return captureEndpointIdentity(port, package, runner=operation.runner, clientPort=clientPort)
+
+	return validate
+
+
+def _discoverTarget(port: int, *, io: _OperationIO | None = None, validator=None) -> Target:
+	identity = validator(deadline=io.end if io is not None else None) if validator is not None else None
+	opts = io.httpOptions() if io is not None else {}
+	target = selectTarget(
+		httpGetJson(port, "/json/version", **opts), httpGetJson(port, "/json/list", **opts), port
+	)
+	if io is not None:
+		io.remaining()
+	return replace(target, endpointIdentity=identity) if identity is not None else target
+
+
+def _waitForTarget(port: int, cancelEvent: threading.Event, *, io=None, validator=None) -> Target:
+	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
+		TARGET_DEADLINE
+	)
+	lastError = None
+	while time.monotonic() < io.end:
+		io.remaining()
+		try:
+			return _discoverTarget(port, io=io, validator=validator)
 		except LoaderError as error:
+			if error.code == "operation.cancelled":
+				raise
 			lastError = error
-		if cancelEvent.wait(0.25):
+		if cancelEvent.wait(min(0.25, max(0, io.end - time.monotonic()))):
 			raise LoaderError("operation.cancelled")
 	raise LoaderError("target.timeout", lastError.code if lastError else "noTarget")
 
 
-def _waitForPackageProcesses(package, cancelEvent: threading.Event) -> set[int]:
-	end = time.monotonic() + TARGET_DEADLINE
-	while time.monotonic() < end:
-		pids = set(findRunningPackageProcesses(package))
+def _waitForPackageProcesses(package, cancelEvent: threading.Event, *, io=None) -> set[int]:
+	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
+		TARGET_DEADLINE
+	)
+	while time.monotonic() < io.end:
+		io.remaining()
+		pids = set(findRunningPackageProcesses(package, runner=io.runner))
 		if pids:
 			return pids
-		if cancelEvent.wait(0.25):
+		if cancelEvent.wait(min(0.25, max(0, io.end - time.monotonic()))):
 			raise LoaderError("operation.cancelled")
 	raise LoaderError("package.processTimeout")
 
 
 def _waitForValidatedListener(
-	port: int,
-	packagePids: set[int],
-	cancelEvent: threading.Event,
+	port: int, packagePids: set[int], cancelEvent: threading.Event, *, io=None
 ) -> int:
-	end = time.monotonic() + TARGET_DEADLINE
-	lastError: LoaderError | None = None
-	while time.monotonic() < end:
-		if cancelEvent.is_set():
-			raise LoaderError("operation.cancelled")
-		listeners, parents = collectProcessTopology(port)
+	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
+		TARGET_DEADLINE
+	)
+	lastError = None
+	while time.monotonic() < io.end:
+		io.remaining()
+		listeners, parents = collectProcessTopology(port, runner=io.runner)
 		try:
 			return validateListener(port, listeners, parents, packagePids)
 		except LoaderError as error:
 			if not error.code.startswith("listener."):
 				raise
 			lastError = error
-		if cancelEvent.wait(0.25):
+		if cancelEvent.wait(min(0.25, max(0, io.end - time.monotonic()))):
 			raise LoaderError("operation.cancelled")
 	raise LoaderError("listener.timeout", lastError.code if lastError else "noListener")
 
@@ -276,11 +375,40 @@ def _connectAndInstall(
 	bundleHash: str,
 	cancelEvent: threading.Event,
 	registerCloser: RegisterCloser = _noopRegister,
+	*,
+	deadline: float | None = None,
+	validator=None,
 ) -> tuple[CdpSession, dict, Callable[[], None]]:
-	webSocket = WebSocket.connect(target.webSocketUrl, CONNECT_DEADLINE)
-	session = CdpSession(webSocket)
-	unregisterSession = registerCloser(session.interrupt)
+	budget = Deadline.after(45.0, cancelEvent, deadline)
 	try:
+		budget.remaining()
+	except TimeoutError as error:
+		raise LoaderError("cdp.timeout", "attach") from error
+	identity = validator(deadline=budget.end) if validator is not None else None
+	if validator is not None and target.endpointIdentity != identity:
+		raise LoaderError("listener.changed", "beforeConnect")
+	webSocket = WebSocket.connect(
+		target.webSocketUrl,
+		CONNECT_DEADLINE,
+		cancelEvent=cancelEvent,
+		registerCloser=registerCloser,
+		deadline=budget.end,
+	)
+	session = CdpSession(webSocket)
+	session.readerProcessIds = tuple(row[0] for row in getattr(identity, "ancestry", ()))
+	session.cancelEvent = cancelEvent
+	session.absoluteDeadline = budget.end
+	unregisterSession = registerCloser(session.interrupt)
+	# Hand over the temporary raw-socket closer only after the session is registered.
+	webSocket._unregister()
+	webSocket._unregister = _noopUnregister
+	try:
+		budget.remaining()
+		if (
+			validator is not None
+			and validator(deadline=budget.end, clientPort=webSocket.sock.getsockname()[1]) != identity
+		):
+			raise LoaderError("listener.changed", "afterHandshake")
 		health, _identifier = installAndVerify(
 			session,
 			source,
@@ -288,11 +416,15 @@ def _connectAndInstall(
 			bundleHash,
 			cancelEvent,
 			healthDeadline=BUNDLE_HEALTH_DEADLINE,
+			deadline=budget.end,
 		)
-	except Exception:
+	except Exception as error:
 		unregisterSession()
 		session.close()
+		if isinstance(error, TimeoutError):
+			raise LoaderError("cdp.timeout", "attach") from error
 		raise
+	session.absoluteDeadline = None
 	return session, health, unregisterSession
 
 
@@ -304,8 +436,12 @@ def _waitForInitialAttachment(
 	bundleHash: str,
 	cancelEvent: threading.Event,
 	registerCloser: RegisterCloser = _noopRegister,
+	*,
+	io=None,
+	validator=None,
 ) -> tuple[Target, CdpSession, dict, Callable[[], None]]:
-	end = time.monotonic() + TARGET_DEADLINE
+	io = (io or _OperationIO(cancelEvent, registerCloser, time.monotonic() + 45)).child(45)
+	end = io.end
 	lastError: LoaderError | None = None
 	current: Target | None = target
 	while time.monotonic() < end:
@@ -313,7 +449,7 @@ def _waitForInitialAttachment(
 			raise LoaderError("operation.cancelled")
 		try:
 			if current is None:
-				current = _discoverTarget(port)
+				current = _discoverTarget(port, io=io, validator=validator)
 			session, health, unregisterSession = _connectAndInstall(
 				current,
 				source,
@@ -321,6 +457,8 @@ def _waitForInitialAttachment(
 				bundleHash,
 				cancelEvent,
 				registerCloser,
+				deadline=end,
+				validator=validator,
 			)
 			return current, session, health, unregisterSession
 		except LoaderError as error:
@@ -345,16 +483,21 @@ def launchOperation(
 	reportObserver: ReportCallback = _noopReport,
 	gateObserver: GateCallback = lambda name: None,
 	stayAttached: bool = True,
+	announcementGuard: AnnouncementGuard | None = None,
 ) -> OperationResult:
+	io = _OperationIO(cancelEvent, registerCloser, time.monotonic() + 90.0)
+	io.remaining()
+	announcementGuard = announcementGuard or AnnouncementGuard()
 	policy = CHANNELS[channel]
 	setState(OperationState.PREPARING_LAUNCH)
 	checkPreflight(buildSecurityProbe())
-	package = resolvePackage(policy)
+	package = resolvePackage(policy, runner=io.runner)
 	gateObserver("package")
-	if findRunningPackageProcesses(package):
+	if findRunningPackageProcesses(package, runner=io.runner):
 		raise LoaderError("package.running")
 	gateObserver("notRunning")
 
+	io.remaining()
 	port = reserveLoopbackPort()
 	_recoverPendingRegistryState()
 	lease = RegistryLease(
@@ -369,19 +512,27 @@ def launchOperation(
 	session: CdpSession | None = None
 	unregisterSession = _noopUnregister
 	try:
+		io.remaining()
 		activateAumid(policy)
 		gateObserver("activation")
 		setState(OperationState.WAITING_FOR_ENDPOINT)
-		waitForEndpoint(port, endpointResponds, cancelEvent)
+		endpointIO = io.child(20.0)
+		waitForEndpoint(
+			port,
+			lambda selected: endpointResponds(selected, **endpointIO.httpOptions()),
+			cancelEvent,
+			deadline=endpointIO.remaining(),
+		)
 		lease.restore()
 		gateObserver("registryRestored")
 
-		packagePids = _waitForPackageProcesses(package, cancelEvent)
-		_waitForValidatedListener(port, packagePids, cancelEvent)
+		packagePids = _waitForPackageProcesses(package, cancelEvent, io=io)
+		_waitForValidatedListener(port, packagePids, cancelEvent, io=io)
 		gateObserver("loopbackOnly")
 
 		setState(OperationState.DISCOVERING_TARGET)
-		target = _waitForTarget(port, cancelEvent)
+		validator = _endpointValidator(port, package, io)
+		target = _waitForTarget(port, cancelEvent, io=io, validator=validator)
 		gateObserver("oneTarget")
 		bundle = selectEmbeddedBundle()
 		setState(OperationState.ATTACHING)
@@ -394,6 +545,8 @@ def launchOperation(
 				bundle.sha256,
 				cancelEvent,
 				registerCloser,
+				io=io,
+				validator=validator,
 			)
 		except LoaderError as error:
 			_raiseBundleInstallError(bundle, error)
@@ -405,19 +558,25 @@ def launchOperation(
 		if not stayAttached:
 			return OperationResult(True, "attached", "active", {"channel": channel.value})
 
-		announcementState = _AnnouncementState()
+		announcementState = _AnnouncementState(securityEpoch=announcementGuard.snapshot()[1])
 		nextTargetHealthCheck = time.monotonic() + _TARGET_HEALTH_INTERVAL
 		while not cancelEvent.wait(_ANNOUNCEMENT_POLL_INTERVAL):
 			try:
-				_forwardCompanionAnnouncements(session, announcementState, reportObserver)
+				_forwardCompanionAnnouncements(session, announcementState, reportObserver, announcementGuard)
 				now = time.monotonic()
 				if now >= nextTargetHealthCheck:
-					current = _discoverTarget(port)
+					current = _discoverTarget(
+						port, io=_OperationIO(cancelEvent, registerCloser, time.monotonic() + 5)
+					)
 					nextTargetHealthCheck = now + _TARGET_HEALTH_INTERVAL
 					if current.id != target.id:
 						raise LoaderError("target.replaced")
-			except LoaderError:
-				if not findRunningPackageProcesses(package):
+			except LoaderError as error:
+				if error.code == "operation.cancelled" or cancelEvent.is_set():
+					raise LoaderError("operation.cancelled")
+				io = _OperationIO(cancelEvent, registerCloser, time.monotonic() + RECONNECT_DEADLINE)
+				validator = _endpointValidator(port, package, io)
+				if not findRunningPackageProcesses(package, runner=io.runner):
 					return OperationResult(
 						True,
 						"package.closed",
@@ -440,13 +599,16 @@ def launchOperation(
 							bundle.sha256,
 							cancelEvent,
 							registerCloser,
+							deadline=io.end,
+							validator=validator,
 						),
 					)
 
 				target, session, _health, unregisterSession = reconnect(
-					lambda: _discoverTarget(port),
+					lambda: _discoverTarget(port, io=io, validator=validator),
 					connect,
 					cancelEvent,
+					deadline=io.end,
 				)
 				nextTargetHealthCheck = time.monotonic() + _TARGET_HEALTH_INTERVAL
 				gateObserver("pageReady")

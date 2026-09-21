@@ -3,12 +3,15 @@ import re
 import socket
 import threading
 import time
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TypeVar, cast
+from typing import TypeVar
 from urllib.parse import urlsplit
 
 from .models import LoaderError
+from .messageReader import validateReader
+from .ioDeadline import Deadline
 from .policy import (
 	EXPECTED_HOST,
 	EXPECTED_ORIGIN,
@@ -229,6 +232,7 @@ _COMPANION_BRIDGE_SOURCE = r"""
 """
 
 _READINESS_PROPERTY = "__whatsappWebPlusCompanionReadiness"
+_DOCUMENT_TOKEN_PROPERTY = "__whatsappWebPlusCompanionDocumentToken"
 _READINESS_CONTRACT_VERSION = 2
 _READINESS_REQUIRED_KEYS = ("documentComplete", "body", "appShell", "primaryNavigation", "chatList")
 _CHAT_LIST_SELECTOR = (
@@ -243,6 +247,7 @@ class Target:
 	id: str
 	url: str
 	webSocketUrl: str
+	endpointIdentity: object | None = None
 
 
 _MAX_ANNOUNCEMENTS = 50
@@ -280,6 +285,8 @@ class CompanionAnnouncement:
 	language: str
 	privacy: bool
 	text: str
+	reader: dict | None = None
+	readerExpiresAt: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -334,6 +341,8 @@ class CdpSession:
 		super().__init__()
 		self.webSocket = webSocket
 		self.nextId = 1
+		self.cancelEvent = None
+		self.absoluteDeadline = None
 
 	def request(
 		self,
@@ -343,51 +352,43 @@ class CdpSession:
 		*,
 		cancelEvent: object | None = None,
 	) -> dict:
+		budget = Deadline.after(deadline, cancelEvent or self.cancelEvent, self.absoluteDeadline)
 		requestId = self.nextId
 		self.nextId += 1
 		payload = json.dumps(
 			{"id": requestId, "method": method, "params": params},
 			separators=(",", ":"),
 		)
-		submitUnlessSet = getattr(cancelEvent, "submitUnlessSet", None)
-		if callable(submitUnlessSet):
-			submitted, _result = cast(
-				tuple[bool, object],
-				submitUnlessSet(lambda: self.webSocket.sendText(payload)),
-			)
-			if not submitted:
-				raise LoaderError("operation.cancelled")
-		elif cancelEvent is not None:
-			isSet = getattr(cancelEvent, "is_set", None)
-			if callable(isSet) and isSet():
-				raise LoaderError("operation.cancelled")
-			self.webSocket.sendText(payload)
-		else:
-			self.webSocket.sendText(payload)
-		end = time.monotonic() + deadline
-		while True:
-			remaining = end - time.monotonic()
-			if remaining <= 0:
-				raise LoaderError("cdp.timeout", f"method={method}")
-			self.webSocket.sock.settimeout(remaining)
-			try:
-				message = json.loads(self.webSocket.receiveText())
-			except socket.timeout as error:
-				raise LoaderError("cdp.timeout", f"method={method}") from error
-			except ValueError as error:
-				raise LoaderError("cdp.json", f"method={method}") from error
-			if not isinstance(message, dict):
-				raise LoaderError("cdp.json", f"method={method}")
-			if "id" not in message:
-				continue
-			if message.get("id") != requestId:
-				raise LoaderError("cdp.responseOrder", f"method={method}")
-			if "error" in message:
-				raise LoaderError("cdp.response", f"method={method}")
-			result = message.get("result", {})
-			if not isinstance(result, dict):
-				raise LoaderError("cdp.response", f"method={method}")
-			return result
+		try:
+			budget.remaining()
+			self.webSocket.sendText(payload, budget=budget)
+			for _ in range(1024):
+				budget.remaining()
+				message = json.loads(self.webSocket.receiveText(budget=budget))
+				budget.remaining()
+				if not isinstance(message, dict):
+					raise LoaderError("cdp.json", f"method={method}")
+				if "id" not in message:
+					continue
+				if message.get("id") != requestId:
+					raise LoaderError("cdp.responseOrder", f"method={method}")
+				if "error" in message:
+					raise LoaderError("cdp.response", f"method={method}")
+				result = message.get("result", {})
+				if not isinstance(result, dict):
+					raise LoaderError("cdp.response", f"method={method}")
+				return result
+			raise LoaderError("cdp.tooManyEvents", f"method={method}")
+		except socket.timeout as error:
+			self.interrupt()
+			raise LoaderError("cdp.timeout", f"method={method}") from error
+		except ValueError as error:
+			self.interrupt()
+			raise LoaderError("cdp.json", f"method={method}") from error
+		except LoaderError:
+			# A partial response is not retryable on the same stream.
+			self.interrupt()
+			raise
 
 	def close(self) -> None:
 		self.webSocket.close()
@@ -549,11 +550,36 @@ def makeReadinessWrapper(bundleHash: str) -> str:
 }})();"""
 
 
-def makeInjectionWrapper(source: str, bundleHash: str) -> str:
+def _documentTokenExpression() -> str:
+	# A non-configurable Document property survives shell rebuilds, but not a
+	# navigation. Keep it independent of the readiness/health objects.
+	return f"""(() => {{
+		if (window !== window.top || location.origin !== {json.dumps(EXPECTED_ORIGIN)}) return null;
+		const property = {json.dumps(_DOCUMENT_TOKEN_PROPERTY)};
+		if (!Object.prototype.hasOwnProperty.call(document, property)) {{
+			Object.defineProperty(document, property, {{value: {json.dumps(uuid.uuid4().hex)}}});
+		}}
+		return document[property];
+	}})()"""
+
+
+def _documentToken(value: object) -> str:
+	if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{32}", value) is None:
+		raise LoaderError("cdp.context", "documentIdentity")
+	return value
+
+
+def makeInjectionWrapper(source: str, bundleHash: str, documentToken: str | None = None) -> str:
 	if len(bundleHash) != 64 or any(character not in "0123456789abcdef" for character in bundleHash):
 		raise LoaderError("bundle.hash")
+	documentGuard = (
+		f"if (document[{json.dumps(_DOCUMENT_TOKEN_PROPERTY)}] !== {json.dumps(_documentToken(documentToken))}) return false;"
+		if documentToken is not None
+		else ""
+	)
 	return f"""(() => {{
 	if (window !== window.top || location.origin !== {json.dumps(EXPECTED_ORIGIN)}) return false;
+	{documentGuard}
 	const gate = globalThis.{_READINESS_PROPERTY};
 	if (gate?.contractVersion !== {_READINESS_CONTRACT_VERSION} ||
 		gate.bundleIdentifier !== {json.dumps(bundleHash)} || gate.state !== 'ready' ||
@@ -653,13 +679,22 @@ def readCompanionAnnouncements(
 			sequence is None
 			or sequence <= previousSequence
 			or (itemGeneration != generation and not retainedAcrossScopedInvalidation)
-			or source not in _VALID_ANNOUNCEMENT_SOURCES
+			or source not in (_VALID_ANNOUNCEMENT_SOURCES | {"message-reader"})
 			or not isinstance(privacy, bool)
 			or not isinstance(text, str)
 		):
 			continue
 		text = text.strip()
-		if not text:
+		reader = validateReader(item.get("reader")) if source == "message-reader" else None
+		if source == "message-reader" and reader is None:
+			continue
+		readerExpiresAt = item.get("readerExpiresAt", 0)
+		if reader is not None and (
+			type(readerExpiresAt) is not int
+			or not time.time() * 1000 < readerExpiresAt <= time.time() * 1000 + 15000
+		):
+			continue
+		if not text and reader is None:
 			continue
 		if len(text) > _MAX_ANNOUNCEMENT_TEXT:
 			text = f"{text[: _MAX_ANNOUNCEMENT_TEXT - 1].rstrip()}…"
@@ -683,6 +718,8 @@ def readCompanionAnnouncements(
 				language=language,
 				privacy=privacy,
 				text=text,
+				reader=reader,
+				readerExpiresAt=readerExpiresAt if reader is not None else 0,
 			),
 		)
 		previousSequence = sequence
@@ -737,27 +774,39 @@ def installAndVerify(
 	bundleHash: str,
 	cancelEvent: threading.Event,
 	healthDeadline: float | None = None,
+	deadline: float | None = None,
 ) -> tuple[dict, str]:
+	budget = Deadline.after(45.0, cancelEvent, deadline)
+
+	def request(method, params, **kwargs):
+		try:
+			remaining = budget.remaining()
+		except TimeoutError as error:
+			raise LoaderError("cdp.timeout", "attach") from error
+		kwargs["cancelEvent"] = cancelEvent
+		kwargs["deadline"] = min(kwargs.get("deadline", REQUEST_DEADLINE), remaining)
+		return session.request(method, params, **kwargs)
+
 	readinessWrapper = makeReadinessWrapper(bundleHash)
-	injectionWrapper = makeInjectionWrapper(source, bundleHash)
-	session.request("Page.enable", {})
-	session.request("Runtime.enable", {})
+	request("Page.enable", {})
+	request("Runtime.enable", {})
 	probe = _runtimeValue(
-		session.request(
+		request(
 			"Runtime.evaluate",
 			{
-				"expression": f"({{origin:location.origin,top:window===window.top,health:globalThis.__whatsappWebPlusLoaderHealth||null,sentinel:globalThis.__whatsappWebPlusLoader||null,readiness:globalThis.{_READINESS_PROPERTY}||null}})",
+				"expression": f"({{origin:location.origin,top:window===window.top,health:globalThis.__whatsappWebPlusLoaderHealth||null,sentinel:globalThis.__whatsappWebPlusLoader||null,readiness:globalThis.{_READINESS_PROPERTY}||null,documentToken:{_documentTokenExpression()}}})",
 				"returnByValue": True,
 			},
 		),
 	)
 	if not isinstance(probe, dict) or probe.get("origin") != EXPECTED_ORIGIN or probe.get("top") is not True:
 		raise LoaderError("cdp.context")
+	currentDocument = _documentToken(probe.get("documentToken"))
 	if (probe.get("health") is not None or probe.get("sentinel") is not None) and probe.get(
 		"readiness",
 	) is None:
 		raise LoaderError("bundle.healthMismatch")
-	registration = session.request("Page.addScriptToEvaluateOnNewDocument", {"source": readinessWrapper})
+	registration = request("Page.addScriptToEvaluateOnNewDocument", {"source": readinessWrapper})
 	identifier = registration.get("identifier")
 	if not isinstance(identifier, str) or not identifier:
 		raise LoaderError("cdp.registration")
@@ -768,27 +817,43 @@ def installAndVerify(
 		or probeReadiness.get("bundleIdentifier") != bundleHash
 	):
 		_runtimeValue(
-			session.request(
+			request(
 				"Runtime.evaluate",
 				{"expression": readinessWrapper, "returnByValue": True},
 			),
 		)
 	injectionRequested = probe.get("health") is not None or probe.get("sentinel") is not None
+	injectedDocuments = {currentDocument} if injectionRequested else set()
 	healthEnd: float | None = None
 	while True:
-		if cancelEvent.wait(0.25):
+		try:
+			remaining = budget.remaining()
+		except TimeoutError as error:
+			raise LoaderError("cdp.timeout", "attach") from error
+		if cancelEvent.wait(min(0.25, remaining)):
 			raise LoaderError("operation.cancelled")
 		status = _runtimeValue(
-			session.request(
+			request(
 				"Runtime.evaluate",
 				{
-					"expression": f"({{health:globalThis.__whatsappWebPlusLoaderHealth||null,sentinel:globalThis.__whatsappWebPlusLoader||null,readiness:globalThis.{_READINESS_PROPERTY}||null}})",
+					"expression": f"({{health:globalThis.__whatsappWebPlusLoaderHealth||null,sentinel:globalThis.__whatsappWebPlusLoader||null,readiness:globalThis.{_READINESS_PROPERTY}||null,documentToken:{_documentTokenExpression()}}})",
 					"returnByValue": True,
 				},
 			),
 		)
 		if not isinstance(status, dict):
 			continue
+		statusDocument = _documentToken(status.get("documentToken"))
+		if statusDocument != currentDocument:
+			currentDocument = statusDocument
+			injectionRequested = (
+				currentDocument in injectedDocuments
+				or status.get("health") is not None
+				or status.get("sentinel") is not None
+			)
+			if injectionRequested:
+				injectedDocuments.add(currentDocument)
+			healthEnd = None
 		readiness = status.get("readiness")
 		if not isinstance(readiness, dict):
 			if status.get("health") is not None:
@@ -820,9 +885,12 @@ def installAndVerify(
 				raise LoaderError("operation.cancelled")
 			try:
 				injected = _runtimeValue(
-					session.request(
+					request(
 						"Runtime.evaluate",
-						{"expression": injectionWrapper, "returnByValue": True},
+						{
+							"expression": makeInjectionWrapper(source, bundleHash, currentDocument),
+							"returnByValue": True,
+						},
 						cancelEvent=cancelEvent,
 					),
 				)
@@ -835,6 +903,7 @@ def installAndVerify(
 			if injected is not True:
 				continue
 			injectionRequested = True
+			injectedDocuments.add(currentDocument)
 			if healthDeadline is not None:
 				healthEnd = time.monotonic() + healthDeadline
 			continue
@@ -865,12 +934,13 @@ def installAndVerify(
 			if semanticHealth.get("overall") != "pass":
 				continue
 			postInstall = _runtimeValue(
-				session.request(
+				request(
 					"Runtime.evaluate",
 					{
 						"expression": (
 							"({bridgeContractVersion:globalThis."
 							"__whatsappWebPlusCompanionBridge?.contractVersion||0,"
+							f"documentToken:{_documentTokenExpression()},"
 							"chatListReady:Boolean(document.querySelector('div#side')?.querySelector("
 							f"{json.dumps(_CHAT_LIST_SELECTOR)})?.isConnected),"
 							"semanticNodesReady:["
@@ -885,6 +955,11 @@ def installAndVerify(
 					},
 				),
 			)
+			if (
+				isinstance(postInstall, dict)
+				and _documentToken(postInstall.get("documentToken")) != currentDocument
+			):
+				continue
 			if (
 				not isinstance(postInstall, dict)
 				or postInstall.get("bridgeContractVersion") != 2
@@ -918,18 +993,34 @@ def reconnect(
 	discover: Callable[[], Target],
 	connect: Callable[[Target], T],
 	cancelEvent: threading.Event,
+	deadline: float | None = None,
 ) -> T:
-	end = time.monotonic() + RECONNECT_DEADLINE
+	end = (
+		min(time.monotonic() + RECONNECT_DEADLINE, deadline)
+		if deadline is not None
+		else time.monotonic() + RECONNECT_DEADLINE
+	)
 	lastError: LoaderError | None = None
 	for index, delay in enumerate(RECONNECT_DELAYS):
+		if time.monotonic() >= end:
+			break
 		if cancelEvent.is_set():
 			raise LoaderError("operation.cancelled")
 		try:
-			return connect(discover())
+			target = discover()
+			if cancelEvent.is_set():
+				raise LoaderError("operation.cancelled")
+			if time.monotonic() >= end:
+				break
+			return connect(target)
 		except LoaderError as error:
+			if error.code == "operation.cancelled":
+				raise
 			lastError = error
 		if index < len(RECONNECT_DELAYS) - 1:
 			remaining = end - time.monotonic()
-			if remaining <= delay or cancelEvent.wait(delay):
+			if remaining <= delay:
 				break
+			if cancelEvent.wait(delay):
+				raise LoaderError("operation.cancelled")
 	raise LoaderError("cdp.reconnect", lastError.code if lastError else "noTarget")

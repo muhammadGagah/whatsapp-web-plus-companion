@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "keys": [
+    {
+      "keyId": "wwp-userscript-ed25519-2026-01",
+      "algorithm": "Ed25519",
+      "publicKey": "SFUpNS/v3KWArc/51VXtQyB1Qc5HdfSPO4eV2dhF9ys=",
+      "status": "active",
+      "minimumReleaseSequence": 2026082001,
+      "fingerprint": "be092d46d27480a33fc7f29d9d53261d887eb416dd4b7cd58ce9871ec4025ecc"
+    }
+  ]
+}

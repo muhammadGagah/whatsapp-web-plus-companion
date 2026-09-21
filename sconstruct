@@ -100,8 +100,8 @@ for dir in langDirs:
 	env.Depends(translatedManifest, ["buildVars.py"])
 	env.Depends(addon, [translatedManifest, moTarget])
 
-pythonFiles = expandGlobs(buildVars.pythonSources)
-for file in pythonFiles:
+packageFiles = expandGlobs(buildVars.pythonSources + buildVars.packageResourceSources)
+for file in packageFiles:
 	env.Depends(addon, file)
 
 # Convert markdown files to html

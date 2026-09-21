@@ -45,7 +45,8 @@ class PackageProcessTests(unittest.TestCase):
 		with self.assertRaisesRegex(LoaderError, "operation.cancelled"):
 			runPowerShellCancellable("Get-AppxPackage", cancel)
 
-		self.assertTrue(process.killed)
+		self.assertFalse(process.killed)
+		popen.assert_not_called()  # Cancellation is now checked before creating a process.
 
 	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.run")
 	def test_power_shell_does_not_inherit_nvda_stdin(self, run) -> None:

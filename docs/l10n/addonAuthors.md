@@ -7,14 +7,14 @@ This template supports translating add-ons with Crowdin.
 ## Crowdin Project Setup
 
 You need a Crowdin account and an API token with permissions to manage a project.
-If you wish to use the community project [Crowdin project to translate NVDA add-ons](https://crowdin.com/project/nvdaaddons):
+To use the community project [Crowdin project to translate NVDA add-ons](https://crowdin.com/project/nvdaaddons):
 
-* **Request Access:** Send a message to the [NVDA translation mailing list](https://groups.io/g/nvda-translations) (**nvda-translations@groups.io**), or in the [NVDA Add-ons Mailing List](https://groups.io/g/nvda-addons) (**nvda-addons@groups.io**), requesting an invitation to join the project as a developer.
+* **Request Access:** Ask for an invitation to join as a developer on the [NVDA translation mailing list](https://groups.io/g/nvda-translations) (**nvda-translations@groups.io**) or the [NVDA Add-ons Mailing List](https://groups.io/g/nvda-addons) (**nvda-addons@groups.io**).
 * **API Token:** Once invited, generate an API token in your Crowdin account settings.
 
 ### Required Token Scope & Permissions
 
-To maintain minimum necessary privileges, configure your token in **Account Settings > API > New Token** with the following settings:
+Give the token only the permissions it needs. In **Account Settings > API > New Token**, use these settings:
 
 1. **Project Restriction:** Under **Projects**, choose **Selected projects** and select only the NVDA add-ons community project.
 1. **Scopes:** Select only these permissions:
@@ -22,7 +22,7 @@ To maintain minimum necessary privileges, configure your token in **Account Sett
     * **`source-files` (Read & Write):** Required to upload `.pot` and `.xliff` source files.
     * **`translations` (Read & Write):** Required to download translated `.po` and `.xliff` files and verify translation progress.
 
-> **Note:** Leave all other scopes (*User*, *Webhooks*, *Screenshots*, *Reports*, *Billing*) unchecked, as they are not required by the synchronization scripts.
+> **Note:** Leave all other scopes (*User*, *Webhooks*, *Screenshots*, *Reports*, *Billing*) unchecked. The synchronization scripts do not need them.
 
 ## GitHub Secrets and Variables
 
@@ -32,7 +32,8 @@ To allow the workflows to communicate with Crowdin, you must add the following s
 1. In the **Name** field, enter `CROWDIN_TOKEN`.
 1. In the **Secret** field, paste your Crowdin API token.
 1. Click **Add secret** to save it.
-Once added, the token will be available to your repository's workflows.
+
+Your repository's workflows can now use the token.
 
 Optionally, if you don't want to use the [Crowdin community project](https://crowdin.com/project/nvdaaddons), you can create repository variables from **Settings > Secrets and variables > Actions > Variables** by selecting the **Variables** tab and clicking **New repository variable**.
 
@@ -54,7 +55,7 @@ If `MIN_PERCENTAGE_TRANSLATED` is not defined, the workflow uses a default value
 
 ## Infrastructure
 
-Ensure that your repository includes the following files (provided in this template):
+Make sure your repository includes these files from the template:
 
 * **Workflows:** `.github/workflows/crowdinL10n.yml`
 * **Scripts:** The `.github/scripts/` folder containing `checkTranslation.py`, `languageMappings.json`, `setOutputs.py`, and `crowdinSync.ps1`.
@@ -66,12 +67,12 @@ Translated XLIFF files downloaded from Crowdin are then converted back to Markdo
 
 ## Running the Workflow
 
-The translation workflow will be run weekly.
-Also, you can run the workflow manually from GitHub or using GitHub CLI.
+The translation workflow runs weekly.
+You can also run it manually from GitHub or with GitHub CLI.
 
 If you manage several add-ons, consider using different cron schedules for each repository.
-Although the workflow includes a random startup delay to reduce collisions, concurrent Crowdin synchronization jobs may still occur.
+The workflow waits for a random time before starting to reduce overlap, but Crowdin synchronization jobs may still run at the same time.
 
 Documentation and interface translations are synchronized only when their translation percentage reaches the configured `MIN_PERCENTAGE_TRANSLATED` threshold.
 
-This validation mechanism is applied consistently to both `.po` and `.xliff` translation files.
+The same threshold applies to both `.po` and `.xliff` translation files.
