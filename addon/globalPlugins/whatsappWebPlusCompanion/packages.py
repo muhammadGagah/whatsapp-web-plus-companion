@@ -50,7 +50,10 @@ def runPowerShell(script: str) -> str:
 
 
 def runPowerShellCancellable(
-	script: str, cancelEvent: CancellationEvent, *, deadline: float | None = None
+	script: str,
+	cancelEvent: CancellationEvent,
+	*,
+	deadline: float | None = None,
 ) -> str:
 	if cancelEvent.is_set():
 		raise LoaderError("operation.cancelled")

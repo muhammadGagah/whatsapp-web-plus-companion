@@ -63,7 +63,7 @@ def defaultLabels(action):
 	return tuple(
 		dict.fromkeys(
 			[label for label, owner in BUTTON_LABELS.items() if owner == action]
-			+ sorted(CHECKBOX_LABELS.get(action, ()))
+			+ sorted(CHECKBOX_LABELS.get(action, ())),
 		),
 	)
 

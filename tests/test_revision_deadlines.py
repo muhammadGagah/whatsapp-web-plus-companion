@@ -60,7 +60,7 @@ def handshake(connection):
 	connection.sendall(
 		b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "
 		+ accept
-		+ b"\r\n\r\n"
+		+ b"\r\n\r\n",
 	)
 
 
@@ -109,7 +109,7 @@ class DeadlineTests(unittest.TestCase):
 
 		with Peer(drip) as peer:
 			self.assertBounded(
-				lambda: websocket.WebSocket.connect(f"ws://127.0.0.1:{peer.port}/devtools/page/p", 0.12)
+				lambda: websocket.WebSocket.connect(f"ws://127.0.0.1:{peer.port}/devtools/page/p", 0.12),
 			)
 
 	def test_fragmented_message_cannot_renew_deadline(self):
@@ -149,7 +149,7 @@ class DeadlineTests(unittest.TestCase):
 
 		with Peer(events) as peer:
 			session = cdp.CdpSession(
-				websocket.WebSocket.connect(f"ws://127.0.0.1:{peer.port}/devtools/page/p", 1)
+				websocket.WebSocket.connect(f"ws://127.0.0.1:{peer.port}/devtools/page/p", 1),
 			)
 			try:
 				self.assertBounded(lambda: session.request("Runtime.enable", {}, deadline=0.12))

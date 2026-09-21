@@ -105,7 +105,13 @@ class WebSocket:
 
 	@classmethod
 	def connect(
-		cls, url: str, timeout: float, *, cancelEvent=None, registerCloser=noopRegister, deadline=None
+		cls,
+		url: str,
+		timeout: float,
+		*,
+		cancelEvent=None,
+		registerCloser=noopRegister,
+		deadline=None,
 	) -> "WebSocket":
 		try:
 			parsed = urlsplit(url)

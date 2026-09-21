@@ -21,7 +21,9 @@ class AppModule(appModuleHandler.AppModule):
 		runtime.performCallAction(CallAction.DECLINE, gesture)
 
 	@script(
-		description=_("Toggle native WhatsApp call camera"), gesture="kb:control+alt+v", speakOnDemand=True
+		description=_("Toggle native WhatsApp call camera"),
+		gesture="kb:control+alt+v",
+		speakOnDemand=True,
 	)
 	def script_toggleNativeCallCamera(self, gesture):
 		runtime.performCallAction(CallAction.CAMERA, gesture)
@@ -31,7 +33,9 @@ class AppModule(appModuleHandler.AppModule):
 		runtime.performCallAction(CallAction.MUTE, gesture)
 
 	@script(
-		description=_("Open native WhatsApp call reactions"), gesture="kb:control+alt+r", speakOnDemand=True
+		description=_("Open native WhatsApp call reactions"),
+		gesture="kb:control+alt+r",
+		speakOnDemand=True,
 	)
 	def script_nativeCallReactions(self, gesture):
 		runtime.performCallAction(CallAction.REACTIONS, gesture)

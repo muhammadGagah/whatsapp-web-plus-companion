@@ -27,7 +27,9 @@ class CallLabelsDialog(wx.Dialog):
 		# Read before creating a native window so a load failure cannot leak a dialog.
 		drafts = labels.loadOverrides()
 		super().__init__(
-			parent, title=_("Call control labels"), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+			parent,
+			title=_("Call control labels"),
+			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 		)
 		self._drafts = drafts
 		self._onSaved = onSaved
@@ -41,7 +43,7 @@ class CallLabelsDialog(wx.Dialog):
 			label=_(
 				"Add the exact labels spoken by NVDA for WhatsApp call controls, one per line. "
 				"For toggles, include both states. Built-in labels remain available; blank uses only built-in labels. "
-				"Changes apply to all WhatsApp channels after Save."
+				"Changes apply to all WhatsApp channels after Save.",
 			),
 		)
 		intro.Wrap(560)
@@ -51,7 +53,9 @@ class CallLabelsDialog(wx.Dialog):
 		self.action.SetSelection(0)
 		outer.Add(self.action, flag=wx.ALL | wx.EXPAND, border=10)
 		outer.Add(
-			wx.StaticText(self, label=_("&Built-in labels (read only):")), flag=wx.LEFT | wx.RIGHT, border=10
+			wx.StaticText(self, label=_("&Built-in labels (read only):")),
+			flag=wx.LEFT | wx.RIGHT,
+			border=10,
 		)
 		self.defaults = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(-1, 90))
 		outer.Add(self.defaults, flag=wx.ALL | wx.EXPAND, border=10)
@@ -108,7 +112,7 @@ class CallLabelsDialog(wx.Dialog):
 		with wx.MessageDialog(
 			self,
 			_(
-				"Additional labels cleared in this dialog. Choose Save to apply, or Cancel to keep your saved labels."
+				"Additional labels cleared in this dialog. Choose Save to apply, or Cancel to keep your saved labels.",
 			),
 			_("Call control labels"),
 			wx.OK | wx.ICON_INFORMATION,
@@ -131,13 +135,13 @@ class CallLabelsDialog(wx.Dialog):
 			self._error(
 				_(
 					"Could not save labels for {action}. Use at most 20 labels per action, each at most 128 characters. "
-					"The same label cannot belong to different actions. Check the selected action."
-				).format(action=self._names[self._actions[self._index]])
+					"The same label cannot belong to different actions. Check the selected action.",
+				).format(action=self._names[self._actions[self._index]]),
 			)
 			return
 		except Exception:
 			self._error(
-				_("Could not save call control labels. Your changes are still in this dialog. Try again.")
+				_("Could not save call control labels. Your changes are still in this dialog. Try again."),
 			)
 			return
 		self.Close()

@@ -24,7 +24,7 @@ def element(name="", cls="Pane", host=0, children=(), **overrides):
 			"currentNativeWindowHandle": host,
 			"children": list(children),
 			**overrides,
-		}
+		},
 	)
 
 
@@ -75,7 +75,7 @@ class NativeActionTests(unittest.TestCase):
 					contextValid=lambda: True,
 					belongsToWindow=lambda h: h == 200,
 					getInvoke=lambda el: pattern,
-				)
+				),
 			)
 			pattern.Invoke.assert_called_once_with()
 
@@ -106,7 +106,7 @@ class NativeActionTests(unittest.TestCase):
 						contextValid=lambda: True,
 						belongsToWindow=lambda h: h == 200,
 						getInvoke=getInvoke,
-					)
+					),
 				)
 				getInvoke.assert_called_once_with(target)
 				pattern.Invoke.assert_called_once_with()
@@ -122,12 +122,12 @@ class NativeActionTests(unittest.TestCase):
 		):
 			self.host.children = children
 			self.assertIsNone(
-				actions.findActiveControls(self.root, Walker(self.root), 10, 50000, CallAction.MUTE)
+				actions.findActiveControls(self.root, Walker(self.root), 10, 50000, CallAction.MUTE),
 			)
 		self.host.children = [end]
 		self.root.children.append(element(cls="InputSiteWindowClass", host=300, children=[target]))
 		self.assertIsNone(
-			actions.findActiveControls(self.root, Walker(self.root), 10, 50000, CallAction.MUTE)
+			actions.findActiveControls(self.root, Walker(self.root), 10, 50000, CallAction.MUTE),
 		)
 
 	def test_active_control_state_change_aborts_invocation(self):
@@ -146,7 +146,7 @@ class NativeActionTests(unittest.TestCase):
 				contextValid=lambda: True,
 				belongsToWindow=lambda h: True,
 				getInvoke=getInvoke,
-			)
+			),
 		)
 		getInvoke.assert_not_called()
 
@@ -213,7 +213,7 @@ class NativeActionTests(unittest.TestCase):
 					contextValid=lambda: context["valid"],
 					belongsToWindow=lambda h: True,
 					getInvoke=lambda el: pattern,
-				)
+				),
 			)
 		pattern.Invoke.assert_not_called()
 
@@ -229,7 +229,7 @@ class NativeActionTests(unittest.TestCase):
 					contextValid=Mock(side_effect=[True, True, False]),
 					belongsToWindow=lambda host: True,
 					getInvoke=lambda el: pattern,
-				)
+				),
 			)
 			pattern.Invoke.assert_not_called()
 		pattern = Mock()
@@ -253,7 +253,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.pattern = Mock()
 		for button in (self.answer, self.decline):
 			button.GetCurrentPattern = Mock(
-				return_value=types.SimpleNamespace(QueryInterface=lambda _: self.pattern)
+				return_value=types.SimpleNamespace(QueryInterface=lambda _: self.pattern),
 			)
 		self.foreground = types.SimpleNamespace(
 			processID=10,
@@ -272,7 +272,8 @@ class NativeActionRuntimeTests(unittest.TestCase):
 			isDescendantWindow=lambda root, host: (root, host) == (100, 200),
 		)
 		client = types.SimpleNamespace(
-			ElementFromHandle=lambda hwnd: self.root, RawViewWalker=Walker(self.root)
+			ElementFromHandle=lambda hwnd: self.root,
+			RawViewWalker=Walker(self.root),
 		)
 		self.ui = types.SimpleNamespace(message=Mock())
 		self.modules = {
@@ -319,7 +320,10 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.decline.currentControlType = 50007
 		self.pattern.CurrentDefaultAction = "Click"
 		self.api.getFocusObject.return_value = types.SimpleNamespace(
-			role="CHECKBOX", states=set(), UIAElement=self.answer, windowHandle=200
+			role="CHECKBOX",
+			states=set(),
+			UIAElement=self.answer,
+			windowHandle=200,
 		)
 
 	def test_compact_restore_once_no_call_action_or_replay(self):
@@ -480,7 +484,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.pattern.Toggle.assert_not_called()
 		self.runtime._lastAttempt = (0, 0.0)
 		self.answer.GetCurrentPattern.return_value = types.SimpleNamespace(
-			QueryInterface=lambda _: self.pattern
+			QueryInterface=lambda _: self.pattern,
 		)
 		self.pattern.Toggle.side_effect = RuntimeError("uncertain")
 		self.runtime.performCallAction(CallAction.REACTIONS, self.gesture)
@@ -593,7 +597,13 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.assertEqual(len(result["recognized"]), 1)
 		self.answer.GetCurrentPattern.assert_not_called()
 		result = diagnostics.collectInventory(
-			self.root, Walker(self.root), 10, 50000, 10000, 10015, clock=Mock(side_effect=[0, 1])
+			self.root,
+			Walker(self.root),
+			10,
+			50000,
+			10000,
+			10015,
+			clock=Mock(side_effect=[0, 1]),
 		)
 		self.assertEqual(result["status"], "partial")
 		self.assertEqual(result["recognized"], [])
@@ -687,7 +697,7 @@ class CachedDiscoveryTests(unittest.TestCase):
 				belongsToWindow=lambda h: True,
 				getInvoke=lambda el: pattern,
 				getToggle=lambda el: pattern,
-			)
+			),
 		)
 		pattern.Toggle.assert_not_called()
 

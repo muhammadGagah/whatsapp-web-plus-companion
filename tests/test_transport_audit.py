@@ -110,7 +110,7 @@ class TransportAuditTests(unittest.TestCase):
 	def test_handshake_request_uses_complete_send(self):
 		key = base64.b64encode(b"a" * 16)
 		accept = base64.b64encode(
-			hashlib.sha1(key + websocket._GUID.encode(), usedforsecurity=False).digest()
+			hashlib.sha1(key + websocket._GUID.encode(), usedforsecurity=False).digest(),
 		)
 		stream = TrackingStream(
 			b"HTTP/1.1 101 OK\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "

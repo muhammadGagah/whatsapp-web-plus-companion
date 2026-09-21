@@ -90,7 +90,11 @@ def performCallAction(action, gesture):
 			pair = findIncomingPair(searchRoot, searchWalker, pid, UIAHandler.UIA_ButtonControlTypeId)
 		else:
 			pair = findActiveControls(
-				searchRoot, searchWalker, pid, UIAHandler.UIA_ButtonControlTypeId, action
+				searchRoot,
+				searchWalker,
+				pid,
+				UIAHandler.UIA_ButtonControlTypeId,
+				action,
 			)
 		if pair is None:
 			if tryRestoreCompact(root, client, pid, hwnd, focus):
@@ -189,8 +193,8 @@ def tryRestoreCompact(root, client, pid, hwnd, focus):
 	if requested:
 		ui.message(
 			_(
-				"Requested the full call view. Release the keys, check the window, then press the shortcut again."
-			)
+				"Requested the full call view. Release the keys, check the window, then press the shortcut again.",
+			),
 		)
 	else:
 		ui.message(_("Could not confirm call view recovery. Open the full call window manually."))

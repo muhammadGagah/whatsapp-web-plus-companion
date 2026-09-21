@@ -107,7 +107,15 @@ def findActiveControls(root, walker, processId, buttonType, action):
 
 
 def invokePair(
-	pair, action, processId, buttonType, *, contextValid, belongsToWindow, getInvoke, getToggle=None
+	pair,
+	action,
+	processId,
+	buttonType,
+	*,
+	contextValid,
+	belongsToWindow,
+	getInvoke,
+	getToggle=None,
 ):
 	"""Revalidate before one Invoke or the observed checkbox Toggle. Never retry."""
 	if not contextValid():

@@ -94,7 +94,12 @@ class EndpointTests(unittest.TestCase):
 		):
 			with self.assertRaisesRegex(LoaderError, "listener.changed"):
 				launcher._connectAndInstall(
-					target, "source", "1", "hash", threading.Event(), validator=lambda **kwargs: "new"
+					target,
+					"source",
+					"1",
+					"hash",
+					threading.Event(),
+					validator=lambda **kwargs: "new",
 				)
 			connect.assert_not_called()
 			install.assert_not_called()
@@ -127,7 +132,12 @@ class EndpointTests(unittest.TestCase):
 		):
 			for _ in range(2):
 				session, health, unregister = launcher._connectAndInstall(
-					target, "source", "1", "hash", threading.Event(), validator=validate
+					target,
+					"source",
+					"1",
+					"hash",
+					threading.Event(),
+					validator=validate,
 				)
 				session.close()
 				unregister()
@@ -142,20 +152,29 @@ class EndpointTests(unittest.TestCase):
 				"LocalPort": 49223,
 				"RemotePort": 50000,
 				"OwningProcess": 30,
-			}
+			},
 		]
 		identity = processes.captureEndpointIdentity(
-			49223, self.package, lambda _: json.dumps(self.data), clientPort=50000
+			49223,
+			self.package,
+			lambda _: json.dumps(self.data),
+			clientPort=50000,
 		)
 		self.assertEqual(identity.pid, 30)
 		self.data["Connections"][0]["OwningProcess"] = 99
 		with self.assertRaisesRegex(LoaderError, "listener.connection"):
 			processes.captureEndpointIdentity(
-				49223, self.package, lambda _: json.dumps(self.data), clientPort=50000
+				49223,
+				self.package,
+				lambda _: json.dumps(self.data),
+				clientPort=50000,
 			)
 
 	def test_missing_established_connection_is_rejected(self):
 		with self.assertRaisesRegex(LoaderError, "listener.connection"):
 			processes.captureEndpointIdentity(
-				49223, self.package, lambda _: json.dumps(self.data), clientPort=50000
+				49223,
+				self.package,
+				lambda _: json.dumps(self.data),
+				clientPort=50000,
 			)

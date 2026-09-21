@@ -379,7 +379,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				if launchToken is not None and not self.controller.launchTokenIsActive(launchToken):
 					return
 				if result.messageKey.startswith("companion.") and not self._announcementGuard.permits(
-					securityEpoch
+					securityEpoch,
 				):
 					if not self._allowCompanionOutput():
 						self._suspendCompanionOutput()
@@ -414,7 +414,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if self._disposed or generation != self._generation:
 			return False
 		if result.messageKey.startswith("companion.") and not self._announcementGuard.permits(
-			result.values.get("securityEpoch")
+			result.values.get("securityEpoch"),
 		):
 			if not self._allowCompanionOutput():
 				self._suspendCompanionOutput()
@@ -619,7 +619,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			"package.running": _("WhatsApp is already running. Close it normally and try again."),
 			# Translators: Diagnosis stops because a package/process probe failed.
 			"registry.repair.processUnknown": _(
-				"Could not verify whether WhatsApp is running. Permission diagnosis stopped. Try again after checking WhatsApp."
+				"Could not verify whether WhatsApp is running. Permission diagnosis stopped. Try again after checking WhatsApp.",
 			),
 			# Translators: Spoken and brailled when NVDA stops an in-progress launch.
 			"operation.cancelled": _("WhatsApp Companion launch was cancelled."),

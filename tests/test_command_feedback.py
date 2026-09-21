@@ -27,7 +27,7 @@ class FeedbackTests(unittest.TestCase):
 		)
 		self.delivered = []
 		self.ui = types.SimpleNamespace(
-			message=Mock(side_effect=lambda text: self.delivered.append((text, self.state.speechMode)))
+			message=Mock(side_effect=lambda text: self.delivered.append((text, self.state.speechMode))),
 		)
 
 	def test_late_command_result_uses_talk_only_during_message(self):

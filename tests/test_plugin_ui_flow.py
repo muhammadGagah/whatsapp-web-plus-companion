@@ -236,7 +236,7 @@ class PluginUiFlowTests(unittest.TestCase):
 		self.assertFalse(self.plugin._registryDiagnosisPending)
 		self.assertEqual(self.plugin.lastResult.code, "registry.repair.processUnknown")
 		self.assertTrue(
-			any("Could not verify whether WhatsApp is running" in text for text in self.uiMessages)
+			any("Could not verify whether WhatsApp is running" in text for text in self.uiMessages),
 		)
 
 	def test_process_probe_distinguishes_unknown_absent_and_running(self) -> None:
@@ -247,7 +247,9 @@ class PluginUiFlowTests(unittest.TestCase):
 		with (
 			mock.patch.object(self.module, "findPackage", return_value=object()),
 			mock.patch.object(
-				self.module, "findRunningPackageProcesses", side_effect=RuntimeError("unknown")
+				self.module,
+				"findRunningPackageProcesses",
+				side_effect=RuntimeError("unknown"),
 			),
 		):
 			with self.assertRaises(LoaderError) as error:
@@ -255,7 +257,9 @@ class PluginUiFlowTests(unittest.TestCase):
 			self.assertEqual(error.exception.code, "registry.repair.processUnknown")
 		with (
 			mock.patch.object(
-				self.module, "findPackage", side_effect=[LoaderError("powershell.failed"), object()]
+				self.module,
+				"findPackage",
+				side_effect=[LoaderError("powershell.failed"), object()],
 			),
 			mock.patch.object(self.module, "findRunningPackageProcesses", return_value=[object()]),
 		):
@@ -265,7 +269,9 @@ class PluginUiFlowTests(unittest.TestCase):
 		callbacks = []
 		with (
 			mock.patch.object(
-				self.wx, "CallLater", side_effect=lambda delay, callback: callbacks.append(callback)
+				self.wx,
+				"CallLater",
+				side_effect=lambda delay, callback: callbacks.append(callback),
 			),
 			mock.patch.object(self.module.commandFeedback, "message") as feedback,
 		):

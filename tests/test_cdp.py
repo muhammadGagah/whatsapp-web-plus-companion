@@ -436,7 +436,12 @@ class CdpTests(unittest.TestCase):
 		clock = AdvancingCancel()
 		with patch("globalPlugins.whatsappWebPlusCompanion.cdp.time.monotonic", lambda: clock.now):
 			health, _identifier = installAndVerify(
-				session, "window.loaded=true;", "2.6.73", "a" * 64, clock, healthDeadline=1.0
+				session,
+				"window.loaded=true;",
+				"2.6.73",
+				"a" * 64,
+				clock,
+				healthDeadline=1.0,
 			)
 		self.assertEqual(health["state"], "ready")
 		self.assertEqual(session.injectionDocuments, ["1" * 32, "2" * 32])
@@ -454,7 +459,12 @@ class CdpTests(unittest.TestCase):
 					self.assertRaisesRegex(LoaderError, "bundle.healthTimeout"),
 				):
 					installAndVerify(
-						session, "window.loaded=true;", "2.6.73", "a" * 64, clock, healthDeadline=1.0
+						session,
+						"window.loaded=true;",
+						"2.6.73",
+						"a" * 64,
+						clock,
+						healthDeadline=1.0,
 					)
 				self.assertEqual(session.injectionDocuments, expected)
 
@@ -481,7 +491,12 @@ class CdpTests(unittest.TestCase):
 				clock = AdvancingCancel()
 				with patch("globalPlugins.whatsappWebPlusCompanion.cdp.time.monotonic", lambda: clock.now):
 					health, _identifier = installAndVerify(
-						session, "window.loaded=true;", "2.6.73", "a" * 64, clock, healthDeadline=1.0
+						session,
+						"window.loaded=true;",
+						"2.6.73",
+						"a" * 64,
+						clock,
+						healthDeadline=1.0,
 					)
 				self.assertEqual(health["state"], "ready")
 				self.assertEqual(
@@ -495,9 +510,11 @@ class CdpTests(unittest.TestCase):
 				"first": _documentTokenExpression(),
 				"second": _documentTokenExpression(),
 				"staleInjection": makeInjectionWrapper(
-					"throw new Error('must not inject');", "a" * 64, "0" * 32
+					"throw new Error('must not inject');",
+					"a" * 64,
+					"0" * 32,
 				),
-			}
+			},
 		)
 		program = (
 			"const sources = "

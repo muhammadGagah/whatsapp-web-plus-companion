@@ -99,7 +99,7 @@ def renderReader(reader: dict, language: str = "") -> str:
 			parts.append(text(run["text"]))
 		elif kind == "link":
 			parts.append(
-				f'<a href="{html.escape(run["href"], quote=True)}">{text(run["text"] or run["href"])}</a>'
+				f'<a href="{html.escape(run["href"], quote=True)}">{text(run["text"] or run["href"])}</a>',
 			)
 		elif kind == "break":
 			parts.append("<br>")

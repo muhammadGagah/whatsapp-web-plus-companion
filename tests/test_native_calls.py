@@ -30,7 +30,7 @@ def node(**overrides):
 			"UIAElement": types.SimpleNamespace(cachedAutomationId="AnswerButton", cachedClassName="Button"),
 			"parent": None,
 			**overrides,
-		}
+		},
 	)
 
 
@@ -38,7 +38,7 @@ class NativeCallSnapshotTests(unittest.TestCase):
 	def test_call_commands_are_contextual_app_scripts(self):
 		plugin = ast.parse((ROOT / "addon/globalPlugins/whatsappWebPlusCompanion/__init__.py").read_text())
 		self.assertFalse(
-			any(isinstance(n, ast.FunctionDef) and "NativeCall" in n.name for n in ast.walk(plugin))
+			any(isinstance(n, ast.FunctionDef) and "NativeCall" in n.name for n in ast.walk(plugin)),
 		)
 		app = ast.parse((APP_ROOT / "whatsapp_root.py").read_text())
 		methods = [
@@ -159,7 +159,8 @@ class NativeCallAppModuleTests(unittest.TestCase):
 		translation.start()
 		self.addCleanup(translation.stop)
 		spec = importlib.util.spec_from_file_location(
-			"appModules.wwpCallSupport.runtime", APP_ROOT / "wwpCallSupport/runtime.py"
+			"appModules.wwpCallSupport.runtime",
+			APP_ROOT / "wwpCallSupport/runtime.py",
 		)
 		self.module = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(self.module)
@@ -168,7 +169,8 @@ class NativeCallAppModuleTests(unittest.TestCase):
 		runtime = types.SimpleNamespace(performCallAction=Mock(), captureDiagnostics=Mock())
 		with patch.object(support, "runtime", runtime, create=True):
 			spec = importlib.util.spec_from_file_location(
-				"appModules.whatsapp_root", APP_ROOT / "whatsapp_root.py"
+				"appModules.whatsapp_root",
+				APP_ROOT / "whatsapp_root.py",
 			)
 			module = importlib.util.module_from_spec(spec)
 			spec.loader.exec_module(module)

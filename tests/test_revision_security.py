@@ -52,7 +52,8 @@ class GuardTests(unittest.TestCase):
 	def test_windows_and_nvda_predicates_must_all_allow_output(self):
 		args = types.SimpleNamespace(secure=False)
 		tracking = types.SimpleNamespace(
-			_getSessionLockedValue=lambda: 1, isLockScreenModeActive=lambda: False
+			_getSessionLockedValue=lambda: 1,
+			isLockScreenModeActive=lambda: False,
 		)
 		state = types.SimpleNamespace(shouldWriteToDisk=lambda: True)
 		utils = types.SimpleNamespace(isRunningOnSecureDesktop=lambda: False)
@@ -106,7 +107,10 @@ class GuardTests(unittest.TestCase):
 		allowed = [True]
 		shown = []
 		queue = BrailleMessageQueue(
-			shown.append, lambda *a: None, dwellMilliseconds=None, outputAllowed=lambda: allowed[0]
+			shown.append,
+			lambda *a: None,
+			dwellMilliseconds=None,
+			outputAllowed=lambda: allowed[0],
 		)
 		queue.enqueue("private")
 		allowed[0] = False
@@ -119,7 +123,10 @@ class GuardTests(unittest.TestCase):
 		state = launcher._AnnouncementState()
 		with patch.object(launcher, "readCompanionAnnouncements") as read:
 			launcher._forwardCompanionAnnouncements(
-				MagicMock(), state, MagicMock(), security.AnnouncementGuard(lambda: False)
+				MagicMock(),
+				state,
+				MagicMock(),
+				security.AnnouncementGuard(lambda: False),
 			)
 		read.assert_not_called()
 		self.assertTrue(state.suppressed)
@@ -134,7 +141,10 @@ class GuardTests(unittest.TestCase):
 		reports = []
 		with patch.object(launcher, "readCompanionAnnouncements", return_value=batch):
 			launcher._forwardCompanionAnnouncements(
-				MagicMock(), state, lambda r: reports.append(r) or True, guard
+				MagicMock(),
+				state,
+				lambda r: reports.append(r) or True,
+				guard,
 			)
 		self.assertEqual([r.code for r in reports], ["companion.invalidate"])
 		self.assertEqual(state.lastAcknowledgedSequence, 2)
@@ -143,7 +153,10 @@ class GuardTests(unittest.TestCase):
 		batch = CompanionAnnouncementBatch("new", 1, "new-chat", 3, False, "", "", False, (nextEntry,))
 		with patch.object(launcher, "readCompanionAnnouncements", return_value=batch):
 			launcher._forwardCompanionAnnouncements(
-				MagicMock(), state, lambda r: reports.append(r) or True, guard
+				MagicMock(),
+				state,
+				lambda r: reports.append(r) or True,
+				guard,
 			)
 		self.assertEqual(reports[-1].values["text"], "new safe")
 		self.assertIn("securityEpoch", reports[-1].values)

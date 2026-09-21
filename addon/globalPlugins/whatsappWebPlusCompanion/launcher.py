@@ -286,7 +286,9 @@ def _discoverTarget(port: int, *, io: _OperationIO | None = None, validator=None
 	identity = validator(deadline=io.end if io is not None else None) if validator is not None else None
 	opts = io.httpOptions() if io is not None else {}
 	target = selectTarget(
-		httpGetJson(port, "/json/version", **opts), httpGetJson(port, "/json/list", **opts), port
+		httpGetJson(port, "/json/version", **opts),
+		httpGetJson(port, "/json/list", **opts),
+		port,
 	)
 	if io is not None:
 		io.remaining()
@@ -295,7 +297,7 @@ def _discoverTarget(port: int, *, io: _OperationIO | None = None, validator=None
 
 def _waitForTarget(port: int, cancelEvent: threading.Event, *, io=None, validator=None) -> Target:
 	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
-		TARGET_DEADLINE
+		TARGET_DEADLINE,
 	)
 	lastError = None
 	while time.monotonic() < io.end:
@@ -313,7 +315,7 @@ def _waitForTarget(port: int, cancelEvent: threading.Event, *, io=None, validato
 
 def _waitForPackageProcesses(package, cancelEvent: threading.Event, *, io=None) -> set[int]:
 	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
-		TARGET_DEADLINE
+		TARGET_DEADLINE,
 	)
 	while time.monotonic() < io.end:
 		io.remaining()
@@ -326,10 +328,14 @@ def _waitForPackageProcesses(package, cancelEvent: threading.Event, *, io=None) 
 
 
 def _waitForValidatedListener(
-	port: int, packagePids: set[int], cancelEvent: threading.Event, *, io=None
+	port: int,
+	packagePids: set[int],
+	cancelEvent: threading.Event,
+	*,
+	io=None,
 ) -> int:
 	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
-		TARGET_DEADLINE
+		TARGET_DEADLINE,
 	)
 	lastError = None
 	while time.monotonic() < io.end:
@@ -566,7 +572,8 @@ def launchOperation(
 				now = time.monotonic()
 				if now >= nextTargetHealthCheck:
 					current = _discoverTarget(
-						port, io=_OperationIO(cancelEvent, registerCloser, time.monotonic() + 5)
+						port,
+						io=_OperationIO(cancelEvent, registerCloser, time.monotonic() + 5),
 					)
 					nextTargetHealthCheck = now + _TARGET_HEALTH_INTERVAL
 					if current.id != target.id:

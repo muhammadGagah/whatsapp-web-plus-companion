@@ -170,7 +170,7 @@ class CallLabelTests(unittest.TestCase):
 					belongsToWindow=lambda h: h == 200,
 					getInvoke=getInvoke,
 					getToggle=lambda el: pattern,
-				)
+				),
 			)
 			pattern.Toggle.assert_called_once_with()
 			getInvoke.assert_not_called()
@@ -199,7 +199,7 @@ class CallLabelTests(unittest.TestCase):
 				contextValid=lambda: True,
 				belongsToWindow=lambda h: h == 200,
 				getInvoke=getInvoke,
-			)
+			),
 		)
 		pattern.Invoke.assert_not_called()
 
@@ -219,7 +219,7 @@ class CallLabelTests(unittest.TestCase):
 				contextValid=lambda: True,
 				belongsToWindow=lambda h: h == 200,
 				getLegacy=lambda el: pattern,
-			)
+			),
 		)
 		pattern.DoDefaultAction.assert_called_once_with()
 		with patch.object(peer, "currentName", "Silenciar"):

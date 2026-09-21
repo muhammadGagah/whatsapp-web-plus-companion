@@ -47,7 +47,7 @@ def envelope(reader):
 				"text": "",
 				"reader": reader,
 				"readerExpiresAt": int(time.time() * 1000) + 10000,
-			}
+			},
 		],
 	}
 
@@ -108,7 +108,7 @@ class ReaderPayloadTests(unittest.TestCase):
 
 	def test_error_payload_is_a_single_message(self):
 		reader = messageReader.validateReader(
-			payload(status="error", runs=[], message="Cannot load complete message")
+			payload(status="error", runs=[], message="Cannot load complete message"),
 		)
 		self.assertIsNotNone(reader)
 		self.assertIn("Cannot load complete message", messageReader.renderReader(reader))
