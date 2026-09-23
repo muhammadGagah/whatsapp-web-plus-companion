@@ -1,16 +1,16 @@
 {
-    "schemaVersion":  1,
-    "protocolVersion":  1,
-    "helper":  {
-                   "bat":  {
-                               "sha256":  "155e331fc473c83775a757fd58832da6dc819d6f5de3022c043d8f92cfcdbc80",
-                               "file":  "registryRepair.bat",
-                               "bytes":  161
-                           },
-                   "ps1":  {
-                               "sha256":  "96e5e36ee8b21934dba18913a4526aef5cad346e87e4139f9cff5e70e8ed9191",
-                               "file":  "registryRepair.ps1",
-                               "bytes":  11442
-                           }
-               }
+  "schemaVersion": 1,
+  "protocolVersion": 1,
+  "helper": {
+    "bat": {
+      "sha256": "f77357929f770c273a55a0dde8e37f89e932023bee69be44fc6d0ac3a774db2b",
+      "file": "registryRepair.bat",
+      "bytes": 165
+    },
+    "ps1": {
+      "sha256": "7325a50aa751d35ea502bfcd2f834d3523abc5204998b444d922dec4a01a0acf",
+      "file": "registryRepair.ps1",
+      "bytes": 11433
+    }
+  }
 }

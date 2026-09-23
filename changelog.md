@@ -1,38 +1,47 @@
 # WhatsApp Companion changelog
 
-## 2026.09.21
+## 2026.09.23
 
-### Added
+### Message reading
 
-- Native WhatsApp call shortcuts for answering, declining, camera, microphone,
-  reactions, raising/lowering a hand, screen sharing, and ending calls. Call
-  commands appear in Input Gestures when opened from WhatsApp.
-- A Call control labels menu with English and Indonesian help. Add labels in
-  several languages, one per line, while keeping built-in labels. Settings apply
-  across NVDA profiles and survive add-on updates in the same NVDA configuration.
-- Native NVDA message reading for `Alt+Shift+C`, preserving message paragraphs,
-  lists, safe links, and sent time without opening a desktop browser window.
-- Signed userscript update verification with trusted Ed25519 keys. If
-  verification fails or is unavailable, the existing bundle stays unchanged.
+- Open Alt+Shift+C in a native NVDA reader without launching a browser window.
+- Read authored message lines in a read-only text field without visual line wrapping. Switch to formatted view for links and lists.
+- Copy only message text without viewer headings or timestamps. Preserve original line breaks and explicit blank lines.
+- Validate reader content and reject malformed lists while preserving valid nested lists and headings.
 
-### Improved
+### Shortcuts and calls
 
-- Recovery from the compact call view when a requested control is unavailable.
-  Once the full call view is restored, press the shortcut again to perform the action.
-- Recognition of reaction and screen-sharing checkbox controls, including call
-  controls while sharing a screen.
-- Delayed command feedback in NVDA speech On-demand mode.
-- Startup recovery when WhatsApp reloads, without duplicate userscript injection
-  into the same document.
-- Permission diagnosis stops when the WhatsApp process state cannot be verified,
-  instead of treating an unknown state as closed.
+- Include WhatsApp Web Plus 2.6.84 with shortcut recording, manual remapping, and optional shortcuts to start voice and video calls.
+- Open the Shift+F8 Shortcut list in an NVDA reading window with section headings. Include script defaults and WhatsApp built-in shortcuts for browser and WebView2 versions.
+- Provide native call shortcuts for answering, declining, microphone, camera, reactions, raising or lowering a hand, screen sharing, and ending calls.
+- Customize call-control labels in multiple languages while retaining built-in labels. Settings survive add-on updates in the same NVDA configuration.
+- Improve recovery from the compact call view and recognition of controls during screen sharing.
+- Prevent recursive dispatch when a remapped shortcut overlaps native chat navigation.
 
-### Compatibility and bundled script
+### Startup and compatibility
 
-- Raised the minimum NVDA version to 2025.1 to use its bundled cryptography library
-  for signed updates. The manifest's last-tested version is set to 2026.2.
-- Bundled WhatsApp Web Plus 2.6.83, including text-formatting toolbar navigation,
-  message-reader improvements, corrected media-close feedback, and incoming
-  video-call shortcuts. Companion continues to handle native call-window commands.
-- Moved publisher signing guides into the script repository, with English and
-  Indonesian versions and configurable example paths.
+- Allow slower listener checks up to 30 seconds per query within a 60-second listener budget and the overall launch deadline. Log port and process queries separately. Keep endpoint ownership checks before connecting.
+
+- Narrow package discovery to the selected WhatsApp app and allow more time for initial package and process checks while preserving cancellation and overall deadlines.
+- Include the PowerShell stage, elapsed time, and time budget in failure logs.
+
+- Preserve the built-in WhatsApp app module on NVDA 2026.2 and later, including its default focus interaction and manual browse-mode selection.
+- Retain compatibility with earlier supported NVDA versions and keep native call shortcuts available.
+- Improve startup recovery after WhatsApp reloads without injecting the userscript twice into the same document.
+- Improve delayed command feedback in NVDA speech On-demand mode.
+
+### Registry permissions and repair
+
+- Fix permission diagnosis reporting success when the per-user WebView2 policy keys are missing, even though launching WhatsApp cannot create them. Offer setup through Diagnose and repair WebView2 policy permissions.
+- Verify registry access from the normal NVDA session after repair, including when the elevated helper reports that permissions already exist. Retry any pending restoration of the temporary launch setting.
+- Stop permission diagnosis when the WhatsApp process state cannot be verified.
+- Fix repair stopping before the administrator prompt because the packaged batch helper did not match its expected hash. Correct the integrity metadata and stabilize helper line endings.
+- Verify both repair helpers inside the built add-on package to catch integrity mismatches before release.
+
+### Updates
+- Verify signed userscript updates with trusted Ed25519 keys. Keep the installed bundle when verification fails or is unavailable.
+
+### Requirements
+
+- Requires NVDA 2025.1 or later. The manifest's last-tested version is NVDA 2026.2.
+- Bundles WhatsApp Web Plus 2.6.84. Publisher signing guides are available in the script repository in English and Indonesian.

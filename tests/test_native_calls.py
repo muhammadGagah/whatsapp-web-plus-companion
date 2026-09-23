@@ -139,7 +139,13 @@ class NativeCallAppModuleTests(unittest.TestCase):
 
 			return decorate
 
+		builtin = types.ModuleType("nvdaBuiltin")
+		builtin.__path__ = []
+		builtinApps = types.ModuleType("nvdaBuiltin.appModules")
+		builtinApps.__path__ = []
 		self.modules = {
+			"nvdaBuiltin": builtin,
+			"nvdaBuiltin.appModules": builtinApps,
 			"addonHandler": types.SimpleNamespace(initTranslation=Mock()),
 			"api": self.api,
 			"appModuleHandler": types.SimpleNamespace(AppModule=object),
@@ -164,6 +170,66 @@ class NativeCallAppModuleTests(unittest.TestCase):
 		)
 		self.module = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(self.module)
+
+	def _loadWhatsAppModule(self):
+		spec = importlib.util.spec_from_file_location(
+			"appModules.whatsapp_root",
+			APP_ROOT / "whatsapp_root.py",
+		)
+		module = importlib.util.module_from_spec(spec)
+		with patch.object(support, "runtime", self.module, create=True):
+			spec.loader.exec_module(module)
+		return module
+
+	def test_preserves_builtin_mode_and_event_behavior(self):
+		class BuiltinAppModule:
+			disableBrowseModeByDefault = True
+
+			def __init__(self):
+				self.initialized = True
+
+			def event_NVDAObject_init(self, obj):
+				obj.handledByBuiltin = True
+
+		builtin = types.ModuleType("nvdaBuiltin.appModules.whatsapp_root")
+		builtin.AppModule = BuiltinAppModule
+		with patch.dict(sys.modules, {builtin.__name__: builtin}):
+			module = self._loadWhatsAppModule()
+		app = module.AppModule()
+		self.assertIsInstance(app, BuiltinAppModule)
+		self.assertTrue(app.disableBrowseModeByDefault)
+		self.assertTrue(app.initialized)
+		obj = types.SimpleNamespace()
+		app.event_NVDAObject_init(obj)
+		self.assertTrue(obj.handledByBuiltin)
+		self.assertTrue(callable(app.script_answerNativeCall))
+		with patch.dict(sys.modules, {"appModules.whatsapp_root": module}):
+			spec = importlib.util.spec_from_file_location("appModules.whatsapp", APP_ROOT / "whatsapp.py")
+			alias = importlib.util.module_from_spec(spec)
+			spec.loader.exec_module(alias)
+		self.assertIs(alias.AppModule, module.AppModule)
+
+	def test_older_nvda_without_builtin_keeps_generic_behavior(self):
+		with patch.dict(sys.modules, {"nvdaBuiltin.appModules.whatsapp_root": None}):
+			module = self._loadWhatsAppModule()
+		self.assertEqual(module.AppModule.__bases__, (object,))
+		self.assertFalse(getattr(module.AppModule, "disableBrowseModeByDefault", False))
+
+	def test_missing_builtin_dependency_is_not_silently_ignored(self):
+		import builtins
+
+		originalImport = builtins.__import__
+		error = ModuleNotFoundError("missing dependency", name="builtinDependency")
+
+		def importModule(name, *args, **kwargs):
+			if name == "nvdaBuiltin.appModules.whatsapp_root":
+				raise error
+			return originalImport(name, *args, **kwargs)
+
+		with patch("builtins.__import__", side_effect=importModule):
+			with self.assertRaises(ModuleNotFoundError) as raised:
+				self._loadWhatsAppModule()
+		self.assertIs(raised.exception, error)
 
 	def test_app_module_dispatches_all_actions_and_diagnostics(self):
 		runtime = types.SimpleNamespace(performCallAction=Mock(), captureDiagnostics=Mock())

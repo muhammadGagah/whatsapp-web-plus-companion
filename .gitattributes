@@ -10,3 +10,7 @@ addon/globalPlugins/whatsappWebPlusCompanion/resources/whatsapp_web_plus.user.js
 # Every person expected to commit po files should change their personal config file as described here:
 # https://mail.gnome.org/archives/kupfer-list/2010-June/msg00002.html
 *.po filter=cleanpo
+
+# Repair helper integrity uses exact bytes; pin checkout endings on every OS.
+addon/globalPlugins/whatsappWebPlusCompanion/resources/registryRepair/*.bat text eol=crlf
+addon/globalPlugins/whatsappWebPlusCompanion/resources/registryRepair/*.ps1 text eol=lf

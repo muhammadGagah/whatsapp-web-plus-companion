@@ -79,6 +79,10 @@ Open **NVDA menu > Tools > WhatsApp Companion** to launch WhatsApp or manage Com
 - **Read a full message:** focus a message and press `Alt + Shift + C` to open it in NVDA's reading window. Press `Escape` to close it.
 - **Change settings:** press `Shift + F8` inside WhatsApp.
 
+### Reading messages
+
+Alt+Shift+C opens unwrapped, read-only message text. Up and Down Arrow follow original message lines. Long lines scroll horizontally. Use **Copy message** for plain body text without the reader title or sent time. Use **Formatted view** for wrapped visual reading and clickable links. Escape closes the reader.
+
 ### Call control labels
 
 Choose **NVDA menu > Tools > WhatsApp Companion > Call control labels** to add labels for the language used by WhatsApp. You can customize answer, decline, camera, microphone, reactions, raise/lower hand, screen sharing, and end call.
@@ -113,6 +117,132 @@ Use these shortcuts while the WhatsApp call window is active. Press `Alt + Tab` 
 If a shortcut opens the full call window from the small call view, release the keys and press the shortcut again to perform the action. If the full window does not open, open it manually and try again.
 
 The reactions shortcut opens WhatsApp's reaction controls. Choose the reaction you want to send. When starting screen sharing, choose what to share in WhatsApp. Press `Ctrl + Alt + S` again to stop sharing.
+
+## Assigning shortcuts
+
+Choose **Shift+F8 > Shortcut remapping**, then select **Record voice message**, **Previous chat**, **Next chat**, **Start voice call**, or **Start video call**. Type a combination such as `Alt+C` or `Alt+V`, then choose **Save**. Use Ctrl or Alt, optionally Shift, followed by a letter, digit, punctuation key such as comma or period, F1–F12, or ArrowUp/Down/Left/Right. Letters refer to physical keyboard positions. Leave the field blank to disable an action. **Restore default** only changes the field. Choose Save to apply or Cancel/Escape to discard. Existing enabled/disabled remaps are preserved. New call shortcuts start unassigned. The recording default is Alt+M. Previous/next defaults are Alt+ArrowUp/Alt+ArrowDown, initially disabled.
+
+Duplicate assignments and fixed script/Companion commands are rejected. Browser, system, NVDA, or extension shortcuts can still take priority. AltGr is not supported. Voice/video calls use the available button in the current conversation header, identified by its icon rather than translated text. No custom language string is required. Unavailable or ambiguous buttons are reported without starting a call.
+
+### Record a shortcut
+
+In Shortcut remapping, select an action and choose **Record shortcut**. NVDA must be in **focus mode** so the script receives your combination. If it is still in browse mode, press **NVDA+Space** before recording. Press a combination such as **Alt+comma**, then choose **Save**. Escape cancels recording. Tab stops recording and moves to the next control. Typing a combination manually is still available. Browser, system, or NVDA commands that intercept the keys cannot be recorded by the script.
+
+## Shortcut list in settings
+
+Choose **Shift+F8 > Shortcut list** to read the script’s default shortcuts grouped by function. This reference shows defaults. Custom assignments remain visible in **Shortcut remapping**. Companion opens NVDA’s native reading window with navigable headings. Press Escape to close it.
+
+## Default script shortcuts
+
+These are defaults, not your saved remappings.
+
+### Navigation
+
+| Shortcut | Function |
+| --- | --- |
+| `Alt+Shift+1` | Open Chats |
+| `Alt+Shift+2` | Open Status or Updates |
+| `Alt+Shift+3` | Open Communities |
+| `Alt+Shift+4` | Open Channels |
+| `Alt+Shift+5` | Open Meta AI |
+| `Alt+1` | Move to the chat list |
+| `Alt+2` | Move to the latest message |
+| `Alt+3` | Move to the first unread message |
+| `Alt+Shift+D` | Move between messages and the editor |
+| `Alt+T` | Read the chat title. Press twice quickly to toggle chat activity monitoring |
+| `Alt+0` | Close the media player or desktop app promotion |
+
+### Messages and formatting
+
+| Shortcut | Function |
+| --- | --- |
+| `Alt+Shift+C` | Open the focused message in the message reader |
+| `Shift+Enter` | Expand Read more in the focused message |
+| `Alt+F10` | Open formatting options for selected text in the editor |
+| `Enter / Space` | Play or pause the focused voice message when the optional keyboard playback setting is enabled (off by default) |
+
+### Settings and appearance
+
+| Shortcut | Function |
+| --- | --- |
+| `Shift+F8` | Open or close settings |
+| `Alt+Shift+N` | Toggle Privacy Mode |
+| `Alt+Shift+L` | Toggle automatic message reading |
+| `Alt+Shift+8` | Toggle Clean UI |
+| `Alt+Shift+9` | Toggle Original Dark Mode |
+
+### Incoming calls
+
+| Shortcut | Function |
+| --- | --- |
+| `Ctrl+Alt+A` | Accept an incoming call when its controls are visible |
+| `Ctrl+Alt+D` | Decline an incoming call when its controls are visible |
+
+### Remappable defaults
+
+| Shortcut | Function |
+| --- | --- |
+| `Alt+M` | Record a voice message. Enabled by default |
+| `Alt+ArrowUp` | Previous chat. Disabled until enabled in Shortcut remapping |
+| `Alt+ArrowDown` | Next chat. Disabled until enabled in Shortcut remapping |
+| Not assigned | Start voice call: no default shortcut. Assign in Shortcut remapping |
+| Not assigned | Start video call: no default shortcut. Assign in Shortcut remapping |
+
+## WhatsApp built-in shortcuts
+
+These are the WhatsApp WebView2 shortcuts. Some commands depend on the selected message or current panel.
+
+| Shortcut | Function |
+| --- | --- |
+| `Ctrl+Shift+U` | Mark as unread |
+| `Ctrl+Shift+M` | Mute chat |
+| `Ctrl+Shift+A` | Archive chat |
+| `Ctrl+Alt+Shift+P` | Pin chat |
+| `Ctrl+Alt+/` | Search |
+| `Ctrl+Shift+F` | Search chat |
+| `Ctrl+Alt+N` | New chat |
+| `Ctrl+]` | Next chat |
+| `Ctrl+[` | Previous chat |
+| `Ctrl+Cmd+Shift+L` | Add chat to list |
+| `Escape` | Close chat |
+| `Ctrl+Shift+N` | New group |
+| `Ctrl+Alt+P` | Profile and About |
+| `Shift+.` | Increase speed of selected voice message |
+| `Shift+,` | Decrease speed of selected voice message |
+| `Alt+S` | Settings |
+| `Ctrl+Alt+E` | Emoji panel |
+| `Ctrl+Alt+G` | GIF panel |
+| `Ctrl+Alt+S` | Sticker panel |
+| `Alt+K` | Extended search |
+| `Alt+L` | Lock app |
+| `Alt+I` | Open chat info |
+| `Ctrl+Shift+B` | Block chat |
+| `Alt+R` | Reply |
+| `Ctrl+Alt+R` | Reply privately |
+| `Ctrl+Alt+D` | Forward |
+| `Alt+8` | Star message |
+| `Alt+A` | Open attachment dropdown |
+| `Ctrl+Alt+Shift+R` | Start PTT recording |
+| `Alt+P` | Pause PTT recording |
+| `Ctrl+Enter` | Send PTT |
+| `Ctrl+ArrowUp` | Edit last message |
+| `Ctrl++` | Zoom in |
+| `Ctrl+-` | Zoom out |
+| `Ctrl+0` | Zoom reset |
+| `Ctrl+1..9` | Open chat |
+
+### Calls
+
+Use these shortcuts while call controls are available. The same key can have a different function in a chat.
+
+| Shortcut | Function |
+| --- | --- |
+| `Ctrl+Alt+V` | Toggle camera |
+| `Ctrl+Alt+M` | Toggle mute |
+| `Ctrl+Alt+R` | Reactions |
+| `Ctrl+Alt+H` | Raise hand |
+| `Ctrl+Alt+S` | Screen share |
+| `Ctrl+Alt+W` | End call |
 
 ## Updating WhatsApp Web Plus inside Companion
 

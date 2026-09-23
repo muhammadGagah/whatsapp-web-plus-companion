@@ -6,10 +6,19 @@ from scriptHandler import script
 
 from .wwpCallSupport import CallAction, runtime
 
+try:
+	from nvdaBuiltin.appModules.whatsapp_root import AppModule as _WhatsAppBase
+except ModuleNotFoundError as error:
+	# NVDA before 2026.2 has no built-in WebView2 WhatsApp module.
+	# Do not hide a broken dependency inside an existing built-in module.
+	if error.name != "nvdaBuiltin.appModules.whatsapp_root":
+		raise
+	_WhatsAppBase = appModuleHandler.AppModule
+
 addonHandler.initTranslation()
 
 
-class AppModule(appModuleHandler.AppModule):
+class AppModule(_WhatsAppBase):
 	scriptCategory = _("WhatsApp Companion")
 
 	@script(description=_("Answer native WhatsApp call"), gesture="kb:control+alt+a", speakOnDemand=True)

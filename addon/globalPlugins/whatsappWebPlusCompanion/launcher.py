@@ -24,7 +24,15 @@ from .http import endpointResponds, httpGetJson
 from .ioDeadline import Deadline
 from .models import Channel, LoaderError, OperationResult, OperationState
 from .packages import findRunningPackageProcesses, resolvePackage, runPowerShellCancellable
-from .policy import BUNDLE_HEALTH_DEADLINE, CHANNELS, CONNECT_DEADLINE, TARGET_DEADLINE, RECONNECT_DEADLINE
+from .policy import (
+	BUNDLE_HEALTH_DEADLINE,
+	CHANNELS,
+	CONNECT_DEADLINE,
+	TARGET_DEADLINE,
+	RECONNECT_DEADLINE,
+	LISTENER_DEADLINE,
+	TARGET_IDENTITY_DEADLINE,
+)
 from .processes import collectProcessTopology, validateListener, captureEndpointIdentity
 from .registry import (
 	RegistryLease,
@@ -296,8 +304,8 @@ def _discoverTarget(port: int, *, io: _OperationIO | None = None, validator=None
 
 
 def _waitForTarget(port: int, cancelEvent: threading.Event, *, io=None, validator=None) -> Target:
-	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
-		TARGET_DEADLINE,
+	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_IDENTITY_DEADLINE)).child(
+		TARGET_IDENTITY_DEADLINE,
 	)
 	lastError = None
 	while time.monotonic() < io.end:
@@ -334,8 +342,8 @@ def _waitForValidatedListener(
 	*,
 	io=None,
 ) -> int:
-	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
-		TARGET_DEADLINE,
+	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + LISTENER_DEADLINE)).child(
+		LISTENER_DEADLINE,
 	)
 	lastError = None
 	while time.monotonic() < io.end:

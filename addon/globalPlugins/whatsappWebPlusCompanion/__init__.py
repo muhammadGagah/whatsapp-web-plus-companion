@@ -231,7 +231,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				"Launch or force close Microsoft Store WhatsApp, and manage WhatsApp Web Plus userscript updates.",
 			),
 			(
-				# Launch WhatsApp.
 				(
 					MenuSpec(
 						# Translators: Tools submenu command. The ampersand marks the mnemonic.
@@ -252,7 +251,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						self._onLaunchSelectedMenu,
 					),
 				),
-				# Stop or fix problems with WhatsApp.
 				(
 					MenuSpec(
 						# Translators: Destructive Tools submenu command. The ampersand marks the mnemonic.
@@ -276,7 +274,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						self._onCallLabelsMenu,
 					),
 				),
-				# Status and updates.
 				(
 					MenuSpec(
 						# Translators: Tools submenu command. The ampersand marks the mnemonic.
@@ -756,7 +753,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			),
 			# Translators: Status when the required WebView2 policy permissions already exist.
 			"registry.repair.notNeeded": _(
-				"The required WebView2 policy permissions are already available. No changes were made.",
+				"The required WebView2 policy permissions are available.",
 			),
 			# Translators: Status when diagnosis is refused while WhatsApp is running.
 			"registry.repair.whatsappRunning": _(
@@ -1092,7 +1089,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		self._registryDiagnosisPending = False
 		self._registryDiagnosisWorker = None
-		if status is RegistryPermissionStatus.REPAIRABLE_ACCESS_DENIED:
+		if status in (
+			RegistryPermissionStatus.REPAIRABLE_ACCESS_DENIED,
+			RegistryPermissionStatus.MISSING_KEY,
+		):
 			self._confirmRegistryRepair()
 			return
 		if status is RegistryPermissionStatus.WHATSAPP_RUNNING:
@@ -1234,7 +1234,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				MessageDialog(
 					gui.mainFrame,
 					_(
-						"WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?",
+						"WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. The per-user Registry key that stores this setting is missing or Windows is blocking access to it. This repair creates the key if it is missing. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?",
 					),
 					# Translators: Title of the WebView2 policy permission repair confirmation dialog.
 					_("Repair per-user WebView2 policy permissions?"),
