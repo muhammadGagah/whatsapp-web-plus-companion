@@ -20,7 +20,11 @@ from globalPlugins.whatsappWebPlusCompanion.packages import (
 	runPowerShellCancellable,
 )
 from globalPlugins.whatsappWebPlusCompanion.policy import CHANNELS
-from globalPlugins.whatsappWebPlusCompanion.processes import Listener, validateListener
+from globalPlugins.whatsappWebPlusCompanion.processes import (
+	Listener,
+	collectProcessTopology,
+	validateListener,
+)
 
 
 class PackageProcessTests(unittest.TestCase):
@@ -181,6 +185,68 @@ class PackageProcessTests(unittest.TestCase):
 		self.assertEqual((result.foundCount, result.closedCount, result.remainingCount), (2, 2, 0))
 		self.assertIn("Invoke-CimMethod", scripts[0])
 		self.assertIn("OrdinalIgnoreCase", scripts[0])
+
+	def test_topology_queries_are_separate_and_keep_ownership_validation(self):
+		commands = []
+
+		def runner(command):
+			commands.append(command)
+			if command.stage == "listener.ports":
+				return json.dumps(
+					{"Listeners": [{"LocalAddress": "127.0.0.1", "LocalPort": 49223, "OwningProcess": 20}]},
+				)
+			return json.dumps({"Processes": [{"ProcessId": 20, "ParentProcessId": 10}]})
+
+		listeners, parents = collectProcessTopology(49223, runner)
+		self.assertEqual([c.stage for c in commands], ["listener.ports", "listener.processes"])
+		self.assertEqual([c.timeout for c in commands], [30, 30])
+		self.assertNotIn("Get-CimInstance", commands[0])
+		self.assertNotIn("Get-NetTCPConnection", commands[1])
+		self.assertEqual(validateListener(49223, listeners, parents, {10}), 20)
+		with self.assertRaisesRegex(LoaderError, "listener.ancestry"):
+			validateListener(49223, listeners, parents, {99})
+
+	def test_topology_timeout_preserves_precise_stage(self):
+		for failingStage in ("listener.ports", "listener.processes"):
+
+			def runner(command):
+				if command.stage == failingStage:
+					raise LoaderError("powershell.failed", "timeout;stage=" + command.stage)
+				return json.dumps({"Listeners": []})
+
+			with self.assertRaises(LoaderError) as raised:
+				collectProcessTopology(49223, runner)
+			self.assertEqual(raised.exception.safeDetail, "timeout;stage=" + failingStage)
+
+	def test_slow_topology_checks_fit_listener_budget_and_keep_outer_deadline(self):
+		from globalPlugins.whatsappWebPlusCompanion import launcher
+
+		for outerEnd in (90.0, 40.0):
+			clock = [0.0]
+			deadlines = []
+
+			def run(command, cancelEvent, *, deadline):
+				deadlines.append(deadline)
+				self.assertGreaterEqual(deadline - clock[0], 12)
+				clock[0] += 12
+				if command.stage == "listener.ports":
+					return json.dumps(
+						{
+							"Listeners": [
+								{"LocalAddress": "127.0.0.1", "LocalPort": 49223, "OwningProcess": 20},
+							],
+						},
+					)
+				return json.dumps({"Processes": [{"ProcessId": 20, "ParentProcessId": 10}]})
+
+			cancel = threading.Event()
+			io = launcher._OperationIO(cancel, lambda closer: None, outerEnd)
+			with (
+				patch.object(launcher.time, "monotonic", side_effect=lambda: clock[0]),
+				patch.object(launcher, "runPowerShellCancellable", side_effect=run),
+			):
+				self.assertEqual(launcher._waitForValidatedListener(49223, {10}, cancel, io=io), 20)
+			self.assertEqual(deadlines, [min(60, outerEnd)] * 2)
 
 	def test_listener_requires_literal_loopback_and_package_ancestry(self) -> None:
 		self.assertEqual(

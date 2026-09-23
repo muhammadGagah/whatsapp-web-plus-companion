@@ -43,16 +43,30 @@ def collectProcessTopology(
 	port: int,
 	runner: PowerShellRunner = runPowerShell,
 ) -> tuple[list[Listener], dict[int, int]]:
-	script = (
-		f"$listeners = Get-NetTCPConnection -State Listen -LocalPort {int(port)} -ErrorAction SilentlyContinue "
-		"| Select-Object LocalAddress,LocalPort,OwningProcess; "
-		"$processes = Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId; "
-		"@{Listeners=@($listeners);Processes=@($processes)} | ConvertTo-Json -Compress -Depth 4"
+	listenerScript = (
+		f"$listeners = @(Get-NetTCPConnection -State Listen -LocalPort {int(port)} "
+		"-ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,OwningProcess); "
+		"@{Listeners=$listeners} | ConvertTo-Json -Compress -Depth 4"
+	)
+	processScript = (
+		"$processes = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId "
+		"-ErrorAction Stop | Select-Object ProcessId,ParentProcessId); "
+		"@{Processes=$processes} | ConvertTo-Json -Compress -Depth 4"
 	)
 	try:
-		data = json.loads(runner(PowerShellCommand(script, "listener.topology")) or "{}")
+		listenerData = json.loads(runner(PowerShellCommand(listenerScript, "listener.ports", 30)) or "{}")
+		processData = json.loads(runner(PowerShellCommand(processScript, "listener.processes", 30)) or "{}")
+		if (
+			not isinstance(listenerData, dict)
+			or not isinstance(processData, dict)
+			or not isinstance(listenerData.get("Listeners"), list)
+			or not isinstance(processData.get("Processes"), list)
+		):
+			raise ValueError("snapshot")
+		data = {"Listeners": listenerData["Listeners"], "Processes": processData["Processes"]}
 	except (TypeError, ValueError) as error:
 		raise LoaderError("processes.json", type(error).__name__) from error
+
 	listeners = [
 		Listener(
 			str(row.get("LocalAddress", "")),
@@ -109,7 +123,7 @@ def captureEndpointIdentity(
 		+ "@{Listeners=$listeners;Processes=$processes;Connections=$connections} | ConvertTo-Json -Compress -Depth 4"
 	)
 	try:
-		data = json.loads(runner(PowerShellCommand(script, "listener.identity")) or "{}")
+		data = json.loads(runner(PowerShellCommand(script, "listener.identity", 30)) or "{}")
 		if (
 			not isinstance(data, dict)
 			or not isinstance(data.get("Listeners"), list)

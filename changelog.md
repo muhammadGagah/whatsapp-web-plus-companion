@@ -20,6 +20,8 @@
 
 ### Startup and compatibility
 
+- Allow slower listener checks up to 30 seconds per query within a 60-second listener budget and the overall launch deadline. Log port and process queries separately. Keep endpoint ownership checks before connecting.
+
 - Narrow package discovery to the selected WhatsApp app and allow more time for initial package and process checks while preserving cancellation and overall deadlines.
 - Include the PowerShell stage, elapsed time, and time budget in failure logs.
 
