@@ -239,8 +239,8 @@ msgstr "Pengaturan WebView2 per pengguna yang dipulihkan tidak dapat diverifikas
 msgid "A saved WebView2 restoration record could not be verified for this Windows account. The Companion did not change it. Contact your administrator or restore the per-user WebView2 policy setting manually."
 msgstr "Catatan pemulihan WebView2 tersimpan tidak dapat diverifikasi untuk akun Windows ini. Companion tidak mengubahnya. Hubungi administrator atau pulihkan pengaturan kebijakan WebView2 per pengguna secara manual."
 
-msgid "The required WebView2 policy permissions are already available. No changes were made."
-msgstr "Izin kebijakan WebView2 yang dibutuhkan sudah tersedia. Tidak ada perubahan yang dibuat."
+msgid "The required WebView2 policy permissions are available."
+msgstr "Izin kebijakan WebView2 yang diperlukan sudah tersedia."
 
 msgid "Close WhatsApp before diagnosing WebView2 policy permissions."
 msgstr "Tutup WhatsApp sebelum mendiagnosis izin kebijakan WebView2."
@@ -393,8 +393,8 @@ msgstr "&Tutup paksa WhatsApp dan lanjutkan"
 msgid "Force closing Microsoft Store WhatsApp Stable and Beta processes before continuing diagnosis."
 msgstr "Menutup paksa proses Microsoft Store WhatsApp Stable dan Beta sebelum melanjutkan diagnosis."
 
-msgid "WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. Windows is blocking the per-user Registry key that stores this setting. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?"
-msgstr "WhatsApp Companion membutuhkan pengaturan peluncuran WebView2 sementara sebelum membuka WhatsApp. Windows saat ini memblokir kunci Registry per pengguna yang menyimpan pengaturan ini. Perbaikan ini memberi akun Windows Anda izin untuk membaca, membuat, mengubah, dan menghapus nilai di dalam satu kunci kebijakan WebView2 itu. Windows melindungi seluruh kunci, bukan nilai individual, jadi program lain yang berjalan sebagai akun Anda juga dapat mengubah nilai dalam kunci tersebut. Perbaikan tidak akan mengubah nilai Registry apa pun, kebijakan tingkat komputer apa pun, aturan tolak administrator apa pun, data WhatsApp Anda, atau isi chat Anda. Hanya helper perbaikan kecil yang berjalan sebagai administrator, sementara NVDA dan WhatsApp tetap tanpa hak administrator. Izin ini tetap ada setelah Anda memulai ulang Windows atau menghapus add-on. Apakah Anda ingin melanjutkan ke permintaan izin Windows?"
+msgid "WhatsApp Companion needs a temporary WebView2 launch setting before starting WhatsApp. The per-user Registry key that stores this setting is missing or Windows is blocking access to it. This repair creates the key if it is missing. This repair gives your Windows account permission to read, create, change, and delete values inside that one WebView2 policy key. Windows protects the whole key rather than individual values, so other programs running as your account could also change values in that key. The repair will not change any Registry value, any machine-wide policy, any administrator deny rule, your WhatsApp data, or your chat content. Only a small repair helper runs as administrator, while NVDA and WhatsApp stay unelevated. The permission stays in place after you restart Windows or remove the add-on. Do you want to continue to the Windows permission request?"
+msgstr "WhatsApp Companion membutuhkan pengaturan peluncuran WebView2 sementara sebelum membuka WhatsApp. Kunci Registry per pengguna yang menyimpan pengaturan ini belum ada atau aksesnya diblokir Windows. Perbaikan ini membuat kunci tersebut jika belum ada. Perbaikan ini memberi akun Windows Anda izin untuk membaca, membuat, mengubah, dan menghapus nilai di dalam satu kunci kebijakan WebView2 itu. Windows melindungi seluruh kunci, bukan nilai individual, jadi program lain yang berjalan sebagai akun Anda juga dapat mengubah nilai dalam kunci tersebut. Perbaikan tidak akan mengubah nilai Registry apa pun, kebijakan tingkat komputer apa pun, aturan tolak administrator apa pun, data WhatsApp Anda, atau isi chat Anda. Hanya helper perbaikan kecil yang berjalan sebagai administrator, sementara NVDA dan WhatsApp tetap tanpa hak administrator. Izin ini tetap ada setelah Anda memulai ulang Windows atau menghapus add-on. Apakah Anda ingin melanjutkan ke permintaan izin Windows?"
 
 #. Translators: Title of the WebView2 policy permission repair confirmation dialog.
 msgid "Repair per-user WebView2 policy permissions?"
@@ -451,8 +451,8 @@ msgstr "Diagnosa dan perbaiki izin kebijakan WebView2"
 msgid "WhatsApp Companion makes Microsoft Store WhatsApp Stable and Beta easier to use with NVDA. It brings WhatsApp Web Plus features to the desktop app, with keyboard navigation, message reading, and call controls with customizable labels."
 msgstr "WhatsApp Companion memudahkan penggunaan WhatsApp Stable dan Beta dari Microsoft Store dengan NVDA. Add-on ini menghadirkan fitur WhatsApp Web Plus ke aplikasi desktop, dengan navigasi keyboard, pembaca pesan, serta kontrol panggilan yang labelnya dapat disesuaikan."
 
-msgid "You can now control calls with keyboard shortcuts, add call labels in multiple languages, and read messages in NVDA. Startup recovery and spoken feedback are also improved. This release includes WhatsApp Web Plus 2.6.83 and requires NVDA 2025.1 or later."
-msgstr "Kini Anda dapat mengontrol panggilan dengan pintasan keyboard, menambahkan label panggilan dalam beberapa bahasa, dan membaca pesan melalui NVDA. Pemulihan saat membuka WhatsApp dan penyampaian hasil perintah juga diperbaiki. Rilis ini menyertakan WhatsApp Web Plus 2.6.83 dan memerlukan NVDA 2025.1 atau lebih baru."
+msgid "Read and copy messages in NVDA, record custom shortcuts, and browse the shortcut list. Improved call controls, WebView2 permission repair, and NVDA compatibility. Includes WhatsApp Web Plus 2.6.84. Requires NVDA 2025.1 or later."
+msgstr "Baca dan salin pesan melalui NVDA, rekam pintasan pilihan Anda, dan jelajahi daftar pintasan. Kontrol panggilan, perbaikan izin WebView2, dan kompatibilitas NVDA ditingkatkan. Menyertakan WhatsApp Web Plus 2.6.84. Memerlukan NVDA 2025.1 atau lebih baru."
 
 #~ msgid "Launching WhatsApp {channel} with WhatsApp Companion."
 #~ msgstr "Meluncurkan WhatsApp {channel} dengan WhatsApp Companion."
@@ -555,3 +555,18 @@ msgstr "Tidak dapat menyimpan label untuk {action}. Gunakan maksimal 20 label pe
 
 msgid "Could not save call control labels. Your changes are still in this dialog. Try again."
 msgstr "Tidak dapat menyimpan label kontrol panggilan. Perubahan Anda masih ada di dialog ini. Coba lagi."
+
+msgid "&Copy message"
+msgstr "&Salin pesan"
+
+msgid "&Formatted view"
+msgstr "Tampilan ber&format"
+
+msgid "C&lose"
+msgstr "&Tutup"
+
+msgid "Message copied."
+msgstr "Pesan disalin."
+
+msgid "Could not copy the message."
+msgstr "Pesan tidak dapat disalin."

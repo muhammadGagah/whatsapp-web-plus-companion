@@ -225,7 +225,9 @@ the permission without changing anything.
 1. The Companion checks whether Windows allows the required Registry access.
 2. If WhatsApp is running, the Companion offers to force close Stable and Beta
    and continue the diagnosis. **Keep WhatsApp open** is the safe default.
-3. If the permission already works, NVDA says that no repair is needed.
+3. If the key exists and the permission already works, NVDA says that no repair is needed.
+   If the key is missing, Companion offers to create it through the repair helper.
+   A missing key does not mean that Windows allows Companion to create it.
 4. If a repair may help, a separate dialog explains the change.
 5. Only after you agree does Windows show a User Account Control prompt.
 
@@ -504,3 +506,69 @@ The Companion add-on uses GPL-2.0-or-later under the modified NVDA license in
 `COPYING.txt`. The embedded WhatsApp Web Plus userscript keeps its MIT license.
 Component sources and license boundaries are described in
 `THIRD_PARTY_NOTICES.md`.
+
+## Assigning shortcuts
+
+Choose **Shift+F8 > Shortcut remapping**, then select **Record voice message**, **Previous chat**, **Next chat**, **Start voice call**, or **Start video call**. Type a combination such as `Alt+C` or `Alt+V`, then choose **Save**. Use Ctrl or Alt, optionally Shift, followed by a letter, digit, punctuation key such as comma or period, F1–F12, or ArrowUp/Down/Left/Right. Letters refer to physical keyboard positions. Leave the field blank to disable an action. **Restore default** only changes the field. Choose Save to apply or Cancel/Escape to discard. Existing enabled/disabled remaps are preserved. New call shortcuts start unassigned. The recording default is Alt+M. Previous/next defaults are Alt+ArrowUp/Alt+ArrowDown, initially disabled.
+
+Duplicate assignments and fixed script/Companion commands are rejected. Browser, system, NVDA, or extension shortcuts can still take priority. AltGr is not supported. Voice/video calls use the available button in the current conversation header, identified by its icon rather than translated text. No custom language string is required. Unavailable or ambiguous buttons are reported without starting a call.
+
+### Record a shortcut
+
+In Shortcut remapping, select an action and choose **Record shortcut**. NVDA must be in **focus mode** so the script receives your combination. If it is still in browse mode, press **NVDA+Space** before recording. Press a combination such as **Alt+comma**, then choose **Save**. Escape cancels recording. Tab stops recording and moves to the next control. Typing a combination manually is still available. Browser, system, or NVDA commands that intercept the keys cannot be recorded by the script.
+
+## WhatsApp built-in shortcuts
+
+These are the WhatsApp WebView2 shortcuts. Some commands depend on the selected message or current panel.
+
+| Shortcut | Function |
+| --- | --- |
+| `Ctrl+Shift+U` | Mark as unread |
+| `Ctrl+Shift+M` | Mute chat |
+| `Ctrl+Shift+A` | Archive chat |
+| `Ctrl+Alt+Shift+P` | Pin chat |
+| `Ctrl+Alt+/` | Search |
+| `Ctrl+Shift+F` | Search chat |
+| `Ctrl+Alt+N` | New chat |
+| `Ctrl+]` | Next chat |
+| `Ctrl+[` | Previous chat |
+| `Ctrl+Cmd+Shift+L` | Add chat to list |
+| `Escape` | Close chat |
+| `Ctrl+Shift+N` | New group |
+| `Ctrl+Alt+P` | Profile and About |
+| `Shift+.` | Increase speed of selected voice message |
+| `Shift+,` | Decrease speed of selected voice message |
+| `Alt+S` | Settings |
+| `Ctrl+Alt+E` | Emoji panel |
+| `Ctrl+Alt+G` | GIF panel |
+| `Ctrl+Alt+S` | Sticker panel |
+| `Alt+K` | Extended search |
+| `Alt+L` | Lock app |
+| `Alt+I` | Open chat info |
+| `Ctrl+Shift+B` | Block chat |
+| `Alt+R` | Reply |
+| `Ctrl+Alt+R` | Reply privately |
+| `Ctrl+Alt+D` | Forward |
+| `Alt+8` | Star message |
+| `Alt+A` | Open attachment dropdown |
+| `Ctrl+Alt+Shift+R` | Start PTT recording |
+| `Alt+P` | Pause PTT recording |
+| `Ctrl+Enter` | Send PTT |
+| `Ctrl+ArrowUp` | Edit last message |
+| `Ctrl++` | Zoom in |
+| `Ctrl+-` | Zoom out |
+| `Ctrl+0` | Zoom reset |
+| `Ctrl+1..9` | Open chat |
+
+### Calls
+
+Use these shortcuts while call controls are available. The same key can have a different function in a chat.
+
+| Shortcut | Function |
+| --- | --- |
+| `Ctrl+Alt+V` | Toggle camera |
+| `Ctrl+Alt+M` | Toggle mute |
+| `Ctrl+Alt+R` | Reactions |
+| `Ctrl+Alt+H` | Raise hand |
+| `Ctrl+Alt+S` | Screen share |
+| `Ctrl+Alt+W` | End call |

@@ -234,7 +234,9 @@ diagnosis memeriksa izin tanpa mengubah apa pun.
 2. Jika WhatsApp sedang berjalan, Companion menawarkan untuk menutup paksa
    Stable dan Beta lalu melanjutkan diagnosis. **Biarkan WhatsApp tetap
    terbuka** adalah pilihan aman bawaan.
-3. Jika izin sudah berfungsi, NVDA mengatakan bahwa perbaikan tidak diperlukan.
+3. Jika kunci sudah ada dan izin sudah berfungsi, NVDA mengatakan bahwa perbaikan tidak diperlukan.
+   Jika kunci belum ada, Companion menawarkan pembuatannya melalui helper perbaikan.
+   Kunci yang belum ada tidak berarti Windows mengizinkan Companion membuatnya.
 4. Jika perbaikan mungkin membantu, dialog terpisah menjelaskan perubahannya.
 5. Hanya setelah Anda setuju, Windows menampilkan permintaan User Account
    Control.
@@ -523,3 +525,69 @@ Add-on Companion menggunakan GPL-2.0-or-later di bawah lisensi NVDA yang
 dimodifikasi dalam `COPYING.txt`. Userscript WhatsApp Web Plus yang tertanam
 tetap menggunakan lisensi MIT. Asal komponen dan batas lisensi dijelaskan dalam
 `THIRD_PARTY_NOTICES.md`.
+
+## Menetapkan shortcut
+
+Pilih **Shift+F8 > Pemetaan ulang shortcut**, lalu pilih **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
+
+Kombinasi ganda dan perintah tetap script/Companion ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
+
+### Merekam shortcut
+
+Dalam Pemetaan ulang pintasan, pilih aksi lalu **Rekam shortcut**. NVDA harus berada dalam **focus mode** agar script menerima tombolnya. Jika masih dalam browse mode, tekan **NVDA+Spasi** sebelum merekam. Tekan kombinasi seperti **Alt+koma**, lalu pilih **Simpan**. Escape membatalkan perekaman. Tab menghentikan perekaman dan berpindah ke kontrol berikutnya. Kombinasi masih dapat diketik secara manual. Tombol yang ditangani lebih dahulu oleh browser, sistem, atau NVDA tidak dapat direkam oleh script.
+
+## Shortcut bawaan WhatsApp
+
+Ini adalah shortcut WhatsApp di WebView2. Sebagian perintah bergantung pada pesan yang dipilih atau panel yang aktif.
+
+| Shortcut | Fungsi |
+| --- | --- |
+| `Ctrl+Shift+U` | Tandai belum dibaca |
+| `Ctrl+Shift+M` | Bisukan chat |
+| `Ctrl+Shift+A` | Arsipkan chat |
+| `Ctrl+Alt+Shift+P` | Sematkan chat |
+| `Ctrl+Alt+/` | Cari |
+| `Ctrl+Shift+F` | Cari dalam chat |
+| `Ctrl+Alt+N` | Chat baru |
+| `Ctrl+]` | Chat berikutnya |
+| `Ctrl+[` | Chat sebelumnya |
+| `Ctrl+Cmd+Shift+L` | Tambahkan chat ke daftar |
+| `Escape` | Tutup chat |
+| `Ctrl+Shift+N` | Grup baru |
+| `Ctrl+Alt+P` | Profil dan Info |
+| `Shift+.` | Tingkatkan kecepatan pesan suara yang dipilih |
+| `Shift+,` | Kurangi kecepatan pesan suara yang dipilih |
+| `Alt+S` | Pengaturan |
+| `Ctrl+Alt+E` | Panel emoji |
+| `Ctrl+Alt+G` | Panel GIF |
+| `Ctrl+Alt+S` | Panel stiker |
+| `Alt+K` | Pencarian lanjutan |
+| `Alt+L` | Kunci aplikasi |
+| `Alt+I` | Buka info chat |
+| `Ctrl+Shift+B` | Blokir chat |
+| `Alt+R` | Balas |
+| `Ctrl+Alt+R` | Balas secara pribadi |
+| `Ctrl+Alt+D` | Teruskan |
+| `Alt+8` | Beri bintang pada pesan |
+| `Alt+A` | Buka pilihan lampiran |
+| `Ctrl+Alt+Shift+R` | Mulai merekam pesan suara |
+| `Alt+P` | Jeda perekaman pesan suara |
+| `Ctrl+Enter` | Kirim pesan suara |
+| `Ctrl+ArrowUp` | Edit pesan terakhir |
+| `Ctrl++` | Perbesar tampilan |
+| `Ctrl+-` | Perkecil tampilan |
+| `Ctrl+0` | Atur ulang zoom |
+| `Ctrl+1..9` | Buka chat |
+
+### Panggilan
+
+Gunakan shortcut ini ketika kontrol panggilan tersedia. Tombol yang sama dapat memiliki fungsi berbeda di chat.
+
+| Shortcut | Fungsi |
+| --- | --- |
+| `Ctrl+Alt+V` | Aktifkan atau nonaktifkan kamera |
+| `Ctrl+Alt+M` | Bisukan atau aktifkan mikrofon |
+| `Ctrl+Alt+R` | Reaksi |
+| `Ctrl+Alt+H` | Angkat tangan |
+| `Ctrl+Alt+S` | Berbagi layar |
+| `Ctrl+Alt+W` | Akhiri panggilan |

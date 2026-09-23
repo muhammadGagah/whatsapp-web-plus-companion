@@ -11,6 +11,7 @@ installPackagePath()
 from globalPlugins.whatsappWebPlusCompanion.models import Channel, LoaderError
 from globalPlugins.whatsappWebPlusCompanion.packages import (
 	PackageInfo,
+	PowerShellCommand,
 	findPackage,
 	findRunningPackageProcesses,
 	forceClosePackageProcesses,
@@ -69,6 +70,82 @@ class PackageProcessTests(unittest.TestCase):
 			timeout=10,
 			creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
 		)
+
+	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.run")
+	def test_sync_timeout_has_safe_stage_details(self, run):
+		run.side_effect = subprocess.TimeoutExpired("private command", 30)
+		with self.assertRaises(LoaderError) as raised:
+			runPowerShell(PowerShellCommand("private command", "package.lookup", 30))
+		self.assertEqual(raised.exception.code, "powershell.failed")
+		self.assertIn("stage=package.lookup", raised.exception.safeDetail)
+		self.assertIn("budget=30.00s", raised.exception.safeDetail)
+		self.assertNotIn("private command", raised.exception.safeDetail)
+
+	def test_package_query_is_scoped_but_family_still_verified(self):
+		for policy in CHANNELS.values():
+			commands = []
+
+			def runner(command):
+				commands.append(command)
+				return json.dumps([{"PackageFamilyName": "wrong", "PackageFullName": "wrong"}])
+
+			self.assertIsNone(findPackage(policy, runner))
+			self.assertIn("-Name '" + policy.packageFamily.rsplit("_", 1)[0] + "'", commands[0])
+			self.assertEqual(commands[0].timeout, 30)
+
+	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.Popen")
+	def test_slow_lookup_completes_after_old_ten_second_limit(self, popen):
+		clock = [0.0]
+		process = popen.return_value
+		process.returncode = 0
+
+		def communicate(timeout):
+			if clock[0] == 0:
+				clock[0] = 12
+				raise subprocess.TimeoutExpired("lookup", timeout)
+			return "[]", ""
+
+		process.communicate.side_effect = communicate
+		with patch(
+			"globalPlugins.whatsappWebPlusCompanion.packages.time.monotonic",
+			side_effect=lambda: clock[0],
+		):
+			self.assertEqual(
+				runPowerShellCancellable(
+					PowerShellCommand("lookup", "package.lookup", 30),
+					threading.Event(),
+				),
+				"[]",
+			)
+		process.kill.assert_not_called()
+
+	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.Popen")
+	def test_outer_deadline_caps_longer_query_and_kills_process(self, popen):
+		with patch(
+			"globalPlugins.whatsappWebPlusCompanion.packages.time.monotonic",
+			side_effect=[0, 0, 5, 5],
+		):
+			with self.assertRaises(LoaderError) as raised:
+				runPowerShellCancellable(
+					PowerShellCommand("lookup", "package.lookup", 30),
+					threading.Event(),
+					deadline=5,
+				)
+		self.assertIn("timeout;stage=package.lookup;elapsed=5.00s;budget=5.00s", raised.exception.safeDetail)
+		popen.return_value.kill.assert_called_once()
+
+	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.Popen")
+	def test_cancel_during_query_kills_process(self, popen):
+		cancel = threading.Event()
+
+		def communicate(timeout):
+			cancel.set()
+			raise subprocess.TimeoutExpired("lookup", timeout)
+
+		popen.return_value.communicate.side_effect = communicate
+		with self.assertRaisesRegex(LoaderError, "operation.cancelled"):
+			runPowerShellCancellable(PowerShellCommand("lookup", "package.lookup", 30), cancel)
+		popen.return_value.kill.assert_called_once()
 
 	def test_exact_package_and_process_path_resolution(self) -> None:
 		packageRows = [

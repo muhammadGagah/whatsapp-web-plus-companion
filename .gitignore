@@ -27,3 +27,6 @@ npm-debug.log*
 /build/
 /dist/
 /docs/superpowers/
+
+# Local test and build logs
+*.log

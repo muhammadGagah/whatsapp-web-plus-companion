@@ -150,7 +150,7 @@ class RegistryDiagnosisTests(unittest.TestCase):
 		self.assertEqual(registry.current, RegistryValue("--existing", 1))
 		self.assertEqual(mutex.acquired, mutex.released)
 
-	def test_missing_leaf_is_not_created_during_diagnosis(self) -> None:
+	def test_missing_leaf_requires_setup_without_creating_it(self) -> None:
 		class MissingLeafRegistry(MemoryRegistry):
 			def __init__(self) -> None:
 				super().__init__(None)
@@ -166,8 +166,19 @@ class RegistryDiagnosisTests(unittest.TestCase):
 		registry = MissingLeafRegistry()
 		status, _mutex = self._diagnose(registry)
 
-		self.assertEqual(status, RegistryPermissionStatus.USABLE)
+		self.assertEqual(status, RegistryPermissionStatus.MISSING_KEY)
 		self.assertFalse(registry.createCalled)
+
+	def test_missing_key_with_denied_creation_does_not_report_usable(self) -> None:
+		registry = mock.Mock(spec=MemoryRegistry)
+		registry.readMachinePolicy.return_value = None
+		registry.openUserLeafReadOnly.return_value = None
+		registry.openOrCreateUserLeaf.side_effect = LoaderError("registry.user.openCreateAccessDenied")
+		status, mutex = self._diagnose(registry)
+		self.assertEqual(status, RegistryPermissionStatus.MISSING_KEY)
+		registry.openOrCreateUserLeaf.assert_not_called()
+		registry.setUserValue.assert_not_called()
+		self.assertEqual(mutex.acquired, mutex.released)
 
 
 def _writeHelperPackage(root: pathlib.Path, *, tamper: bool = False) -> None:
@@ -220,10 +231,15 @@ class RegistryRepairOrchestrationTests(unittest.TestCase):
 			recover=recover or (lambda: ""),
 		)
 
-	def test_integrity_verification_passes_for_packaged_helper(self) -> None:
+	def test_integrity_verification_passes_for_fixture_helper(self) -> None:
 		bat, ps1 = verifyHelperIntegrity(pathlib.Path(self.tmp.name) / "registryRepair")
 		self.assertTrue(bat.name.endswith(".bat"))
 		self.assertTrue(ps1.name.endswith(".ps1"))
+
+	def test_actual_shipped_helper_matches_integrity_lock(self) -> None:
+		bat, ps1 = verifyHelperIntegrity()
+		self.assertTrue(bat.is_file())
+		self.assertTrue(ps1.is_file())
 
 	def test_missing_helper_is_reported(self) -> None:
 		missing = pathlib.Path(self.tmp.name) / "empty"
@@ -249,9 +265,28 @@ class RegistryRepairOrchestrationTests(unittest.TestCase):
 		self.assertTrue(outcome.ok)
 		self.assertEqual(outcome.code, "registry.repair.repaired")
 
+	def test_helper_not_needed_is_postchecked_before_success(self) -> None:
+		for exitCode in (0, 1):
+			with self.subTest(exitCode=exitCode):
+				registry = mock.Mock()
+				registry.openOrCreateUserLeaf.side_effect = LoaderError(
+					"registry.user.openCreateAccessDenied",
+				)
+				recover = mock.Mock(return_value="")
+				outcome = self._run(exitCode=exitCode, registry=registry, recover=recover)
+				self.assertFalse(outcome.ok)
+				self.assertEqual(outcome.code, "registry.repair.postVerifyFailed")
+				recover.assert_not_called()
+
+	def test_helper_not_needed_verifies_and_recovers(self) -> None:
+		recover = mock.Mock(return_value="")
+		outcome = self._run(exitCode=1, recover=recover)
+		self.assertTrue(outcome.ok)
+		self.assertEqual(outcome.code, "registry.repair.notNeeded")
+		recover.assert_called_once_with()
+
 	def test_helper_exit_codes_map_to_stable_codes(self) -> None:
 		for exitCode, expected in (
-			(1, "registry.repair.notNeeded"),
 			(8, "registry.repair.busy"),
 			(10, "registry.repair.managedDeny"),
 			(11, "registry.repair.insufficientAdminRights"),

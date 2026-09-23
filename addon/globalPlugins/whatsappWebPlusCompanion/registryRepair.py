@@ -61,6 +61,7 @@ _HELPER_EXIT_CODES = {
 
 class RegistryPermissionStatus(StrEnum):
 	USABLE = "usable"
+	MISSING_KEY = "missingKey"
 	REPAIRABLE_ACCESS_DENIED = "repairableAccessDenied"
 	MACHINE_POLICY = "machinePolicy"
 	BUSY = "busy"
@@ -130,8 +131,8 @@ def diagnoseRegistryPermissions(
 ) -> RegistryPermissionStatus:
 	"""Read-only diagnosis of the fixed per-user WebView2 policy leaf.
 
-	Never writes, deletes, or probes a Registry value. Only access denied on
-	the exact leaf is classified as repairable.
+	Never writes, deletes, or probes a Registry value. A missing leaf needs
+	explicit setup; it does not prove that the unelevated caller can create it. Access denied on the exact leaf is repairable.
 	"""
 	if isCancelled():
 		raise LoaderError("operation.cancelled")
@@ -175,6 +176,8 @@ def diagnoseRegistryPermissions(
 			return RegistryPermissionStatus.MANAGED_OR_UNKNOWN
 		if machineError:
 			raise LoaderError(machineError, "stage=diagnosis.machine")
+		if key is None:
+			return RegistryPermissionStatus.MISSING_KEY
 		return RegistryPermissionStatus.USABLE
 	finally:
 		releaseMutex(handle)
@@ -387,7 +390,7 @@ def runRegistryRepair(
 	if exitCode is None:
 		return RegistryRepairOutcome(False, "registry.repair.helperTimeout")
 	code = _HELPER_EXIT_CODES.get(exitCode, "registry.repair.applyFailed")
-	if code != "registry.repair.repaired":
+	if code not in ("registry.repair.repaired", "registry.repair.notNeeded"):
 		return RegistryRepairOutcome(False, code)
 	postcheck = _postcheckLeafUsable(registry or WinRegistry())
 	if not postcheck:
@@ -401,4 +404,4 @@ def runRegistryRepair(
 		raise
 	if recoveryCode in ("registry.recovery.restored", "registry.recovery.alreadyPrior"):
 		return RegistryRepairOutcome(True, "registry.repair.recoveryRestored", {"recovery": True})
-	return RegistryRepairOutcome(True, "registry.repair.repaired")
+	return RegistryRepairOutcome(True, code)

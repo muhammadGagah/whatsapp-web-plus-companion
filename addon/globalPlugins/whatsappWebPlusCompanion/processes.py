@@ -3,7 +3,7 @@ import pathlib
 from dataclasses import dataclass
 
 from .models import LoaderError
-from .packages import PowerShellRunner, runPowerShell
+from .packages import PowerShellCommand, PowerShellRunner, runPowerShell
 from .policy import LOOPBACK_HOST
 
 
@@ -50,7 +50,7 @@ def collectProcessTopology(
 		"@{Listeners=@($listeners);Processes=@($processes)} | ConvertTo-Json -Compress -Depth 4"
 	)
 	try:
-		data = json.loads(runner(script) or "{}")
+		data = json.loads(runner(PowerShellCommand(script, "listener.topology")) or "{}")
 	except (TypeError, ValueError) as error:
 		raise LoaderError("processes.json", type(error).__name__) from error
 	listeners = [
@@ -109,7 +109,7 @@ def captureEndpointIdentity(
 		+ "@{Listeners=$listeners;Processes=$processes;Connections=$connections} | ConvertTo-Json -Compress -Depth 4"
 	)
 	try:
-		data = json.loads(runner(script) or "{}")
+		data = json.loads(runner(PowerShellCommand(script, "listener.identity")) or "{}")
 		if (
 			not isinstance(data, dict)
 			or not isinstance(data.get("Listeners"), list)

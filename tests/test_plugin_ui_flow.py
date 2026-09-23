@@ -294,16 +294,13 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._startRegistryDiagnosis()
 			for _ in range(100):
-				if (
-					"The required WebView2 policy permissions are already available. No changes were made."
-					in self.uiMessages
-				):
+				if "The required WebView2 policy permissions are available." in self.uiMessages:
 					break
 				time.sleep(0.001)
 
 		self.assertIn("Checking WebView2 policy permissions.", self.uiMessages)
 		self.assertIn(
-			"The required WebView2 policy permissions are already available. No changes were made.",
+			"The required WebView2 policy permissions are available.",
 			self.uiMessages,
 		)
 		self.assertEqual(self.plugin.lastResult.code, "registry.repair.notNeeded")
@@ -359,6 +356,15 @@ class PluginUiFlowTests(unittest.TestCase):
 		queue.clearPending.assert_called_once_with()
 		queue.discardPending.assert_not_called()
 		self.assertEqual(self.plugin._companionLastSequence, 0)
+
+	def test_missing_registry_key_offers_setup_confirmation(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.registryRepair import RegistryPermissionStatus
+
+		self.plugin._finishRegistryDiagnosis(0, RegistryPermissionStatus.MISSING_KEY)
+		self.assertEqual(self.plugin.lastResult.code, "registry.repair.confirmationRequired")
+		self.assertIsNotNone(self.plugin._dialog)
+		self.assertTrue(self.plugin._dialog.shown)
+		self.assertTrue(self.plugin._dialog.defaultNo)
 
 	def test_diagnosis_repairable_shows_confirmation_dialog(self) -> None:
 		from globalPlugins.whatsappWebPlusCompanion.registryRepair import RegistryPermissionStatus
@@ -524,10 +530,7 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._startRegistryDiagnosis()
 			for _ in range(100):
-				if (
-					"The required WebView2 policy permissions are already available. No changes were made."
-					in self.uiMessages
-				):
+				if "The required WebView2 policy permissions are available." in self.uiMessages:
 					break
 				time.sleep(0.001)
 		self.assertIn("Checking WebView2 policy permissions.", self.uiMessages)
@@ -570,10 +573,7 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._startRegistryDiagnosis()
 			for _ in range(100):
-				if (
-					"The required WebView2 policy permissions are already available. No changes were made."
-					in self.uiMessages
-				):
+				if "The required WebView2 policy permissions are available." in self.uiMessages:
 					break
 				time.sleep(0.001)
 		self.assertIsNone(self.plugin._dialog)
@@ -637,7 +637,7 @@ class PluginUiFlowTests(unittest.TestCase):
 			function()
 		self.assertIn("Deferred hello", self.uiMessages)
 		self.assertIn(
-			"The required WebView2 policy permissions are already available. No changes were made.",
+			"The required WebView2 policy permissions are available.",
 			self.uiMessages,
 		)
 

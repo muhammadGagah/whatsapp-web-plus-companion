@@ -12,6 +12,21 @@ from .policy import ChannelPolicy
 PowerShellRunner = Callable[[str], str]
 
 
+class PowerShellCommand(str):
+	"""Carry diagnostic context through runners that accept a script string."""
+
+	def __new__(cls, script: str, stage: str, timeout: float = 10):
+		command = super().__new__(cls, script)
+		command.stage = stage
+		command.timeout = timeout
+		return command
+
+
+def _failureDetail(script: str, reason: str, started: float, budget: float) -> str:
+	stage = getattr(script, "stage", "powershell")
+	return f"{reason};stage={stage};elapsed={time.monotonic() - started:.2f}s;budget={budget:.2f}s"
+
+
 class CancellationEvent(Protocol):
 	def is_set(self) -> bool: ...
 
@@ -34,18 +49,26 @@ class PackageProcessCloseResult:
 
 
 def runPowerShell(script: str) -> str:
-	completed = subprocess.run(
-		["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
-		stdin=subprocess.DEVNULL,
-		capture_output=True,
-		check=False,
-		encoding="utf-8",
-		errors="strict",
-		timeout=10,
-		creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-	)
+	started = time.monotonic()
+	budget = getattr(script, "timeout", 10)
+	try:
+		completed = subprocess.run(
+			["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+			stdin=subprocess.DEVNULL,
+			capture_output=True,
+			check=False,
+			encoding="utf-8",
+			errors="strict",
+			timeout=budget,
+			creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+		)
+	except subprocess.TimeoutExpired as error:
+		raise LoaderError("powershell.failed", _failureDetail(script, "timeout", started, budget)) from error
 	if completed.returncode:
-		raise LoaderError("powershell.failed", f"exit={completed.returncode}")
+		raise LoaderError(
+			"powershell.failed",
+			_failureDetail(script, f"exit={completed.returncode}", started, budget),
+		)
 	return completed.stdout
 
 
@@ -57,9 +80,13 @@ def runPowerShellCancellable(
 ) -> str:
 	if cancelEvent.is_set():
 		raise LoaderError("operation.cancelled")
-	end = min(time.monotonic() + 10, deadline) if deadline is not None else time.monotonic() + 10
+	started = time.monotonic()
+	end = started + getattr(script, "timeout", 10)
+	if deadline is not None:
+		end = min(end, deadline)
+	budget = max(0.0, end - started)
 	if time.monotonic() >= end:
-		raise LoaderError("powershell.failed", "timeout")
+		raise LoaderError("powershell.failed", _failureDetail(script, "timeout", started, budget))
 	process = subprocess.Popen(
 		["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
 		stdin=subprocess.DEVNULL,
@@ -77,13 +104,16 @@ def runPowerShellCancellable(
 		remaining = end - time.monotonic()
 		if remaining <= 0:
 			_stopPowerShell(process)
-			raise LoaderError("powershell.failed", "timeout")
+			raise LoaderError("powershell.failed", _failureDetail(script, "timeout", started, budget))
 		try:
 			stdout, _stderr = process.communicate(timeout=min(0.1, remaining))
 		except subprocess.TimeoutExpired:
 			continue
 		if process.returncode:
-			raise LoaderError("powershell.failed", f"exit={process.returncode}")
+			raise LoaderError(
+				"powershell.failed",
+				_failureDetail(script, f"exit={process.returncode}", started, budget),
+			)
 		return stdout
 
 
@@ -111,13 +141,14 @@ def _rows(rawText: str) -> list[object]:
 
 
 def findPackage(policy: ChannelPolicy, runner: PowerShellRunner = runPowerShell) -> PackageInfo | None:
+	packageName = policy.packageFamily.rsplit("_", 1)[0].replace("'", "''")
 	script = (
-		"Get-AppxPackage | Select-Object PackageFullName,PackageFamilyName,InstallLocation "
+		f"Get-AppxPackage -Name '{packageName}' -ErrorAction Stop | Select-Object PackageFullName,PackageFamilyName,InstallLocation "
 		"| ConvertTo-Json -Compress"
 	)
 	matches = [
 		row
-		for row in _rows(runner(script))
+		for row in _rows(runner(PowerShellCommand(script, "package.lookup", 30)))
 		if isinstance(row, dict) and row.get("PackageFamilyName") == policy.packageFamily
 	]
 	if not matches:
@@ -148,7 +179,7 @@ def findRunningPackageProcesses(
 	)
 	root = pathlib.PureWindowsPath(package.installLocation)
 	pids: set[int] = set()
-	for row in _rows(runner(script)):
+	for row in _rows(runner(PowerShellCommand(script, "package.processes", 20))):
 		if not isinstance(row, dict) or not row.get("ExecutablePath"):
 			continue
 		path = pathlib.PureWindowsPath(str(row["ExecutablePath"]))
@@ -184,7 +215,7 @@ def forceClosePackageProcesses(
 		"} while ([DateTime]::UtcNow -lt $deadline); "
 		"@{Found=[int]$found;Remaining=[int]$remaining.Count} | ConvertTo-Json -Compress"
 	)
-	rows = _rows(runner(script))
+	rows = _rows(runner(PowerShellCommand(script, "package.close", 20)))
 	if len(rows) != 1 or not isinstance(rows[0], dict):
 		raise LoaderError("processes.closeResult", f"family={package.familyName}")
 	foundCount = int(rows[0].get("Found") or 0)

@@ -53,6 +53,53 @@ def envelope(reader):
 
 
 class ReaderPayloadTests(unittest.TestCase):
+	def test_list_containers_require_list_items(self):
+		for child in [
+			{"type": "text", "text": "outside item"},
+			{"type": "link", "text": "link", "href": "https://example.com"},
+			{"type": "break"},
+			{"type": "listStart", "ordered": False},
+		]:
+			with self.subTest(child=child):
+				runs = [{"type": "listStart", "ordered": False}, child]
+				if child["type"] == "listStart":
+					runs.append({"type": "listEnd"})
+				runs.append({"type": "listEnd"})
+				self.assertIsNone(messageReader.validateReader(payload(runs=runs)))
+		runs = [
+			{"type": "listStart", "ordered": False},
+			{"type": "listItemStart"},
+			{"type": "listStart", "ordered": True},
+			{"type": "listItemStart"},
+			{"type": "text", "text": "nested item"},
+			{"type": "listItemEnd"},
+			{"type": "listEnd"},
+			{"type": "listItemEnd"},
+			{"type": "listEnd"},
+		]
+		self.assertIsNotNone(messageReader.validateReader(payload(runs=runs)))
+
+	def test_shortcut_headings_use_native_formatted_reader(self):
+		value = payload(
+			kind="shortcuts",
+			runs=[
+				{"type": "heading", "level": 1, "text": "Shortcut list"},
+				{"type": "heading", "level": 2, "text": "Navigation <safe>"},
+				{"type": "text", "text": "Alt+1: Chat list"},
+			],
+		)
+		reader = messageReader.validateReader(value)
+		self.assertIsNotNone(reader)
+		self.assertIn("<h2>Navigation &lt;safe&gt;</h2>", messageReader.renderReader(reader))
+		with patch.object(messageReader, "showFormattedReader") as show:
+			messageReader.showReader(reader, "id")
+			show.assert_called_once_with(reader, "id")
+		value["runs"][0]["level"] = 99
+		self.assertIsNone(messageReader.validateReader(value))
+		value["runs"][0]["level"] = 1
+		value.pop("kind")
+		self.assertIsNone(messageReader.validateReader(value))
+
 	def test_expired_reader_is_not_replayed_after_reconnect(self):
 		value = envelope(payload())
 		value["entries"][0]["readerExpiresAt"] = int(time.time() * 1000) - 1
@@ -83,11 +130,47 @@ class ReaderPayloadTests(unittest.TestCase):
 		rendered = messageReader.renderReader(validated, "id")
 		self.assertNotIn("<script>", rendered)
 		self.assertIn("&lt;script&gt;", rendered)
-		self.assertIn("<br>Next line", rendered)
-		self.assertIn('<ul><li><a href="https://example.com/?q=&quot;&amp;a=1">', rendered)
-		self.assertIn("&lt;Documentation&gt;</a></li></ul>", rendered)
+		self.assertIn("</div><div>Next line</div>", rendered)
+		self.assertIn('<ul><li><div><a href="https://example.com/?q=&quot;&amp;a=1">', rendered)
+		self.assertIn("&lt;Documentation&gt;</a></div></li></ul>", rendered)
 		self.assertIn('lang="id"', rendered)
-		self.assertIn("Sent: 12:34", rendered)
+		self.assertNotIn("Sent: 12:34", rendered)
+		self.assertNotIn("<h1>", rendered)
+
+	def test_formatted_lines_preserve_only_authored_blank_lines(self):
+		for body, expected in (
+			("First\nSecond", "<div>First</div><div>Second</div>"),
+			("First\n\nSecond", "<div>First</div><div><br></div><div>Second</div>"),
+			("\nFirst\n", "<div><br></div><div>First</div><div><br></div>"),
+		):
+			with self.subTest(body=body):
+				html = messageReader.renderReader(payload(body))
+				self.assertEqual(
+					html,
+					'<main lang="en" dir="auto"><article dir="auto">' + expected + "</article></main>",
+				)
+
+	def test_formatted_inline_links_and_break_runs_do_not_add_blank_lines(self):
+		reader = payload(
+			runs=[
+				{"type": "text", "text": "Read "},
+				{"type": "link", "text": "guide", "href": "https://example.com"},
+				{"type": "text", "text": " now"},
+				{"type": "break"},
+				{"type": "text", "text": "Next"},
+			],
+		)
+		html = messageReader.renderReader(reader)
+		self.assertIn('<div>Read <a href="https://example.com">guide</a> now</div><div>Next</div>', html)
+		self.assertNotIn("<br>", html)
+		self.assertNotIn(reader["heading"], html)
+		self.assertNotIn(reader["sentAt"], html)
+
+	def test_formatted_multiline_link_keeps_single_keyboard_stop(self):
+		reader = payload(runs=[{"type": "link", "text": "First\nSecond", "href": "https://example.com"}])
+		html = messageReader.renderReader(reader)
+		self.assertEqual(html.count("<a "), 1)
+		self.assertIn("First<br>Second</a>", html)
 
 	def test_invalid_or_oversized_payload_is_rejected(self):
 		invalid = [
@@ -127,7 +210,7 @@ class ReaderPayloadTests(unittest.TestCase):
 			calls.append((message, title, isHtml, closeButton, copyButton))
 
 		with patch.dict(sys.modules, {"ui": types.SimpleNamespace(browseableMessage=modern)}):
-			messageReader.showReader(payload())
+			messageReader.showFormattedReader(payload())
 		self.assertEqual(len(calls), 1)
 		self.assertEqual(calls[0][2:], (True, True, True))
 
@@ -135,7 +218,7 @@ class ReaderPayloadTests(unittest.TestCase):
 			calls.append((message, title, isHtml))
 
 		with patch.dict(sys.modules, {"ui": types.SimpleNamespace(browseableMessage=legacy)}):
-			messageReader.showReader(payload())
+			messageReader.showFormattedReader(payload())
 		self.assertEqual(len(calls), 2)
 
 	def test_forward_reader_uses_distinct_ui_result(self):
@@ -151,6 +234,101 @@ class ReaderPayloadTests(unittest.TestCase):
 		launcher._forwardCompanionAnnouncements(session, launcher._AnnouncementState(), report)
 		self.assertEqual([item.messageKey for item in reports], ["companion.invalidate", "companion.reader"])
 		self.assertEqual(reports[-1].values["readerProcessIds"], (42,))
+
+
+class PlainReaderTests(unittest.TestCase):
+	def test_authored_lines_and_literal_characters_are_preserved(self):
+		body = "# literal heading\r\nWords  with spaces\n\nBackslash: \\ end\n" + "long " * 200
+		self.assertEqual(messageReader.readerPlainText(payload(body)), body.replace("\r\n", "\n"))
+		self.assertEqual(
+			messageReader.readerPlainText(payload(status="error", runs=[], message="Error")),
+			"Error",
+		)
+
+	def test_links_and_nested_lists_are_readable_without_markdown_links(self):
+		reader = payload(
+			runs=[
+				{"type": "link", "text": "https://example.com", "href": "https://example.com"},
+				{"type": "break"},
+				{"type": "link", "text": "Guide", "href": "https://example.com/guide"},
+				{"type": "listStart", "ordered": True},
+				{"type": "listItemStart"},
+				{"type": "text", "text": "First"},
+				{"type": "listStart", "ordered": False},
+				{"type": "listItemStart"},
+				{"type": "text", "text": "Nested"},
+				{"type": "listItemEnd"},
+				{"type": "listEnd"},
+				{"type": "listItemEnd"},
+				{"type": "listItemStart"},
+				{"type": "text", "text": "Second"},
+				{"type": "listItemEnd"},
+				{"type": "listEnd"},
+			],
+		)
+		self.assertEqual(
+			messageReader.readerPlainText(reader),
+			"https://example.com\nGuide (https://example.com/guide)\n1. First\n  - Nested\n2. Second\n",
+		)
+
+	def test_native_plain_reader_copy_focus_and_formatted_action(self):
+		buttons = []
+		dialog = MagicMock()
+		textControl = MagicMock()
+
+		def makeButton(*args, **kwargs):
+			button = MagicMock()
+			button.Bind.side_effect = lambda event, handler: setattr(button, "activate", handler)
+			buttons.append(button)
+			return button
+
+		wx = types.SimpleNamespace(
+			Dialog=MagicMock(return_value=dialog),
+			TextCtrl=MagicMock(return_value=textControl),
+			StaticText=MagicMock(),
+			BoxSizer=MagicMock(),
+			Button=makeButton,
+			DEFAULT_DIALOG_STYLE=1,
+			RESIZE_BORDER=2,
+			VERTICAL=4,
+			HORIZONTAL=8,
+			ALL=16,
+			TE_MULTILINE=32,
+			TE_READONLY=64,
+			TE_DONTWRAP=128,
+			EXPAND=256,
+			LEFT=512,
+			RIGHT=1024,
+			ID_CANCEL=2,
+			EVT_BUTTON="button",
+			EVT_CLOSE="close",
+		)
+		api = types.SimpleNamespace(copyToClip=MagicMock(return_value=True))
+		ui = types.SimpleNamespace(message=MagicMock())
+		gui = types.SimpleNamespace(mainFrame=MagicMock())
+		package = sys.modules["globalPlugins.whatsappWebPlusCompanion"]
+		reader = payload("First\nSecond\n\nThird  line\\")
+		with (
+			patch.dict(sys.modules, {"wx": wx, "api": api, "ui": ui, "gui": gui}),
+			patch.object(package, "_", lambda value: value, create=True),
+			patch.object(messageReader, "showFormattedReader") as formatted,
+		):
+			messageReader.showReader(reader, "id")
+			self.assertEqual(wx.TextCtrl.call_args.kwargs["value"], reader["runs"][0]["text"])
+			self.assertEqual(wx.TextCtrl.call_args.kwargs["style"], 32 | 64 | 128)
+			textControl.SetInsertionPoint.assert_called_once_with(0)
+			textControl.SetFocus.assert_called_once_with()
+			dialog.SetEscapeId.assert_called_once_with(wx.ID_CANCEL)
+			buttons[0].activate(None)
+			api.copyToClip.assert_called_once_with(reader["runs"][0]["text"])
+			ui.message.assert_called_with("Message copied.")
+			api.copyToClip.return_value = False
+			buttons[0].activate(None)
+			ui.message.assert_called_with("Could not copy the message.")
+			buttons[1].activate(None)
+			formatted.assert_called_once_with(reader, "id")
+			buttons[2].activate(None)
+			dialog.Destroy.assert_called_once_with()
 
 
 class ReaderDeliveryTests(unittest.TestCase):
