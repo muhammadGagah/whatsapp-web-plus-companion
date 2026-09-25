@@ -75,9 +75,6 @@ class BrailleMessageQueue:
 	def enqueue(self, message: str, source: str = "") -> None:
 		if self._disposed or not message or not self._checkOutputAllowed():
 			return
-		if not self._effectiveEnabled():
-			self._disable()
-			return
 		dwell = self._effectiveDwell()
 		self._applyMode(dwell)
 		entry = (message, source)
@@ -96,6 +93,8 @@ class BrailleMessageQueue:
 	def clearPending(self, *, silent: bool = False) -> None:
 		"""Discard queued and displayed bridge messages across a context boundary."""
 
+		if not self._checkOutputAllowed():
+			return
 		hadOutput = bool(self._current or self._nativeEntries)
 		self._stopTimer()
 		self._pending.clear()
@@ -111,6 +110,8 @@ class BrailleMessageQueue:
 	def discardPending(self, source: str) -> None:
 		"""Remove one invalidated source, including its currently displayed text."""
 
+		if not self._checkOutputAllowed():
+			return
 		self._pending = deque(entry for entry in self._pending if entry[1] != source)
 		if not self._serializing:
 			before = len(self._nativeEntries)
@@ -324,7 +325,9 @@ class BrailleMessageQueue:
 
 	def _checkOutputAllowed(self) -> bool:
 		try:
-			allowed = self._outputAllowed() is True
+			# Recheck both security and user settings on every delivery path,
+			# including timers, retries, clear notices, and source invalidations.
+			allowed = not self._disposed and self._effectiveEnabled() and self._outputAllowed() is True
 		except Exception:
 			allowed = False
 		self._suppressed = not allowed

@@ -1,5 +1,14 @@
 # WhatsApp Companion changelog
 
+## 2026.09.25
+
+### Reliability fixes
+
+- Release the registry lease and report a recovery error when deleting the recovery journal fails.
+- Discard queued braille output when braille messages are disabled, including timer retries and context-clear notices.
+- Verify release tags, source versions, packaged manifests, artifact names, and repair-helper integrity before publishing.
+- Verify the embedded userscript version, exact bytes, hash, and bundle metadata against the upstream lock before publishing.
+
 ## 2026.09.23
 
 ### Message reading

@@ -1,6 +1,6 @@
 import pathlib
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from _path import installPackagePath
 
@@ -115,6 +115,41 @@ class RegistryMutexTests(unittest.TestCase):
 
 
 class RegistryLeaseTests(unittest.TestCase):
+	def test_journal_clear_failure_releases_mutex_and_reports_recovery_error(self) -> None:
+		for alreadyRestored in (False, True):
+			with self.subTest(alreadyRestored=alreadyRestored):
+				prior = RegistryValue("--old", 1)
+				registry = MemoryRegistry(prior)
+				lease = RegistryLease(CHANNELS[Channel.BETA], 49223, registry)
+				lease.acquire()
+				if alreadyRestored:
+					registry.current = prior
+				lease.journal = Mock()
+				lease.journal.clear.side_effect = JournalError("storageClear")
+				lease._mutexHandle = 17
+				with patch("globalPlugins.whatsappWebPlusCompanion.registry.releaseRegistryMutex") as release:
+					with self.assertRaisesRegex(LoaderError, "registry.recovery.unreadable"):
+						lease.restore()
+					lease.restore()
+					release.assert_called_once_with(17)
+				self.assertFalse(lease.owned)
+				self.assertIsNone(lease._mutexHandle)
+				self.assertEqual(registry.current, prior)
+
+	def test_unexpected_restore_failure_still_releases_mutex(self) -> None:
+		lease = RegistryLease(CHANNELS[Channel.BETA], 49223, MemoryRegistry())
+		lease.acquire()
+		lease._mutexHandle = 17
+		with (
+			patch.object(RegistryLease, "_restoreValue", side_effect=RuntimeError("provider failed")),
+			patch("globalPlugins.whatsappWebPlusCompanion.registry.releaseRegistryMutex") as release,
+		):
+			with self.assertRaisesRegex(RuntimeError, "provider failed"):
+				lease.restore()
+			release.assert_called_once_with(17)
+		self.assertFalse(lease.owned)
+		self.assertIsNone(lease._mutexHandle)
+
 	def test_acquire_and_restore_preserve_absent_and_existing_prior(self) -> None:
 		for prior in (None, RegistryValue("--old", 1)):
 			registry = MemoryRegistry(prior)

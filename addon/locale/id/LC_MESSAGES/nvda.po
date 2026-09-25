@@ -451,8 +451,8 @@ msgstr "Diagnosa dan perbaiki izin kebijakan WebView2"
 msgid "WhatsApp Companion makes Microsoft Store WhatsApp Stable and Beta easier to use with NVDA. It brings WhatsApp Web Plus features to the desktop app, with keyboard navigation, message reading, and call controls with customizable labels."
 msgstr "WhatsApp Companion memudahkan penggunaan WhatsApp Stable dan Beta dari Microsoft Store dengan NVDA. Add-on ini menghadirkan fitur WhatsApp Web Plus ke aplikasi desktop, dengan navigasi keyboard, pembaca pesan, serta kontrol panggilan yang labelnya dapat disesuaikan."
 
-msgid "Read and copy messages in NVDA, record custom shortcuts, and browse the shortcut list. Improved call controls, WebView2 permission repair, and NVDA compatibility. Includes WhatsApp Web Plus 2.6.84. Requires NVDA 2025.1 or later."
-msgstr "Baca dan salin pesan melalui NVDA, rekam pintasan pilihan Anda, dan jelajahi daftar pintasan. Kontrol panggilan, perbaikan izin WebView2, dan kompatibilitas NVDA ditingkatkan. Menyertakan WhatsApp Web Plus 2.6.84. Memerlukan NVDA 2025.1 atau lebih baru."
+msgid "Fix registry recovery cleanup and stop queued braille messages when disabled. Add release version and package integrity checks. Includes WhatsApp Web Plus 2.6.84. Requires NVDA 2025.1 or later."
+msgstr "Memperbaiki pembersihan proses pemulihan registry dan menghentikan antrean pesan braille saat dinonaktifkan. Menambahkan pemeriksaan versi rilis dan integritas paket. Menyertakan WhatsApp Web Plus 2.6.84. Memerlukan NVDA 2025.1 atau lebih baru."
 
 #~ msgid "Launching WhatsApp {channel} with WhatsApp Companion."
 #~ msgstr "Meluncurkan WhatsApp {channel} dengan WhatsApp Companion."

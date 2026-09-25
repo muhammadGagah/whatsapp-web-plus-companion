@@ -451,8 +451,8 @@ msgstr "Diagnose and repair WebView2 policy permissions"
 msgid "WhatsApp Companion makes Microsoft Store WhatsApp Stable and Beta easier to use with NVDA. It brings WhatsApp Web Plus features to the desktop app, with keyboard navigation, message reading, and call controls with customizable labels."
 msgstr "WhatsApp Companion makes Microsoft Store WhatsApp Stable and Beta easier to use with NVDA. It brings WhatsApp Web Plus features to the desktop app, with keyboard navigation, message reading, and call controls with customizable labels."
 
-msgid "Read and copy messages in NVDA, record custom shortcuts, and browse the shortcut list. Improved call controls, WebView2 permission repair, and NVDA compatibility. Includes WhatsApp Web Plus 2.6.84. Requires NVDA 2025.1 or later."
-msgstr "Read and copy messages in NVDA, record custom shortcuts, and browse the shortcut list. Improved call controls, WebView2 permission repair, and NVDA compatibility. Includes WhatsApp Web Plus 2.6.84. Requires NVDA 2025.1 or later."
+msgid "Fix registry recovery cleanup and stop queued braille messages when disabled. Add release version and package integrity checks. Includes WhatsApp Web Plus 2.6.84. Requires NVDA 2025.1 or later."
+msgstr "Fix registry recovery cleanup and stop queued braille messages when disabled. Add release version and package integrity checks. Includes WhatsApp Web Plus 2.6.84. Requires NVDA 2025.1 or later."
 
 #~ msgid "Launching WhatsApp {channel} with WhatsApp Companion."
 #~ msgstr "Launching WhatsApp {channel} with WhatsApp Companion."

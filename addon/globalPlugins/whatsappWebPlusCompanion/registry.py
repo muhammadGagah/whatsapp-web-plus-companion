@@ -234,14 +234,16 @@ class RegistryLease:
 			return
 		try:
 			self._restoreValue()
-		except LoaderError:
+		except JournalError as error:
+			raise LoaderError(
+				"registry.recovery.unreadable",
+				f"stage=journal.restore;code={error.code}",
+			) from error
+		finally:
 			# The transaction ends even when restoration fails: the encrypted
 			# journal keeps the evidence and pre-launch recovery retries it.
 			self.owned = False
 			self._releaseMutex()
-			raise
-		self.owned = False
-		self._releaseMutex()
 
 	def _restoreValue(self) -> None:
 		current = self.registry.readUserValue(self.policy.aumid)

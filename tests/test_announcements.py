@@ -17,6 +17,74 @@ class _Scheduled:
 
 
 class BrailleMessageQueueTests(unittest.TestCase):
+	def test_disabled_delivery_paths_discard_history_and_resume_fresh(self) -> None:
+		for dwell in (1000, None):
+			for action in ("timer", "clear", "discard"):
+				if action == "timer" and dwell is None:
+					continue
+				with self.subTest(dwell=dwell, action=action):
+					enabled = [True]
+					shown = []
+					calls = []
+
+					def schedule(delay, callback):
+						call = _Scheduled(callback)
+						calls.append(call)
+						return call
+
+					queue = BrailleMessageQueue(
+						shown.append,
+						schedule,
+						dwellMilliseconds=dwell,
+						enabled=lambda: enabled[0],
+					)
+					queue.enqueue("current", "message-log")
+					queue.enqueue("old status", "status")
+					before = shown.copy()
+					enabled[0] = False
+					if action == "timer":
+						calls[0].callback()
+					elif action == "clear":
+						queue.clearPending()
+					else:
+						queue.discardPending("message-log")
+					self.assertEqual(shown, before)
+					enabled[0] = True
+					queue.enqueue("fresh")
+					self.assertEqual(shown, before + ["fresh"])
+					queue.terminate()
+
+	def test_disabled_retry_drops_failed_message_in_both_modes(self) -> None:
+		for dwell in (1000, None):
+			with self.subTest(dwell=dwell):
+				enabled = [True]
+				attempts = []
+				callbacks = []
+
+				def show(message):
+					attempts.append(message)
+					if message == "old":
+						raise RuntimeError("display unavailable")
+
+				def schedule(delay, callback):
+					callbacks.append(callback)
+					return _Scheduled(callback)
+
+				queue = BrailleMessageQueue(
+					show,
+					schedule,
+					dwellMilliseconds=dwell,
+					enabled=lambda: enabled[0],
+				)
+				queue.enqueue("old")
+				enabled[0] = False
+				callbacks.pop(0)()
+				self.assertEqual(attempts, ["old"])
+				enabled[0] = True
+				queue.enqueue("fresh")
+				self.assertEqual(attempts, ["old", "fresh"])
+				queue.terminate()
+
 	def setUp(self) -> None:
 		self.shown: list[str] = []
 		self.scheduled: list[tuple[int, _Scheduled]] = []
