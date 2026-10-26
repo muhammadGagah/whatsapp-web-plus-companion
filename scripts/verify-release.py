@@ -4,11 +4,52 @@ import argparse
 import ast
 import hashlib
 import json
+import importlib.util
+import sys
 import os
 import re
 import runpy
 import zipfile
 from pathlib import Path
+
+
+def verifySignedBundle(read, lock):
+	modulePath = (
+		Path(__file__).resolve().parents[1]
+		/ "addon/globalPlugins/whatsappWebPlusCompanion/updateSignature.py"
+	)
+	spec = importlib.util.spec_from_file_location("companion_release_signature", modulePath)
+	module = importlib.util.module_from_spec(spec)
+	sys.modules[spec.name] = module
+	spec.loader.exec_module(module)
+	import tempfile
+
+	with tempfile.TemporaryDirectory(prefix="wwp-verify-") as directory:
+		trust = Path(directory) / "trust.json"
+		trust.write_bytes(read("update-public-keys.json"))
+		release = module.verifySignedManifest(
+			read("update-manifest.json"),
+			read("update-manifest.json.sig"),
+			trust,
+		)
+	for field in ("version", "sha256", "bytes", "releaseSequence", "keyId"):
+		if getattr(release, field) != lock[field]:
+			raise ValueError(f"Signed manifest differs from upstream lock: {field}")
+
+
+def verifySourceUserscript(root):
+	lock = json.loads((root / "upstream.json").read_text(encoding="utf-8"))
+	resources = root / "addon/globalPlugins/whatsappWebPlusCompanion/resources"
+	metadata = json.loads((resources / "bundle.json").read_text(encoding="utf-8"))
+	if lock.get("developmentSnapshot") or metadata.get("developmentSnapshot"):
+		raise ValueError("Userscript development snapshot cannot be released")
+	for field in ("version", "sha256", "bytes", "releaseSequence", "keyId"):
+		if metadata.get(field) != lock.get(field):
+			raise ValueError(f"Source bundle metadata differs from upstream lock: {field}")
+	payload = (resources / "whatsapp_web_plus.user.js").read_bytes()
+	if len(payload) != lock["bytes"] or hashlib.sha256(payload).hexdigest() != lock["sha256"]:
+		raise ValueError("Source userscript differs from upstream lock")
+	verifySignedBundle(lambda name: (resources / name).read_bytes(), lock)
 
 
 def verifyUserscript(archive: zipfile.ZipFile, root: Path) -> None:
@@ -38,6 +79,8 @@ def verifyUserscript(archive: zipfile.ZipFile, root: Path) -> None:
 	versions = re.findall(r"^// @version[ \t]+([^\r\n]+)", payload.decode("utf-8"), re.MULTILINE)
 	if versions != [lock["version"]]:
 		raise ValueError("Userscript version differs from upstream lock")
+
+	verifySignedBundle(lambda name: archive.read(base + name), lock)
 
 
 def sourceIdentity(root: Path) -> tuple[str, str]:
@@ -84,6 +127,7 @@ def verifyRelease(
 	if package.name != expectedName:
 		raise ValueError(f"Expected package filename {expectedName}, got {package.name}")
 	if sourceOnly:
+		verifySourceUserscript(root)
 		return package
 	if artifactsDir is not None:
 		assets = sorted(path.name for path in artifactsDir.glob("*.nvda-addon"))

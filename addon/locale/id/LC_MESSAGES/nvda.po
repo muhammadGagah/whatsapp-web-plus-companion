@@ -584,6 +584,163 @@ msgstr "Koneksi WhatsApp Companion berhasil dipulihkan."
 msgid "The WhatsApp Companion connection could not be restored. Close WhatsApp, then launch it again."
 msgstr "Koneksi WhatsApp Companion tidak dapat dipulihkan. Tutup WhatsApp, lalu luncurkan kembali."
 
-#. Release summary for WhatsApp Companion 2026.10.19.
-msgid "Add sticker descriptions with configurable AI providers, improve object review, and announce connection recovery results. Include WhatsApp Web Plus 2026.10.19. Requires NVDA 2025.1 or later."
-msgstr "Menambahkan deskripsi stiker dengan pilihan penyedia AI, memperbaiki object review, dan mengumumkan hasil pemulihan koneksi. Menyertakan WhatsApp Web Plus 2026.10.19. Memerlukan NVDA 2025.1 atau yang lebih baru."
+#. Release summary for WhatsApp Companion 2026.10.26.
+msgid "Add manual WhatsApp call recording and make Companion announcements available to Speech History. Include WhatsApp Web Plus 2026.10.26. Requires NVDA 2025.1 or later."
+msgstr "Menambahkan perekaman panggilan WhatsApp secara manual dan memperbaiki pengumuman Companion agar tercatat di Speech History. Menyertakan WhatsApp Web Plus 2026.10.26. Memerlukan NVDA 2025.1 atau yang lebih baru."
+
+#. Call recording.
+msgid "Start call &recording..."
+msgstr "Mulai &rekam panggilan..."
+
+#. Call recording.
+msgid "Record WhatsApp audio and a selected microphone to a WAV file"
+msgstr "Rekam audio WhatsApp dan mikrofon yang dipilih ke berkas WAV"
+
+#. Call recording.
+msgid "Sto&p recording"
+msgstr "&Hentikan rekaman"
+
+#. Call recording.
+msgid "Stop recording and save the WAV file"
+msgstr "Hentikan rekaman dan simpan berkas WAV"
+
+#. Call recording.
+msgid "Recording is already running or being prepared."
+msgstr "Rekaman sedang berlangsung atau sedang disiapkan."
+
+#. Call recording.
+msgid "Call recording requires Windows build 20348 or later."
+msgstr "Perekaman panggilan memerlukan Windows build 20348 atau yang lebih baru."
+
+#. Call recording.
+msgid "Loading microphones. Please wait."
+msgstr "Memuat daftar mikrofon. Mohon tunggu."
+
+#. Call recording.
+msgid "Could not load microphones. Check Windows microphone access and try again."
+msgstr "Tidak dapat memuat mikrofon. Periksa izin mikrofon Windows lalu coba lagi."
+
+#. Call recording.
+msgid "Starting call recording. Please wait."
+msgstr "Menyiapkan rekaman panggilan. Mohon tunggu."
+
+#. Call recording.
+msgid "Stopping recording and saving the file."
+msgstr "Menghentikan rekaman dan menyimpan berkas."
+
+#. Call recording.
+msgid "No call recording is running."
+msgstr "Tidak ada rekaman panggilan yang berlangsung."
+
+#. Call recording.
+msgid "Call recording started."
+msgstr "Rekaman panggilan dimulai."
+
+#. Call recording.
+msgid "Recording saved: {path}"
+msgstr "Rekaman disimpan: {path}"
+
+#. Call recording.
+msgid "Recording cancelled."
+msgstr "Rekaman dibatalkan."
+
+#. Call recording.
+msgid "Recording stopped with an error. A partial recording may be available at: {path}"
+msgstr "Rekaman terhenti karena kesalahan. Sebagian rekaman mungkin tersedia di: {path}"
+
+#. Call recording.
+msgid "Could not record the call. Check that the selected WhatsApp is open, the microphone is available, and the folder is writable. No system-wide audio capture was used."
+msgstr "Tidak dapat merekam panggilan. Pastikan WhatsApp yang dipilih terbuka, mikrofon tersedia, dan folder dapat ditulisi. Audio seluruh sistem tidak direkam."
+
+#. Call recording.
+msgid "Start WhatsApp call recording"
+msgstr "Mulai rekaman panggilan WhatsApp"
+
+#. Call recording.
+msgid "Stop WhatsApp call recording"
+msgstr "Hentikan rekaman panggilan WhatsApp"
+
+#. Call recording.
+msgid "Record WhatsApp call"
+msgstr "Rekam panggilan WhatsApp"
+
+#. Call recording.
+msgid "Start during a call after informing the participants. Choose the same microphone as WhatsApp. WhatsApp audio is saved on the left channel and your microphone on the right. The microphone is recorded even when muted in WhatsApp. Recording stops by itself shortly after the call window closes; use Stop recording to stop earlier."
+msgstr "Mulai saat panggilan berlangsung setelah memberi tahu peserta. Pilih mikrofon yang sama dengan WhatsApp. Audio WhatsApp disimpan di kanal kiri dan mikrofon di kanan. Mikrofon tetap direkam meskipun dibisukan di WhatsApp. Rekaman berhenti sendiri tidak lama setelah jendela panggilan ditutup; gunakan Hentikan rekaman untuk berhenti lebih awal."
+
+#. Call recording.
+msgid "&WhatsApp channel:"
+msgstr "&Varian WhatsApp:"
+
+#. Call recording.
+msgid "&Microphone:"
+msgstr "&Mikrofon:"
+
+#. Call recording.
+msgid "&Recording folder:"
+msgstr "&Folder rekaman:"
+
+#. Call recording.
+msgid "&Start recording"
+msgstr "&Mulai rekaman"
+
+#. Call recording.
+msgid "Choose an absolute path for the recording folder."
+msgstr "Masukkan lokasi lengkap untuk folder rekaman."
+
+#. Recording availability.
+msgid "Checking for a connected WhatsApp call. Please wait."
+msgstr "Memeriksa panggilan WhatsApp yang tersambung. Mohon tunggu."
+
+#. Recording availability.
+msgid "No connected WhatsApp call was detected. Open the full call window and try again."
+msgstr "Tidak ada panggilan WhatsApp tersambung yang terdeteksi. Buka tampilan panggilan penuh lalu coba lagi."
+
+msgid "Restoring call controls. Release the shortcut keys."
+msgstr "Memulihkan kontrol panggilan. Lepaskan tombol shortcut."
+
+msgid "Call controls restored. Press the shortcut again."
+msgstr "Kontrol panggilan sudah dipulihkan. Tekan shortcut sekali lagi."
+
+msgid "Could not restore call controls. Focus the call window and try again."
+msgstr "Kontrol panggilan belum dapat dipulihkan. Fokuskan jendela panggilan lalu coba lagi."
+
+msgid "Opening the call window to verify the connection before recording."
+msgstr "Membuka jendela panggilan untuk memeriksa koneksi sebelum merekam."
+
+msgid "Call window detected. Start will verify the connection."
+msgstr "Jendela panggilan terdeteksi. Mulai akan memeriksa sambungan."
+
+msgid "Call window unavailable. Open the call window or check the selected WhatsApp channel."
+msgstr "Jendela panggilan tidak tersedia. Buka jendela panggilan atau periksa kanal WhatsApp yang dipilih."
+
+msgid "Call recording preparation cancelled."
+msgstr "Persiapan rekaman panggilan dibatalkan."
+
+#. Translators: The call state check failed or timed out, so no call can be confirmed or ruled out.
+msgid "Could not check for a WhatsApp call. Try again."
+msgstr "Tidak dapat memeriksa panggilan WhatsApp. Coba lagi."
+
+#. Translators: The call state could not be read; Start still checks before recording.
+msgid "Could not confirm the call window. Start will check again."
+msgstr "Jendela panggilan belum dapat dipastikan. Mulai akan memeriksanya lagi."
+
+#. Translators: The recorder stopped by itself after the WhatsApp call window closed.
+msgid "The call ended. Recording saved: {path}"
+msgstr "Panggilan berakhir. Rekaman disimpan: {path}"
+
+#. Translators: The recorder stopped by itself at its maximum length.
+msgid "The 4-hour recording limit was reached. Recording saved: {path}"
+msgstr "Batas rekaman 4 jam tercapai. Rekaman disimpan: {path}"
+
+#. Translators: Shown for a microphone that Windows reports without a name.
+msgid "Unnamed microphone {number}"
+msgstr "Mikrofon tanpa nama {number}"
+
+#. Translators: Stop was pressed before capture started; nothing is saved.
+msgid "Cancelling call recording preparation."
+msgstr "Membatalkan persiapan rekaman panggilan."
+
+#. Translators: Recording did not start because another window took the foreground.
+msgid "Recording did not start because the WhatsApp call window lost focus. Keep it active and try again."
+msgstr "Rekaman tidak dimulai karena jendela panggilan WhatsApp kehilangan fokus. Biarkan jendela itu aktif lalu coba lagi."

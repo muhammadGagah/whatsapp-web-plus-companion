@@ -55,6 +55,19 @@ terpisah. Anda boleh memasang salah satu atau keduanya.
   sebelum membuka WhatsApp. Jalankan kembali jika izin dihapus, Windows
   dipasang ulang, atau Companion melaporkan masalah izin.
 
+### Perintah panggilan
+
+- **Label kontrol panggilan...** menambahkan nama kontrol panggilan sesuai
+  bahasa WhatsApp, agar pintasan panggilan dapat menemukannya.
+- **Mulai rekam panggilan...** memeriksa panggilan yang tersambung, lalu
+  membuka dialog rekaman. Pilih varian WhatsApp, mikrofon yang digunakan
+  WhatsApp, dan folder penyimpanan.
+- **Hentikan rekaman** menghentikan dan menyimpan rekaman, atau membatalkan
+  rekaman yang masih dipersiapkan. Rekaman juga berhenti sendiri tidak lama
+  setelah jendela panggilan ditutup.
+
+Lihat [Merekam panggilan](../addon/doc/id/readme.md#merekam-panggilan) untuk detailnya.
+
 ### Perintah hasil dan pembaruan
 
 - **Laporkan hasil WhatsApp Companion terakhir** mengulangi hasil
@@ -66,8 +79,9 @@ terpisah. Anda boleh memasang salah satu atau keduanya.
 
 ## Menetapkan gestur keyboard opsional
 
-Perintah global Companion, seperti membuka WhatsApp dan melaporkan hasil
-terakhir, tidak memiliki gestur keyboard bawaan. Anda dapat menetapkan gestur
+Perintah global Companion, seperti membuka WhatsApp, memulai atau menghentikan
+rekaman panggilan, dan melaporkan hasil terakhir, tidak memiliki gestur
+keyboard bawaan. Anda dapat menetapkan gestur
 yang sesuai dengan kebutuhan. Perintah panggilan memiliki pintasan bawaan
 yang tercantum di bawah.
 
@@ -114,7 +128,7 @@ Anda perlukan.
 | `Alt + Down Arrow` | Buka chat berikutnya jika diaktifkan pada Pemetaan ulang pintasan |
 | `Alt + T` | Baca judul chat saat ini. Tekan dua kali dengan cepat untuk mengaktifkan atau menonaktifkan pemantau aktivitas chat |
 | `Alt + 0` | Tutup pemutar audio atau video WhatsApp, atau tutup promosi aplikasi desktop |
-| `Alt + M` | Mulai merekam pesan suara jika diaktifkan pada Pemetaan ulang pintasan |
+| `Alt + M` | Mulai merekam pesan suara. Aktif secara bawaan; ubah melalui Pemetaan ulang pintasan |
 
 ### Kontrol panggilan masuk
 
@@ -446,11 +460,10 @@ Pasang lingkungan pengembangan dengan versi yang sudah ditentukan:
 uv sync
 ```
 
-Sinkronkan userscript hasil build dari repository sumber di sebelahnya:
-
-```powershell
-npm run sync:userscript
-```
+Untuk rilis, gunakan userscript yang diterbitkan GreasyFork setelah
+ditandatangani. Ikuti [Menyertakan rilis WhatsApp Web Plus yang sudah dipublikasikan](update-bundled-userscript.id.md).
+Build lokal berbeda dari file publik, sehingga hanya dipakai untuk pengembangan
+dengan manifest yang ditandatangani secara lokal.
 
 Jalankan lint, pengujian, pembuatan dokumentasi terjemahan, dan pembuatan paket:
 
@@ -478,8 +491,8 @@ Alat bantu perbaikan izin dikemas sebagai `registryRepair.ps1` dan
 `resources/registry-repair.json`. Buat ulang catatan tersebut setelah mengubah
 salah satu file alat bantu.
 
-Sebelum rilis, periksa `upstream.json`, sinkronkan userscript, jalankan semua
-pengujian, buat paket `.nvda-addon`, pasang paket, lalu selesaikan pengujian
+Sebelum rilis, sinkronkan userscript publik yang sudah diverifikasi, periksa
+`upstream.json`, jalankan semua pengujian, buat paket `.nvda-addon`, pasang paket, lalu selesaikan pengujian
 manual NVDA dan WhatsApp.
 
 Bantuan HTML, manifest terjemahan, katalog pesan terkompilasi, keadaan SCons,
@@ -528,7 +541,7 @@ tetap menggunakan lisensi MIT. Asal komponen dan batas lisensi dijelaskan dalam
 
 ## Menetapkan shortcut
 
-Pilih **Shift+F8 > Pemetaan ulang shortcut**, lalu pilih **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
+Pilih **Shift+F8 > Pemetaan ulang shortcut**, lalu pilih **Read Sticker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
 
 Kombinasi ganda dan perintah tetap script/Companion ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
 

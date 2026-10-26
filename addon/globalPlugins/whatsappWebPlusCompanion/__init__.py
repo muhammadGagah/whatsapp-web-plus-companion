@@ -7,8 +7,10 @@ import globalPluginHandler
 import gui
 from logHandler import log
 import NVDAState
+import os
 import re
 import speech
+import sys
 import threading
 import time
 from functools import partial
@@ -19,6 +21,8 @@ from speech.commands import LangChangeCommand
 from typing import Protocol
 
 from . import commandFeedback
+from .recording import Recording, foregroundWindow, listMicrophones, supported as recordingSupported
+from .callAvailability import CallAvailability
 from .announcements import BrailleMessageQueue, ScheduledCall
 from .cleanup import forceCloseOperation
 from .controller import Controller
@@ -49,6 +53,16 @@ _DELIVERY_TIMEOUT = 2.0
 # speech emitted synchronously from the menu handler. Defer add-on
 # announcements long enough for the focus announcement to complete.
 _ANNOUNCEMENT_DELAY_MS = 350
+# The input desktop can lag NVDA's unlock notification; retry a held recording outcome briefly.
+_HELD_REPORT_RETRY_MS = 1000
+_HELD_REPORT_ATTEMPTS = 5
+# Recording outcomes the user must hear even when they arrive while Windows is locked.
+_TERMINAL_RECORDING_STATES = frozenset(
+	{"saved", "limit", "call-ended", "cancelled", "failed", "unavailable", "focus-changed"},
+)
+# The closing setup dialog can keep NVDA in the foreground for a moment. Wait for WhatsApp instead.
+_FOREGROUND_RETRY_MS = 100
+_FOREGROUND_ATTEMPTS = 15
 _BRAILLE_ANNOUNCEMENT_DWELL_FALLBACK_MS = 4000
 _BRAILLE_MAX_PENDING_MESSAGES = 50
 _VALID_ANNOUNCEMENT_SOURCES = frozenset({"status", "message-log", "alert"})
@@ -113,6 +127,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self) -> None:
 		super().__init__()
 		self._disposed = False
+		self._recordingSetupPending = False
+		self._recordingSetupToken = 0
+		self._heldRecordingReport: tuple[str, str] | None = None
+		self._callAvailability = CallAvailability(wx.CallAfter, self._refreshRecordingAvailability)
+		self._recording = Recording(self._queueRecordingReport)
 		self._generation = 0
 		self.lastResult: OperationResult | None = None
 		self.selectedChannel = Channel.STABLE
@@ -178,13 +197,33 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _onSessionLockChanged(self, isNowLocked: bool) -> None:
 		self._announcementGuard.setBlocked("lock", bool(isNowLocked))
 		if isNowLocked:
+			self._callAvailability.invalidate()
+			self._recordingSetupToken += 1
+			self._recordingSetupPending = False
+			self._cancelCallRecovery()
+			self._recording.stop()
 			self._suspendCompanionOutput()
+		else:
+			self._scheduleHeldRecordingReport()
 
 	def _onSecureDesktopChanged(self, isSecureDesktop: bool) -> None:
 		self._announcementGuard.setBlocked("secure-desktop", bool(isSecureDesktop))
 		if isSecureDesktop:
+			self._callAvailability.invalidate()
+			self._recordingSetupToken += 1
+			self._recordingSetupPending = False
+			self._cancelCallRecovery()
+			self._recording.stop()
 			# NVDA already cancels speech before announcing the secure desktop.
 			self._suspendCompanionOutput(cancelSpeech=False)
+		else:
+			self._scheduleHeldRecordingReport()
+
+	@staticmethod
+	def _cancelCallRecovery():
+		module = sys.modules.get("appModules.wwpCallSupport.runtime")
+		if module is not None:
+			module.cancelRecovery()
 
 	def _suspendCompanionOutput(self, *, cancelSpeech: bool = True) -> None:
 		self._brailleMessages.clearPending(silent=True)
@@ -273,6 +312,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						_("Customize call control labels for the language used by WhatsApp"),
 						self._onCallLabelsMenu,
 					),
+					MenuSpec(
+						_("Start call &recording..."),
+						_("Record WhatsApp audio and a selected microphone to a WAV file"),
+						self._onStartRecordingMenu,
+						self._recordingMenuEnabled,
+					),
+					MenuSpec(
+						_("Sto&p recording"),
+						_("Stop recording and save the WAV file"),
+						self._onStopRecordingMenu,
+						lambda: self._recording.active or self._recordingSetupPending,
+					),
 				),
 				(
 					MenuSpec(
@@ -291,7 +342,350 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					),
 				),
 			),
+			refresh=self._requestCallAvailability,
 		)
+
+	def _onStartRecordingMenu(self, event: wx.CommandEvent) -> None:
+		event.Skip()
+		wx.CallAfter(self._prepareRecording)
+
+	def _onStopRecordingMenu(self, event: wx.CommandEvent) -> None:
+		event.Skip()
+		self._stopRecording()
+
+	def _recordingAllowed(self) -> bool:
+		return (
+			not self._disposed
+			and self._announcementGuard.permits()
+			and not globalVars.appArgs.secure
+			and NVDAState.shouldWriteToDisk()
+		)
+
+	def _prepareRecording(self) -> None:
+		if not self._recordingAllowed():
+			return
+		self._deliverHeldRecordingReport()
+		if self._recording.active or self._recordingSetupPending:
+			self._announceRecording(_("Recording is already running or being prepared."))
+			return
+		if not recordingSupported():
+			self._announceRecording(_("Call recording requires Windows build 20348 or later."))
+			return
+		self._recordingSetupPending = True
+		self._recordingSetupToken += 1
+		token = self._recordingSetupToken
+		self._announceRecording(_("Checking for a connected WhatsApp call. Please wait."))
+		self._callAvailability.request(
+			force=True,
+			callback=lambda calls: self._recordingCallReady(calls, token),
+		)
+
+	def _recordingMenuEnabled(self) -> bool:
+		if not self._recordingAllowed() or self._recording.active or self._recordingSetupPending:
+			return False
+		if not recordingSupported():
+			return False
+		# Unknown stays enabled: Start always runs its own fresh probe before anything is recorded.
+		return self._callAvailability.available() is not False
+
+	def _requestCallAvailability(self) -> None:
+		"""Passive refresh for the open menu; CallAvailability throttles and never overlaps probes."""
+		if self._recordingAllowed() and not self._recording.active and recordingSupported():
+			self._callAvailability.request()
+
+	def _recordingCallAvailable(self, channel) -> bool | None:
+		if not self._recordingAllowed() or self._recording.active:
+			return False
+		self._callAvailability.request()
+		return self._callAvailability.available(channel)
+
+	def _announceCallCheckFailed(self) -> None:
+		self._announceRecording(
+			# Translators: The call state check failed or timed out, so no call can be confirmed or ruled out.
+			_("Could not check for a WhatsApp call. Try again."),
+		)
+
+	def _refreshRecordingAvailability(self) -> None:
+		if not self._disposed and self._menu is not None:
+			self._menu.refreshEnabled()
+
+	def _recordingCallReady(self, calls, token) -> None:
+		if token != self._recordingSetupToken:
+			return
+		if not self._recordingAllowed():
+			self._recordingSetupPending = False
+			return
+		if calls is None:
+			self._recordingSetupPending = False
+			self._announceCallCheckFailed()
+			return
+		if not calls:
+			self._recordingSetupPending = False
+			self._announceRecording(
+				_("No connected WhatsApp call was detected. Open the full call window and try again."),
+			)
+			return
+		if self._focusExistingDialog():
+			self._recordingSetupPending = False
+			return
+		self._announceRecording(_("Loading microphones. Please wait."))
+
+		def load():
+			try:
+				devices = listMicrophones()
+			except Exception:
+				devices = []
+			wx.CallAfter(self._checkRecordingAfterDevices, devices, token)
+
+		threading.Thread(target=load, name="WhatsAppRecordingDevices", daemon=True).start()
+
+	def _checkRecordingAfterDevices(self, devices, token) -> None:
+		if token != self._recordingSetupToken:
+			return
+		if not self._recordingAllowed():
+			self._recordingSetupPending = False
+			return
+		self._callAvailability.request(
+			force=True,
+			callback=lambda calls: self._showRecordingDialog(devices, token, calls),
+		)
+
+	def _showRecordingDialog(self, devices, token, calls) -> None:
+		if token != self._recordingSetupToken:
+			return
+		self._recordingSetupPending = False
+		if not self._recordingAllowed():
+			return
+		if calls is None:
+			self._announceCallCheckFailed()
+			return
+		if not calls:
+			self._announceRecording(
+				_("No connected WhatsApp call was detected. Open the full call window and try again."),
+			)
+			return
+		if not devices:
+			self._announceRecording(
+				_("Could not load microphones. Check Windows microphone access and try again."),
+			)
+			return
+		if self._focusExistingDialog():
+			return
+		from .recordingDialog import RecordingDialog
+
+		dialog = RecordingDialog(
+			gui.mainFrame,
+			devices=devices,
+			channel=self.selectedChannel if self.selectedChannel in calls else next(iter(calls)),
+			allowed=self._recordingAllowed,
+			callAvailable=self._recordingCallAvailable,
+			onStatus=self._announceRecording,
+			onStart=self._startRecording,
+		)
+		gui.mainFrame.prePopup()
+		try:
+			self._showDialog(dialog)
+		finally:
+			gui.mainFrame.postPopup()
+
+	def _startRecording(
+		self,
+		channel,
+		microphone,
+		directory,
+		completed=lambda started: None,
+		stillOpen=lambda: True,
+	) -> None:
+		if not self._recordingAllowed():
+			completed(False)
+			return
+		self._recordingSetupToken += 1
+		token = self._recordingSetupToken
+		self._recordingSetupPending = True
+		self._announceRecording(_("Checking for a connected WhatsApp call. Please wait."))
+
+		def checked(calls):
+			if token != self._recordingSetupToken or not self._recordingAllowed() or not stillOpen():
+				if token == self._recordingSetupToken:
+					self._recordingSetupPending = False
+				completed(False)
+				return
+			if calls is None:
+				self._recordingSetupPending = False
+				self._announceCallCheckFailed()
+				completed(False)
+				return
+			if channel not in calls:
+				self._recordingSetupPending = False
+				self._announceRecording(
+					_("No connected WhatsApp call was detected. Open the full call window and try again."),
+				)
+				completed(False)
+				return
+			self._announceRecording(_("Opening the call window to verify the connection before recording."))
+			completed(True)
+
+			wx.CallAfter(
+				self._beginRecordingWhenForegroundSettles,
+				channel,
+				microphone,
+				directory,
+				token,
+				_FOREGROUND_ATTEMPTS,
+			)
+
+		self._callAvailability.request(force=True, callback=checked)
+
+	def _beginRecordingWhenForegroundSettles(self, channel, microphone, directory, token, attempts) -> None:
+		"""Start capture with the window that is in front once NVDA's setup dialog has gone.
+
+		The helper refuses to act if that window changes, so it must not be NVDA's own dialog.
+		"""
+		if token != self._recordingSetupToken:
+			return
+		if not self._recordingAllowed():
+			self._recordingSetupPending = False
+			self._refreshRecordingAvailability()
+			return
+		try:
+			window, processId = foregroundWindow()
+		except (OSError, AttributeError, ValueError):
+			# Unknown foreground: start anyway; the helper then reports a focus change instead of hanging.
+			window, processId = 0, 0
+		if attempts > 0 and (not window or processId == os.getpid()):
+			try:
+				wx.CallLater(
+					_FOREGROUND_RETRY_MS,
+					self._beginRecordingWhenForegroundSettles,
+					channel,
+					microphone,
+					directory,
+					token,
+					attempts - 1,
+				)
+				return
+			except (RuntimeError, TypeError):
+				pass
+		self._recordingSetupPending = False
+		if self._recording.start(channel, microphone, directory, foreground=window):
+			self._announceRecording(_("Starting call recording. Please wait."))
+		self._refreshRecordingAvailability()
+
+	def _stopRecording(self) -> None:
+		self._deliverHeldRecordingReport()
+		pending = self._recordingSetupPending
+		self._recordingSetupToken += 1
+		self._recordingSetupPending = False
+		self._callAvailability.invalidate()
+		if self._recording.active and self._recording.captureStarted:
+			self._recording.stop()
+			self._announceRecording(_("Stopping recording and saving the file."))
+		elif self._recording.active:
+			self._recording.stop()
+			# Translators: Stop was pressed before capture started; nothing is saved.
+			self._announceRecording(_("Cancelling call recording preparation."))
+		elif pending:
+			self._announceRecording(_("Call recording preparation cancelled."))
+		else:
+			self._announceRecording(_("No call recording is running."))
+
+	def _announceRecording(self, message):
+		self._announce(message, protected=True)
+
+	def _queueRecordingReport(self, state, path):
+		"""Runs on the recording worker."""
+		allowed, epoch = self._announcementGuard.snapshot()
+		if allowed:
+			wx.CallAfter(self._deliverRecordingReport, state, path, epoch)
+		elif state in _TERMINAL_RECORDING_STATES:
+			wx.CallAfter(self._holdRecordingReport, state, path)
+
+	def _deliverRecordingReport(self, state, path, epoch):
+		if self._announcementGuard.permits(epoch):
+			self._recordingReport(state, path)
+		elif state in _TERMINAL_RECORDING_STATES:
+			self._holdRecordingReport(state, path)
+
+	def _holdRecordingReport(self, state, path) -> None:
+		# Kept in memory only and never spoken on the lock screen or secure desktop. The latest outcome
+		# wins, so after unlock the user still hears that recording stopped and where it was saved.
+		if not self._disposed:
+			self._heldRecordingReport = (state, path)
+			# Unlock may already have happened; delivery still waits until output is permitted.
+			self._scheduleHeldRecordingReport()
+
+	def _scheduleHeldRecordingReport(self) -> None:
+		if self._heldRecordingReport is None or self._disposed:
+			return
+		try:
+			wx.CallLater(_HELD_REPORT_RETRY_MS, self._deliverHeldRecordingReport, _HELD_REPORT_ATTEMPTS)
+		except (RuntimeError, TypeError):
+			pass
+
+	def _deliverHeldRecordingReport(self, attempts: int = 0) -> None:
+		if self._heldRecordingReport is None or self._disposed:
+			return
+		if not self._recordingAllowed():
+			if attempts > 1:
+				try:
+					wx.CallLater(_HELD_REPORT_RETRY_MS, self._deliverHeldRecordingReport, attempts - 1)
+				except (RuntimeError, TypeError):
+					pass
+			return
+		state, path = self._heldRecordingReport
+		self._heldRecordingReport = None
+		self._recordingReport(state, path)
+
+	def _recordingReport(self, state, path) -> None:
+		if not self._recordingAllowed():
+			return
+		announce = partial(self._announce, protected=True)
+		self._refreshRecordingAvailability()
+		if state == "unavailable" and self._recording.cancel.is_set():
+			state = "cancelled"
+		if state == "unavailable":
+			self._callAvailability.invalidate()
+			announce(
+				_("No connected WhatsApp call was detected. Open the full call window and try again."),
+			)
+			return
+		if state == "started":
+			if not self._recording.cancel.is_set():
+				announce(_("Call recording started."))
+		elif state == "saved":
+			announce(_("Recording saved: {path}").format(path=path))
+		elif state == "call-ended":
+			self._callAvailability.invalidate()
+			announce(
+				# Translators: The recorder stopped by itself after the WhatsApp call window closed.
+				_("The call ended. Recording saved: {path}").format(path=path),
+			)
+		elif state == "limit":
+			announce(
+				# Translators: The recorder stopped by itself at its maximum length.
+				_("The 4-hour recording limit was reached. Recording saved: {path}").format(path=path),
+			)
+		elif state == "cancelled":
+			announce(_("Recording cancelled."))
+		elif state == "focus-changed":
+			announce(
+				# Translators: Recording did not start because another window took the foreground.
+				_(
+					"Recording did not start because the WhatsApp call window lost focus. Keep it active and try again.",
+				),
+			)
+		elif path:
+			announce(
+				_("Recording stopped with an error. A partial recording may be available at: {path}").format(
+					path=path,
+				),
+			)
+		else:
+			announce(
+				_(
+					"Could not record the call. Check that the selected WhatsApp is open, the microphone is available, and the folder is writable. No system-wide audio capture was used.",
+				),
+			)
 
 	def _onCallLabelsMenu(self, event: wx.CommandEvent) -> None:
 		event.Skip()
@@ -557,7 +951,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		self._companionOutputActive = True
 		if language:
-			speech.speak(
+			speech.speech.speak(
 				[
 					LangChangeCommand(language.replace("-", "_")),
 					text,
@@ -565,14 +959,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				],
 			)
 		else:
-			speech.speak([text])
+			speech.speech.speak([text])
 		self._brailleMessages.enqueue(text, source)
 
-	def _announce(self, message: str) -> None:
+	def _announce(self, message: str, *, protected: bool = False) -> None:
 		"""Speak after the closing menu's focus announcement."""
+		epoch = self._announcementGuard.snapshot()[1] if protected else None
 
 		def speak() -> None:
-			if self._disposed:
+			if self._disposed or (protected and not self._announcementGuard.permits(epoch)):
 				return
 			commandFeedback.message(message)
 
@@ -1631,8 +2026,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_diagnoseAndRepairPermissions(self, gesture) -> None:
 		self._startRegistryDiagnosis()
 
+	@script(description=_("Start WhatsApp call recording"), speakOnDemand=True)
+	def script_startCallRecording(self, gesture) -> None:
+		self._prepareRecording()
+
+	@script(description=_("Stop WhatsApp call recording"), speakOnDemand=True)
+	def script_stopCallRecording(self, gesture) -> None:
+		self._stopRecording()
+
 	def terminate(self) -> None:
 		self._announcementGuard.setBlocked("terminated", True)
+		self._heldRecordingReport = None
+		self._recordingSetupToken += 1
+		self._cancelCallRecovery()
+		self._callAvailability.invalidate()
+		self._recording.stop()
 		for event, callback in self._securitySubscriptions:
 			try:
 				event.unregister(callback)

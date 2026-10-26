@@ -96,6 +96,9 @@ def _installFakeEnvironment() -> None:
 			FakeMenuItem._nextId += 1
 			self.label = label
 
+		def Enable(self, enabled) -> None:
+			self.enabled = enabled
+
 		def Destroy(self) -> None:
 			pass
 
@@ -138,6 +141,9 @@ def _installFakeEnvironment() -> None:
 		MenuItem=FakeMenuItem,
 		ID_ANY=-1,
 		EVT_MENU=object(),
+		EVT_UPDATE_UI=object(),
+		EVT_MENU_OPEN=object(),
+		EVT_MENU_CLOSE=object(),
 		EVT_WINDOW_DESTROY=object(),
 		CallAfter=lambda function, *args, **kwargs: function(*args, **kwargs),
 		CallLater=lambda delay, function, *args, **kwargs: function(*args, **kwargs),
@@ -188,7 +194,10 @@ def _installFakeEnvironment() -> None:
 		"globalPluginHandler": fakeGlobalPluginHandler,
 		"logHandler": fakeLogHandler,
 		"NVDAState": types.SimpleNamespace(shouldWriteToDisk=lambda: True),
-		"speech": types.SimpleNamespace(speak=lambda commands: None),
+		"speech": types.SimpleNamespace(
+			speak=lambda commands: None,
+			speech=types.SimpleNamespace(speak=lambda commands: None),
+		),
 		"speech.commands": types.SimpleNamespace(LangChangeCommand=lambda language: object()),
 		"scriptHandler": types.SimpleNamespace(script=lambda **kwargs: lambda function: function),
 		"ui": types.SimpleNamespace(message=lambda text: _uiMessages.append(text)),
@@ -250,6 +259,342 @@ class PluginUiFlowTests(unittest.TestCase):
 				self.assertTrue(self.plugin._reportIfCurrent(self.plugin._generation, result))
 				feedback.assert_called_once_with(expected)
 				self.assertIs(self.plugin.lastResult, result)
+
+	def test_lock_and_secure_desktop_request_recording_stop(self) -> None:
+		with (
+			mock.patch.object(self.plugin, "_recording") as recorder,
+			mock.patch.object(self.plugin, "_suspendCompanionOutput"),
+		):
+			self.plugin._onSessionLockChanged(False)
+			recorder.stop.assert_not_called()
+			self.plugin._onSessionLockChanged(True)
+			recorder.stop.assert_called_once_with()
+			recorder.stop.reset_mock()
+			self.plugin._onSecureDesktopChanged(True)
+			recorder.stop.assert_called_once_with()
+
+	def test_stop_cancels_probe_and_queued_recording_start(self) -> None:
+		for afterProbe in (False, True):
+			with (
+				self.subTest(afterProbe=afterProbe),
+				mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+				mock.patch.object(self.plugin, "_recording") as recorder,
+				mock.patch.object(self.plugin, "_callAvailability") as availability,
+				mock.patch.object(self.plugin, "_announce"),
+				mock.patch("wx.CallAfter") as dispatch,
+			):
+				recorder.active = False
+				completed = mock.Mock()
+				self.plugin._startRecording("beta", "mic", "folder", completed)
+				checked = availability.request.call_args.kwargs["callback"]
+				if afterProbe:
+					checked({"beta": object()})
+					completed.assert_called_once_with(True)
+					recorder.start.assert_not_called()
+				self.plugin._stopRecording()
+				if afterProbe:
+					dispatch.call_args.args[0](*dispatch.call_args.args[1:])
+				else:
+					checked({"beta": object()})
+					completed.assert_called_once_with(False)
+				recorder.start.assert_not_called()
+				self.assertFalse(self.plugin._recordingSetupPending)
+
+	def test_delayed_recording_result_does_not_cross_security_epoch(self):
+		from globalPlugins.whatsappWebPlusCompanion.security import AnnouncementGuard
+
+		self.plugin._announcementGuard = AnnouncementGuard(lambda: True)
+		with (
+			mock.patch.object(self.module.wx, "CallLater") as timer,
+			mock.patch.object(self.module.commandFeedback, "message") as say,
+		):
+			self.plugin._announce("private recording path", protected=True)
+			self.plugin._announcementGuard.setBlocked("lock", True)
+			self.plugin._announcementGuard.setBlocked("lock", False)
+			timer.call_args.args[1]()
+			say.assert_not_called()
+
+	def test_recording_setup_speech_is_suppressed_after_lock(self):
+		from globalPlugins.whatsappWebPlusCompanion.security import AnnouncementGuard
+
+		for source in ("lock", "secure-desktop"):
+			self.plugin._announcementGuard = AnnouncementGuard(lambda: True)
+			with (
+				self.subTest(source=source),
+				mock.patch.object(self.module.wx, "CallLater") as timer,
+				mock.patch.object(self.module.commandFeedback, "message") as say,
+			):
+				self.plugin._announceRecording("Starting call recording. Please wait.")
+				self.plugin._announcementGuard.setBlocked(source, True)
+				timer.call_args.args[1]()
+				self.plugin._announcementGuard.setBlocked(source, False)
+				timer.call_args.args[1]()
+				say.assert_not_called()
+
+	def test_recording_worker_report_cannot_cross_security_transition(self):
+		from globalPlugins.whatsappWebPlusCompanion.security import AnnouncementGuard
+
+		self.plugin._announcementGuard = AnnouncementGuard(lambda: True)
+		with (
+			mock.patch.object(self.module.wx, "CallAfter") as dispatch,
+			mock.patch.object(self.module.wx, "CallLater") as later,
+			mock.patch.object(self.plugin, "_recordingReport") as report,
+		):
+			self.plugin._queueRecordingReport("started", "private.wav")
+			callback, *args = dispatch.call_args.args
+			self.plugin._announcementGuard.setBlocked("lock", True)
+			self.plugin._announcementGuard.setBlocked("lock", False)
+			callback(*args)
+			report.assert_not_called()
+			later.assert_not_called()
+			# A terminal outcome is not spoken through the stale path, but it is not lost either.
+			self.plugin._queueRecordingReport("saved", "private.wav")
+			callback, *args = dispatch.call_args.args
+			self.plugin._announcementGuard.setBlocked("lock", True)
+			self.plugin._announcementGuard.setBlocked("lock", False)
+			callback(*args)
+			report.assert_not_called()
+			later.call_args.args[1](*later.call_args.args[2:])
+			report.assert_called_once_with("saved", "private.wav")
+			report.reset_mock()
+			self.plugin._queueRecordingReport("saved", "current.wav")
+			callback, *args = dispatch.call_args.args
+			callback(*args)
+			report.assert_called_once_with("saved", "current.wav")
+
+	def lockedRecordingPlugin(self):
+		from globalPlugins.whatsappWebPlusCompanion.security import AnnouncementGuard
+
+		self.plugin._announcementGuard = AnnouncementGuard(lambda: True)
+		patches = (
+			mock.patch.object(self.plugin, "_recording"),
+			mock.patch.object(self.plugin, "_suspendCompanionOutput"),
+			mock.patch.object(self.plugin, "_cancelCallRecovery"),
+			mock.patch.object(self.plugin, "_announce"),
+		)
+		recorder, _suspend, _cancel, announce = (patch.start() for patch in patches)
+		for patch in patches:
+			self.addCleanup(patch.stop)
+		recorder.active = False
+		recorder.cancel.is_set.return_value = False
+		return recorder, announce
+
+	def test_recording_stopped_by_lock_is_reported_after_unlock(self):
+		for locked, unlocked in (
+			(
+				lambda: self.plugin._onSessionLockChanged(True),
+				lambda: self.plugin._onSessionLockChanged(False),
+			),
+			(
+				lambda: self.plugin._onSecureDesktopChanged(True),
+				lambda: self.plugin._onSecureDesktopChanged(False),
+			),
+		):
+			with self.subTest(locked=locked):
+				recorder, announce = self.lockedRecordingPlugin()
+				locked()
+				recorder.stop.assert_called_once_with()
+				# The worker reports while Windows is still locked: nothing is spoken, not even the path.
+				self.plugin._queueRecordingReport("started", "late.wav")
+				self.plugin._queueRecordingReport("cancelled", "")
+				self.plugin._queueRecordingReport("saved", "private.wav")
+				announce.assert_not_called()
+				unlocked()
+				announce.assert_called_once_with("Recording saved: private.wav", protected=True)
+				self.assertIsNone(self.plugin._heldRecordingReport)
+				unlocked()
+				announce.assert_called_once()
+
+	def test_held_recording_report_waits_for_every_security_block(self):
+		recorder, announce = self.lockedRecordingPlugin()
+		self.plugin._onSessionLockChanged(True)
+		self.plugin._onSecureDesktopChanged(True)
+		self.plugin._queueRecordingReport("failed", "partial.wav")
+		self.plugin._onSessionLockChanged(False)
+		announce.assert_not_called()
+		self.plugin._onSecureDesktopChanged(False)
+		announce.assert_called_once()
+		self.assertIn("partial.wav", announce.call_args.args[0])
+
+	def test_held_recording_report_is_given_before_the_next_recording_command(self):
+		recorder, announce = self.lockedRecordingPlugin()
+		with mock.patch.object(self.module.wx, "CallLater"):
+			self.plugin._onSessionLockChanged(True)
+			self.plugin._queueRecordingReport("cancelled", "")
+			self.plugin._announcementGuard.setBlocked("lock", False)
+			announce.assert_not_called()
+			self.plugin._stopRecording()
+		self.assertEqual(
+			[call.args[0] for call in announce.call_args_list],
+			["Recording cancelled.", "No call recording is running."],
+		)
+
+	def test_terminate_discards_held_recording_report(self):
+		recorder, announce = self.lockedRecordingPlugin()
+		with mock.patch.object(self.module.wx, "CallLater"):
+			self.plugin._onSessionLockChanged(True)
+			self.plugin._queueRecordingReport("saved", "private.wav")
+		self.plugin.terminate()
+		self.assertIsNone(self.plugin._heldRecordingReport)
+		self.plugin._deliverHeldRecordingReport(3)
+		announce.assert_not_called()
+
+	def test_unavailable_after_stop_is_reported_as_cancelled_without_invalidating(self):
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.plugin, "_callAvailability") as availability,
+			mock.patch.object(self.plugin, "_announce") as announce,
+		):
+			self.plugin._recording.stop()
+			self.plugin._recordingReport("unavailable", "")
+			announce.assert_called_once_with("Recording cancelled.", protected=True)
+			availability.invalidate.assert_not_called()
+
+	def test_automatic_stops_are_announced_with_saved_path(self):
+		for state, expected in (
+			("call-ended", "The call ended. Recording saved: call.wav"),
+			("limit", "The 4-hour recording limit was reached. Recording saved: call.wav"),
+		):
+			with (
+				self.subTest(state=state),
+				mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+				mock.patch.object(self.plugin, "_announce") as announce,
+			):
+				self.plugin._recordingReport(state, "call.wav")
+				announce.assert_called_once_with(expected, protected=True)
+
+	def test_lock_before_queued_start_clears_preparation_state(self):
+		allowed = [True, True]
+		with (
+			mock.patch.object(
+				self.plugin,
+				"_recordingAllowed",
+				side_effect=lambda: allowed.pop(0) if allowed else False,
+			),
+			mock.patch.object(self.plugin, "_recording") as recorder,
+			mock.patch.object(self.plugin, "_callAvailability") as availability,
+			mock.patch.object(self.plugin, "_announce"),
+			mock.patch.object(self.module.wx, "CallAfter") as dispatch,
+		):
+			recorder.active = False
+			completed = mock.Mock()
+			self.plugin._startRecording("beta", "mic", "folder", completed)
+			availability.request.call_args.kwargs["callback"]({"beta": object()})
+			completed.assert_called_once_with(True)
+			self.assertTrue(self.plugin._recordingSetupPending)
+			dispatch.call_args.args[0](*dispatch.call_args.args[1:])
+			recorder.start.assert_not_called()
+			self.assertFalse(self.plugin._recordingSetupPending)
+
+	def test_recording_waits_until_nvda_is_no_longer_in_the_foreground(self):
+		import os
+
+		foreground = [(11, os.getpid()), (11, os.getpid()), (22, 999)]
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.plugin, "_recording") as recorder,
+			mock.patch.object(self.plugin, "_announce"),
+			mock.patch.object(self.module, "foregroundWindow", side_effect=lambda: foreground.pop(0)),
+			mock.patch.object(self.module.wx, "CallLater") as later,
+		):
+			self.plugin._recordingSetupPending = True
+			token = self.plugin._recordingSetupToken
+			self.plugin._beginRecordingWhenForegroundSettles("beta", "mic", "folder", token, 3)
+			for _attempt in range(2):
+				recorder.start.assert_not_called()
+				self.assertTrue(self.plugin._recordingSetupPending)
+				later.call_args.args[1](*later.call_args.args[2:])
+			recorder.start.assert_called_once_with("beta", "mic", "folder", foreground=22)
+			self.assertFalse(self.plugin._recordingSetupPending)
+
+	def test_stop_before_capture_says_preparation_is_cancelled(self):
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.plugin, "_recording") as recorder,
+			mock.patch.object(self.plugin, "_announce") as announce,
+		):
+			recorder.active = True
+			recorder.captureStarted = False
+			self.plugin._stopRecording()
+			recorder.stop.assert_called_once_with()
+			self.assertEqual(announce.call_args.args[0], "Cancelling call recording preparation.")
+			recorder.captureStarted = True
+			self.plugin._stopRecording()
+			self.assertEqual(announce.call_args.args[0], "Stopping recording and saving the file.")
+
+	def test_focus_change_report_explains_why_recording_did_not_start(self):
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.plugin, "_announce") as announce,
+		):
+			self.plugin._recording.cancel.clear()
+			self.plugin._recordingReport("focus-changed", "")
+			self.assertIn("lost focus", announce.call_args.args[0])
+
+	def test_failed_call_check_is_not_reported_as_no_call(self):
+		expected = "Could not check for a WhatsApp call. Try again."
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.plugin, "_recording") as recorder,
+			mock.patch.object(self.plugin, "_callAvailability") as availability,
+			mock.patch.object(self.plugin, "_announce") as announce,
+		):
+			recorder.active = False
+			completed = mock.Mock()
+			self.plugin._startRecording("beta", "mic", "folder", completed)
+			availability.request.call_args.kwargs["callback"](None)
+			completed.assert_called_once_with(False)
+			self.assertEqual(announce.call_args.args[0], expected)
+			self.assertFalse(self.plugin._recordingSetupPending)
+			announce.reset_mock()
+			self.plugin._recordingSetupPending = True
+			self.plugin._recordingCallReady(None, self.plugin._recordingSetupToken)
+			self.assertEqual(announce.call_args.args[0], expected)
+			self.assertFalse(self.plugin._recordingSetupPending)
+			announce.reset_mock()
+			self.plugin._recordingSetupPending = True
+			self.plugin._showRecordingDialog(
+				[{"id": "a", "name": "Mic"}],
+				self.plugin._recordingSetupToken,
+				None,
+			)
+			self.assertEqual(announce.call_args.args[0], expected)
+
+	def test_menu_state_uses_cached_evidence_and_unknown_stays_enabled(self):
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel
+
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.module, "recordingSupported", return_value=True),
+			mock.patch.object(self.plugin._callAvailability, "request") as request,
+		):
+			self.assertTrue(self.plugin._recordingMenuEnabled())
+			self.plugin._callAvailability._finish(self.plugin._callAvailability._generation, {})
+			self.assertFalse(self.plugin._recordingMenuEnabled())
+			self.assertFalse(self.plugin._recordingCallAvailable(Channel.BETA))
+			# Enabled-state predicates never start a probe themselves; the open menu's refresh does.
+			request.reset_mock()
+			self.plugin._recordingMenuEnabled()
+			request.assert_not_called()
+			self.plugin._requestCallAvailability()
+			request.assert_called_once_with()
+
+	def test_recording_start_is_blocked_by_security(self) -> None:
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=False),
+			mock.patch.object(self.plugin, "_recording") as recorder,
+		):
+			self.plugin._startRecording(None, "microphone", "folder")
+			recorder.start.assert_not_called()
+
+	def test_cancelled_recording_cannot_announce_late_start(self) -> None:
+		self.plugin._recording.stop()
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.plugin, "_announce") as announce,
+		):
+			self.plugin._recordingReport("started", "record.wav")
+			announce.assert_not_called()
 
 	def test_closed_after_recovery_progress_announces_outcome_only_when_needed(self) -> None:
 		from globalPlugins.whatsappWebPlusCompanion.models import OperationResult
@@ -382,6 +727,28 @@ class PluginUiFlowTests(unittest.TestCase):
 
 		self.assertFalse(worker.is_alive())
 		self.assertTrue(self.plugin._registryDiagnosisCancel.is_set())
+
+	def test_announcements_use_current_speech_history_hook_once(self) -> None:
+		for language in ("", "id-ID"):
+			with (
+				self.subTest(language=language),
+				mock.patch.object(self.plugin, "_allowCompanionOutput", return_value=True),
+				mock.patch.object(self.module.speech, "speak") as packageSpeak,
+				mock.patch.object(self.module.speech.speech, "speak") as historyHook,
+				mock.patch.object(
+					self.module,
+					"LangChangeCommand",
+					side_effect=lambda lang: ("language", lang),
+				),
+				mock.patch.object(self.plugin, "_brailleMessages") as brailleQueue,
+			):
+				self.plugin._speakAndQueueBraille("Sticker description", language, "status")
+				expected = ["Sticker description"]
+				if language:
+					expected = [("language", "id_ID"), "Sticker description", ("language", None)]
+				historyHook.assert_called_once_with(expected)
+				packageSpeak.assert_not_called()
+				brailleQueue.enqueue.assert_called_once_with("Sticker description", "status")
 
 	def test_renderer_session_change_clears_all_pending_braille(self) -> None:
 		from globalPlugins.whatsappWebPlusCompanion.models import OperationResult

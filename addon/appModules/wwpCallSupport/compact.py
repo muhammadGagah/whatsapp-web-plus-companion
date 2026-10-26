@@ -8,12 +8,11 @@ PEER_NAME = "WhatsApp.PeerStreamVm"
 MUTE_NAMES = labels.COMPACT_MUTE_LABELS
 
 
-def kind(element, pid):
+def kind(element, pid, *, allowHiddenMute=False):
 	if (
 		element.currentProcessId != pid
 		or element.currentFrameworkId != "XAML"
 		or not element.currentIsEnabled
-		or element.currentIsOffscreen
 	):
 		return None
 	name = " ".join(element.currentName.split())
@@ -21,12 +20,17 @@ def kind(element, pid):
 		element.currentControlType == 50007
 		and element.currentClassName == "ListViewItem"
 		and name == PEER_NAME
+		and not element.currentIsOffscreen
 	):
 		return "peer"
 	if (
 		element.currentControlType == 50002
 		and element.currentClassName == "CheckBox"
 		and labels.matches(CallAction.MUTE, name, MUTE_NAMES)
+		and (
+			not element.currentIsOffscreen
+			or (allowHiddenMute and element.currentAutomationId == "MicMuteButton")
+		)
 	):
 		return "mute"
 	return None
@@ -51,7 +55,7 @@ def findCompact(root, walker, pid, *, clock=time.monotonic):
 		if el.currentControlType == 50000:
 			if labels.buttonAction(el.currentName) is not None:
 				return None
-		category = kind(el, pid)
+		category = kind(el, pid, allowHiddenMute=True)
 		if category and host:
 			matches[category].append((el, host))
 		child = walker.GetFirstChildElement(el)

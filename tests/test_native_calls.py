@@ -170,6 +170,13 @@ class NativeCallAppModuleTests(unittest.TestCase):
 		)
 		self.module = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(self.module)
+		self.workers = []
+		self.module._dispatchCallWorker = lambda work, finished: self.workers.append((work, finished))
+
+	def runWorkers(self):
+		while self.workers:
+			work, finished = self.workers.pop(0)
+			finished(work(None, None))
 
 	def _loadWhatsAppModule(self):
 		spec = importlib.util.spec_from_file_location(
@@ -288,6 +295,7 @@ class NativeCallAppModuleTests(unittest.TestCase):
 
 	def test_explicit_capture_logs_one_snapshot(self):
 		self.module.captureDiagnostics()
+		self.runWorkers()
 		self.log.info.assert_called_once()
 		data = json.loads(self.log.info.call_args.args[1])
 		self.assertEqual(data["schemaVersion"], 1)
@@ -308,7 +316,29 @@ class NativeCallAppModuleTests(unittest.TestCase):
 	def test_security_change_during_capture_discards_snapshot(self):
 		with patch.object(self.module, "diagnosticsAllowed", side_effect=[True, False]):
 			self.module.captureDiagnostics()
+			self.runWorkers()
 		self.log.info.assert_not_called()
+
+	def test_control_inventory_walk_runs_on_call_worker_not_gui_thread(self):
+		inventory = Mock(return_value={"status": "complete"})
+		with patch.object(self.module, "captureControlInventory", inventory):
+			self.module.captureDiagnostics()
+			# The GUI-thread part only reads NVDA objects. No UIA walk and no log yet.
+			inventory.assert_not_called()
+			self.log.info.assert_not_called()
+			self.module.captureDiagnostics()
+			self.assertEqual(len(self.workers), 1)
+			client, uia = object(), object()
+			work, finished = self.workers.pop()
+			finished(work(client, uia))
+		inventory.assert_called_once_with(123, 10, client, uia)
+		data = json.loads(self.log.info.call_args.args[1])
+		self.assertEqual(data["controls"], {"status": "complete"})
+		self.ui.message.assert_called_once_with(
+			"Call diagnostics written to the NVDA log. Call controls were not activated.",
+		)
+		self.module.captureDiagnostics()
+		self.assertEqual(len(self.workers), 1)
 
 	def test_wrong_foreground_and_provider_failure_do_not_log(self):
 		self.api.getForegroundObject.return_value = node(appModule=types.SimpleNamespace(appName="notepad"))

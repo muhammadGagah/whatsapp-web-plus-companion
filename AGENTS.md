@@ -41,11 +41,20 @@ manually reformatting around the template.
 
 ## Commands
 
-Synchronize and verify the embedded userscript from the sibling repository:
+For a public release, bundle the userscript exactly as published on GreasyFork
+and verified against its signed manifest. Follow
+`docs/update-bundled-userscript.md`. The order is: publish the userscript, sign
+the downloaded public file, put the manifest and signature on `main` in the
+script repository, then synchronize Companion. The script verifies the version,
+SHA-256 and signature before copying:
 
 ```powershell
-npm run sync:userscript
+npm run sync:userscript -- --source <verified public download>
 ```
+
+Running it without `--source` reads the sibling repository's local build. That
+works only for development with a locally signed manifest and matching
+`upstream.json`; never release such a bundle.
 
 Run Python tests, Ruff lint and format checks, then build the add-on:
 
@@ -72,6 +81,7 @@ English help, and add-on package outputs:
 uv run scons -c
 ```
 
-Before a public release, confirm the canonical userscript update URL, version,
-and SHA-256 in `upstream.json`, synchronize again, run all automated checks, and
-complete every installed-NVDA manual gate.
+Before a public release, synchronize the verified public download as described
+in `docs/update-bundled-userscript.md`, confirm the update URL, version, SHA-256
+and release sequence in `upstream.json`, run all automated checks, and complete
+every installed-NVDA manual gate.

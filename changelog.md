@@ -1,6 +1,42 @@
 # WhatsApp Companion changelog
 
+## 2026.10.26 - 2026-10-26
+
+Run the recording helper with a process-scoped execution policy, so microphone listing, call detection, recording and compact call-view restore also work on computers that keep the default Restricted PowerShell policy.
+
+Stop recording automatically when the call window has been gone for about 15 seconds, and announce where the file was saved. A minimized call window or an uncertain check never stops recording. Stop cleanly at the 4-hour limit, announce a recording that was stopped by a session lock or secure desktop after unlocking, and report Stop during preparation as cancelled. Do not leave behind or announce an empty WAV file when recording fails to start, and keep the other microphones listed when one has no name.
+
+Start recording with the window that is in front once NVDA's setup dialog has closed, so a dialog still closing is not mistaken for a focus change. If the call window really loses focus during setup, say so instead of reporting that no call was found. Report Stop or a session lock during preparation as cancelled, and say that preparation is being cancelled rather than that the file is being saved. Report a busy sticker transport as busy instead of as a network error.
+
+Reuse recent call checks while the menu or recording dialog is open instead of starting a PowerShell probe every two seconds, and report a failed check as unknown rather than as no call. Say that call controls are being restored when a call shortcut has to wait, translate the channel names in the recording dialog, and run call diagnostics on the call worker.
+
+Include WhatsApp Web Plus 2026.10.26. Its new browser tab recording menu is hidden in Companion, which keeps its native call recorder.
+
+Run native call-control discovery and activation on a dedicated COM worker so slow accessibility providers do not block NVDA. Reject expired actions and changed call windows without replaying shortcuts. Protect recording preparation and queued worker announcements across lock and secure-desktop transitions.
+
+Move embedded userscript delivery-status announcements to Chat activity monitor, independent of automatic new-message reading.
+
+Fix cancellation during the final native call check, suppress delayed recording results across lock transitions, and keep new call checks separate from cancelled workers. Restore compact controls when WhatsApp reports the verified microphone checkbox as offscreen. Accept the current official userscript grant while rejecting unexpected permissions. Verify signed bundle metadata during synchronization and source/package release checks.
+
+Recognize both full and compact native call windows. Restore compact controls with one verified click when a call shortcut needs them, then ask the user to press the shortcut again without replaying the action. Recording setup closes before restoring the call window and requires a fresh connected-call check before capture. Stop cancels pending preparation as well as active recording. Announce changes in call availability and cancel recovery on focus changes, session lock, or unloading.
+
+Add manual call recording from the Companion menu and assignable NVDA gestures. Capture the selected WhatsApp process tree and a chosen microphone into separate channels of a local WAV file. Keep audio processing outside NVDA, stop on shutdown or session lock, and never fall back to system-wide loopback. Requires Windows build 20348 or later. Microphone recording is independent of WhatsApp mute. Recording stops by itself after the call ends, or earlier with Stop recording.
+
+Route Companion announcements through NVDA's speech function used by Speech History, so bridged announcements such as sticker descriptions and message status can be recorded. Preserve language commands, braille output, and existing output guards, with one speech call per announcement. This routing change affects Companion only, not the browser userscript.
+
 ## 2026.10.19 - 2026-10-19
+
+Help load older messages when Arrow Up stalls at the first available message. Scroll only after native navigation leaves focus unchanged, with bounded movement and no continuous polling.
+
+Announce how many times each identical sticker appears, including mixed messages with repeated and different stickers. Put each sticker description on a new line after its heading.
+
+Read up to six unique stickers in the focused message with one AI request and numbered descriptions. Filter duplicate images and keep the existing single-sticker reading behavior.
+
+Read existing sticker image descriptions in Focus Mode when WhatsApp leaves the message unnamed. Preserve the sender and time, avoid repeated descriptions, and update the label when the image description changes.
+
+Recognize the Indonesian message status Dikirim as Sent so delivery changes are announced in group chats as well.
+
+Restore Enter and Space voice-message playback for the new WhatsApp microphone icons while preserving support for the previous layout.
 
 Clean UI now recognizes the Indonesian desktop promotion description, so the promotion is hidden without a custom title.
 

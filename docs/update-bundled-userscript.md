@@ -21,8 +21,8 @@ Use the same PowerShell terminal for all steps. All local paths below are exampl
 ```powershell
 $scriptRoot = 'D:\whatsapp\whatsapp-web-plus'
 $companionRoot = 'D:\whatsapp\whatsapp-web-plus-companion'
-$expectedVersion = '2026.10.19'
-$expectedSequence = 2026101901
+$expectedVersion = '2026.10.26'
+$expectedSequence = 2026102601
 ```
 
 The download URLs in the next block are the official project URLs, not example local paths. A fork requires coordinated publishing and verification changes.
@@ -104,7 +104,7 @@ If verification fails, do not continue or use a local build as a substitute. Pub
 npm --prefix "$companionRoot" test
 ```
 
-This runs Python tests, lint and formatting checks, and builds the add-on. After success, install the newly generated `.nvda-addon` package and restart NVDA. Complete the project's installed-NVDA release checks.
+This runs Python tests, the native recorder checks, lint and formatting checks, builds the add-on, and verifies the package and its bundle identity. After success, install the newly generated `.nvda-addon` package and restart NVDA. Complete the project's installed-NVDA release checks.
 
 Do not run the default `sync:userscript` command afterward, because it reads the sibling project's local build. If synchronization is needed again, repeat step 3 with the verified download.
 
@@ -112,14 +112,13 @@ As long as the public release remains the same and no different cached update is
 
 ## Local development before publication
 
-You can still build and synchronize a local userscript to test unpublished changes. That is a development bundle, and it may differ from GreasyFork even at the same version. Do not expect the online update checker to report it as identical.
-
-If that local build is already current, there is no need to build it again. For the final public Companion package, return to this guide after publishing and replace the development bundle with the verified public file.
+Synchronization always verifies the bundle against `upstream.json` and a signed manifest next to the source file. To test unpublished changes, the local build therefore needs a manifest signed locally with the release key and a matching `upstream.json`. That is a development bundle. It may differ from GreasyFork even at the same version, and the online update checker will not report it as identical. Never publish such a bundle, and do not commit its manifest to the script repository before the userscript is published. For the final public Companion package, return to this guide after publishing and replace the development bundle with the verified public file.
 
 ## Files affected
 
 - `upstream.json` records the verified version, hash, size, key ID, and release sequence.
 - `addon/globalPlugins/whatsappWebPlusCompanion/resources/whatsapp_web_plus.user.js` contains the exact downloaded file.
 - `addon/globalPlugins/whatsappWebPlusCompanion/resources/bundle.json` records the synchronized metadata.
+- `addon/globalPlugins/whatsappWebPlusCompanion/resources/update-manifest.json` and `update-manifest.json.sig` contain the verified signed manifest and signature.
 
 The build also regenerates packaging outputs. These steps do not publish anything or change an already installed add-on until you install the new package.

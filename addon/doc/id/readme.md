@@ -88,6 +88,8 @@ Buka **Menu NVDA > Peralatan > WhatsApp Companion** untuk membuka WhatsApp atau 
 
 ### Membaca pesan
 
+**Membaca pesan baru otomatis** mengumumkan pesan baru. **Pemantauan aktivitas chat** mengumumkan perubahan status seperti Terkirim, Disampaikan, dan Dibaca, serta aktivitas chat. Kedua pengaturan ini dapat diaktifkan atau dimatikan secara terpisah.
+
 Alt+Shift+C membuka teks pesan hanya-baca tanpa pembungkusan baris. Panah Atas dan Bawah mengikuti baris asli pesan. Baris panjang bergulir secara horizontal. Gunakan **Salin pesan** untuk menyalin isi pesan sebagai teks biasa tanpa judul atau waktu. Gunakan **Tampilan berformat** untuk tampilan yang membungkus baris dan tautan yang dapat dibuka. Escape menutup jendela baca.
 
 ### Meninjau pesan dengan NVDA
@@ -161,9 +163,23 @@ Kolom kosong hanya memakai label bawaan. **Hapus semua label tambahan** mengoson
 
 Label disimpan secara global di `nvda.ini` milik NVDA, pada bagian `[whatsappCompanionCallLabels]`. Pengaturan berlaku untuk WhatsApp Stable dan Beta di semua profil NVDA, serta tetap tersimpan setelah add-on diperbarui atau dipasang ulang selama konfigurasi NVDA yang sama dipertahankan. Mengembalikan NVDA ke pengaturan bawaan pabrik atau menghapus konfigurasi tersebut menghapus label tersimpan.
 
+### Merekam panggilan
+
+Saat panggilan berlangsung, buka menu Alat NVDA, lalu WhatsApp Companion, kemudian Mulai rekam panggilan. Pilih Stable atau Beta, pilih mikrofon yang digunakan WhatsApp, lalu tentukan folder rekaman. Mulai setelah memberi tahu peserta panggilan. Gunakan Hentikan rekaman pada menu yang sama untuk berhenti kapan saja. Kedua perintah dapat diberi shortcut melalui Gestur Input NVDA pada kategori WhatsApp Companion.
+
+Berkas WAV berisi audio WhatsApp di kanal kiri dan mikrofon di kanal kanan. Rekaman disimpan secara lokal di folder yang dipilih, dengan lokasi awal Documents/WhatsApp Recordings. Perekam hanya menangkap audio proses WhatsApp yang dipilih beserta proses anaknya. Suara lain dari WhatsApp masih dapat ikut terekam. Suara NVDA tidak termasuk dalam tangkapan tersebut, tetapi dapat masuk melalui mikrofon bila menggunakan speaker. Gunakan headset untuk menghindarinya.
+
+Mulai rekam panggilan hanya tidak tersedia bila pemeriksaan terakhir tidak menemukan panggilan. Bila status panggilan belum diketahui, perintah tetap tersedia dan memeriksa ulang saat dipilih. Setelah memilih Mulai, dialog pengaturan ditutup dan Companion membuka jendela panggilan untuk memastikan sambungannya. Jika diperlukan, tampilan penuh dipulihkan dengan satu klik pada area peserta. Rekaman hanya dimulai setelah panggilan dipastikan tersambung. Biarkan jendela panggilan aktif selama pemeriksaan. Hentikan rekaman juga membatalkan persiapan yang sedang berlangsung.
+
+Mikrofon direkam secara terpisah, termasuk saat dibisukan di WhatsApp. Bila jendela panggilan sudah hilang sekitar 15 detik, rekaman berhenti sendiri dan NVDA mengumumkan bahwa panggilan berakhir serta lokasi berkas tersimpan. Jendela panggilan yang diminimalkan atau pemeriksaan yang tidak pasti tidak pernah menghentikan rekaman. Rekaman juga berhenti saat proses WhatsApp yang dipilih keluar, NVDA keluar, sesi dikunci, desktop aman terbuka, atau batas empat jam tercapai. Jika terjadi kesalahan, sebagian rekaman mungkin tersimpan. Lokasinya akan diumumkan jika tersedia.
+
+Perekaman memerlukan Windows build 20348 atau yang lebih baru, izin akses mikrofon untuk aplikasi desktop, serta Windows PowerShell yang dapat menjalankan Add-Type. Helper berjalan dengan execution policy Bypass hanya untuk prosesnya sendiri, sehingga kebijakan bawaan PowerShell Restricted tidak memblokirnya dan tidak ada pengaturan sistem yang diubah. Tidak perlu memasang ekstensi browser, encoder, atau aplikasi perekam tambahan. Jika penangkapan khusus proses gagal, perekam melaporkan kesalahan tanpa beralih ke audio seluruh sistem. Merekam panggilan di aplikasi desktop hanya tersedia melalui Companion. Di browser, WhatsApp Web Plus memiliki menu Rekam panggilan sendiri.
+
 ### Pintasan panggilan
 
 Lihat [daftar pintasan lengkap](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/docs/detailed-guide.id.md#pintasan-keyboard-whatsapp) untuk navigasi, panggilan masuk, dan fitur tambahan.
+
+Gunakan shortcut ini saat jendela panggilan WhatsApp aktif. Tekan `Alt + Tab` untuk berpindah ke jendela tersebut bila perlu.
 
 Perintah panggilan hanya muncul dalam **NVDA > Preferensi > Gestur Input > WhatsApp Companion** bila dialog dibuka dari WhatsApp. Fokuskan WhatsApp dahulu. Perintah global seperti Luncurkan WhatsApp tetap tersedia di aplikasi lain. Gestur kustom panggilan dari versi sebelumnya perlu ditetapkan ulang karena perintah berpindah ke app module.
 
@@ -177,6 +193,10 @@ Perintah panggilan hanya muncul dalam **NVDA > Preferensi > Gestur Input > Whats
 | Angkat/turunkan tangan | Ctrl+Alt+H |
 | Mulai/hentikan berbagi layar | Ctrl+Alt+S |
 | Akhiri panggilan | Ctrl+Alt+W |
+
+Jika shortcut panggilan tidak menemukan kontrol pada tampilan kecil, Companion dapat memulihkan tampilan penuh dengan satu klik pada area peserta. Lepaskan tombol dan tunggu hasilnya, lalu tekan shortcut lagi untuk menjalankan perintah. Klik mengikuti posisi jendela panggilan yang telah diperiksa. Berpindah jendela membatalkan pemulihan. Jika pemulihan gagal, buka tampilan penuh secara manual.
+
+Shortcut reaksi membuka kontrol reaksi WhatsApp. Pilih reaksi yang ingin dikirim. Saat memulai berbagi layar, pilih apa yang akan dibagikan di WhatsApp. Tekan `Ctrl + Alt + S` lagi untuk berhenti berbagi.
 
 ## Menetapkan shortcut
 
@@ -313,7 +333,7 @@ Gunakan shortcut ini ketika kontrol panggilan tersedia. Tombol yang sama dapat m
 
 Langkah ini memperbarui salinan WhatsApp Web Plus yang digunakan Companion. Untuk memperbarui add-on Companion, pasang paket `.nvda-addon` yang lebih baru. Jika Anda juga memakai WhatsApp Web Plus di browser, perbarui pemasangan tersebut secara terpisah.
 
-Versi sumber saat ini adalah **2026.10.19**, dengan WhatsApp Web Plus **2026.10.19**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
+Versi sumber saat ini adalah **2026.10.26**, dengan WhatsApp Web Plus **2026.10.26**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
 
 ## Pemecahan masalah
 
@@ -337,11 +357,9 @@ Untuk diagnostik, buka Gestur Input dari WhatsApp dan tetapkan ulang gestur **Am
 
 Diagnostik juga mencatat tombol yang belum terpetakan pada `controls.unmapped`, termasuk ID teknis, enabled/offscreen, serta ketersediaan pola Invoke/Toggle. Nama tombol yang tidak dikenal tetap dihilangkan. Status `complete` berarti penelusuran selesai, bukan semua tombol sudah dikenali. Ketersediaan Toggle bukan status nyala/mati. Periksa identifier sebelum membagikan log karena provider dapat menyisipkan data pribadi. Jika kamera/reaksi/tangan/berbagi layar masih belum dikenali, kirim satu snapshot baru dahulu. Pemetaan aksi tidak ditambahkan hanya berdasarkan nama ID.
 
-Jika tampilan panggilan kecil hanya memiliki checkbox mikrofon, shortcut yang tidak menemukan kontrol akan mencoba aksi aksesibilitas bawaan pada satu objek WhatsApp.PeerStreamVm yang terverifikasi. Tidak memakai posisi tetap atau navigasi relatif. Lepaskan tombol, periksa tampilan, lalu tekan shortcut lagi. Perintah panggilan tidak dijalankan ulang otomatis. Jika objek tidak menawarkan default action atau hasilnya tidak pasti, buka tampilan penuh secara manual. Pemulihan ini tidak dijalankan setelah aksi panggilan gagal/meragukan. Uji dengan NVDA nyata: satu pemulihan, tombol ditahan, perpindahan jendela, serta aktivasi baru setelah tampilan kembali.
-
 Ctrl+Alt+S mengaktifkan Start screen sharing atau Stop screen sharing sesuai kontrol yang tersedia. Pilihan layar/jendela dan konfirmasi tetap dilakukan pengguna. Tidak ada layar yang dipilih otomatis. Uji mulai, batalkan pemilih dengan Escape, hentikan berbagi, lalu Ctrl+Alt+W saat berbagi aktif. Penelusuran tetap mencakup seluruh jendela dengan batas node/waktu, memakai cache properti UIA per objek untuk mengurangi permintaan antarproses. Identitas dan keadaan kontrol diperiksa langsung lagi sebelum aktivasi. Log propertyCache menunjukkan apakah optimasi ini tersedia. Hasil partial tetap ditolak dan bukan izin mengaktifkan tombol.
 
-Enam shortcut panggilan aktif mensyaratkan tombol End call dan target unik dalam host yang sama. Pemetaan awal memakai label Inggris dan InvokePattern. Checkbox React (NewReactionButton) dan Start/Stop screen sharing (NewScreenShareButton) menggunakan satu aktivasi TogglePattern. Kontrol Toggle-only lainnya belum didukung. Reaksi dan berbagi layar membuka kontrol WhatsApp. Pilihan lanjut tetap dilakukan pengguna. Uji pada panggilan percobaan, karena label/status/provider pada instalasi nyata belum diverifikasi. Bila memakai WhatsAppNG, nonaktifkan sementara lalu restart NVDA agar app module tidak bertabrakan.
+Enam shortcut panggilan aktif mensyaratkan tombol End call dan target unik dalam host yang sama. Label bawaan berbahasa Inggris; tambahkan label sesuai bahasa WhatsApp melalui **Label kontrol panggilan**. Checkbox React (NewReactionButton) dan Start/Stop screen sharing (NewScreenShareButton) menggunakan satu aktivasi TogglePattern. Kontrol Toggle-only lainnya belum didukung. Reaksi dan berbagi layar membuka kontrol WhatsApp. Pilihan lanjut tetap dilakukan pengguna. Cobalah shortcut tersebut pada panggilan percobaan terlebih dahulu. Bila memakai WhatsAppNG, nonaktifkan sementara lalu restart NVDA agar app module tidak bertabrakan.
 
 Panduan online berikut bersifat opsional. Anda tidak perlu membacanya untuk menyelesaikan pemasangan.
 
@@ -366,6 +384,20 @@ Gunakan [pelacak masalah Companion](https://github.com/muhammadGagah/whatsapp-we
 Gunakan [pelacak masalah WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus/issues) untuk masalah pintasan, label pesan, pembacaan Status, Mode Privasi, atau pengaturan.
 
 Jangan sertakan isi pesan pribadi, nama kontak, atau nomor telepon.
+
+## Terima kasih khusus
+
+Saya sangat berterima kasih kepada para pengembang yang karyanya membantu saya membangun WhatsApp Companion. Saya belajar banyak dari proyek mereka, dan masing-masing ikut membentuk add-on ini.
+
+[Messenger Accessibility for NVDA](https://github.com/NVDATH/messengerAccess-for-nvda/), karya para pengembang NVDATH, memperkenalkan saya pada gagasan menghubungkan add-on NVDA dengan userscript melalui sebuah jembatan. Itu add-on pertama yang saya ketahui memakai pendekatan ini alih-alih menangani semuanya dengan Python. Melihat kedua bagian itu bekerja sama membantu saya membayangkan apa yang dapat dicapai Companion.
+
+[WhatsApp Desktop accessibility enhancements (WhatsAppNG)](https://github.com/nunotfc/WhatsAppNG), karya Nuno Costa, menjadi rujukan penting saat saya mengerjakan pintasan panggilan. Pada WhatsApp versi Microsoft Store, panggilan terbuka di jendela native terpisah yang tidak dapat dijangkau userscript. Dalam pengujian saya, pintasan untuk mengakhiri panggilan, membisukan mikrofon, dan mengganti kamera tidak berfungsi di sana. Karena itu saya membuat kontrol tersebut langsung di Companion, dan mempelajari WhatsAppNG membantu saya menemukan jalannya.
+
+[WhatsAppPlus](https://github.com/Kostya-Gladkiy/WhatsAppPlus), karya Kostya Gladkiy, mungkin merupakan inspirasi terbesar saya. Banyak pintasan dan fitur dalam proyek ini mencerminkan pengalaman yang saya hargai dari add-on miliknya. Awalnya saya berencana menamai add-on ini WhatsApp Web Plus Companion dan sudah mendapat izin Kostya untuk memakai nama itu. Kemudian seorang teman menyarankan nama WhatsApp Companion agar tidak membingungkan pengguna, sehingga nama itulah yang dipakai. Saya sangat berterima kasih kepada Kostya atas pengertian dan dukungannya.
+
+Terakhir, saya ingin berterima kasih kepada para pengembang dan kontributor [Instant Translate](https://github.com/addonFactory/instantTranslate). Meskipun tujuannya berbeda dari proyek ini, mempelajarinya mengajarkan banyak hal kepada saya tentang pengembangan add-on NVDA. Pelajaran itu terus saya bawa saat mengerjakan Companion.
+
+Terima kasih kepada kalian semua karena telah membagikan karya kalian dan memberi pengembang lain, termasuk saya, kesempatan untuk belajar.
 
 ## Lisensi
 

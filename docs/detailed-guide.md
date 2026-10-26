@@ -53,6 +53,19 @@ install either one or both.
   this computer, before launching WhatsApp. Run it again if that permission is
   removed or Windows is reinstalled, or if Companion reports a permission problem.
 
+### Call commands
+
+- **Call control labels...** adds names for call controls in your WhatsApp
+  language, so the call shortcuts can find them.
+- **Start call recording...** checks for a connected call, then opens the
+  recording dialog. Choose the WhatsApp channel, the microphone used by
+  WhatsApp, and the folder.
+- **Stop recording** stops and saves the recording, or cancels a recording
+  that is still being prepared. Recording also stops by itself shortly after
+  the call window closes.
+
+See [Recording a call](../readme.md#recording-a-call) for details.
+
 ### Result and update commands
 
 - **Report the last WhatsApp Companion result** repeats the most
@@ -63,8 +76,9 @@ install either one or both.
 
 ## Assign an optional keyboard gesture
 
-The Companion's global commands, such as launching WhatsApp and reporting the
-last result, have no default keyboard gestures. You can assign gestures that
+The Companion's global commands, such as launching WhatsApp, starting or
+stopping call recording, and reporting the last result, have no default
+keyboard gestures. You can assign gestures that
 fit your setup. Native call commands have the default shortcuts listed below.
 
 To add your own gesture:
@@ -110,7 +124,7 @@ you need.
 | `Alt + Down Arrow` | Open the next chat when enabled in Shortcut remapping |
 | `Alt + T` | Read the current chat title. Press twice quickly to turn Chat activity monitor on or off |
 | `Alt + 0` | Close the open WhatsApp audio or video player, or dismiss the desktop app promotion |
-| `Alt + M` | Start recording a voice message when enabled in Shortcut remapping |
+| `Alt + M` | Start recording a voice message. Enabled by default; change it in Shortcut remapping |
 
 ### Incoming call controls
 
@@ -431,11 +445,10 @@ Install the locked development environment:
 uv sync
 ```
 
-Synchronize the exact built userscript from the sibling source repository:
-
-```powershell
-npm run sync:userscript
-```
+For a release, bundle the userscript published on GreasyFork after it has been
+signed. Follow [Bundle the published WhatsApp Web Plus release](update-bundled-userscript.md).
+A local build differs from the published file, so it is used only for
+development with a locally signed manifest.
 
 Run linting, tests, translated documentation generation, and packaging:
 
@@ -462,8 +475,8 @@ The permission repair helper is packaged as `registryRepair.ps1` and
 `resources/registry-repair.json`. Regenerate that record after changing either
 helper file.
 
-Before release, verify `upstream.json`, synchronize the userscript, run the
-full tests, build the `.nvda-addon` package, install it, and complete the required
+Before release, synchronize the verified public userscript, check
+`upstream.json`, run the full tests, build the `.nvda-addon` package, install it, and complete the required
 manual NVDA and WhatsApp tests.
 
 Generated HTML help, translated manifests, compiled message catalogs, SCons
@@ -509,7 +522,7 @@ Component sources and license boundaries are described in
 
 ## Assigning shortcuts
 
-Choose **Shift+F8 > Shortcut remapping**, then select **Record voice message**, **Previous chat**, **Next chat**, **Start voice call**, or **Start video call**. Type a combination such as `Alt+C` or `Alt+V`, then choose **Save**. Use Ctrl or Alt, optionally Shift, followed by a letter, digit, punctuation key such as comma or period, F1–F12, or ArrowUp/Down/Left/Right. Letters refer to physical keyboard positions. Leave the field blank to disable an action. **Restore default** only changes the field. Choose Save to apply or Cancel/Escape to discard. Existing enabled/disabled remaps are preserved. New call shortcuts start unassigned. The recording default is Alt+M. Previous/next defaults are Alt+ArrowUp/Alt+ArrowDown, initially disabled.
+Choose **Shift+F8 > Shortcut remapping**, then select **Read Sticker**, **Record voice message**, **Previous chat**, **Next chat**, **Start voice call**, or **Start video call**. Type a combination such as `Alt+C` or `Alt+V`, then choose **Save**. Use Ctrl or Alt, optionally Shift, followed by a letter, digit, punctuation key such as comma or period, F1–F12, or ArrowUp/Down/Left/Right. Letters refer to physical keyboard positions. Leave the field blank to disable an action. **Restore default** only changes the field. Choose Save to apply or Cancel/Escape to discard. Existing enabled/disabled remaps are preserved. New call shortcuts start unassigned. The recording default is Alt+M. Previous/next defaults are Alt+ArrowUp/Alt+ArrowDown, initially disabled.
 
 Duplicate assignments and fixed script/Companion commands are rejected. Browser, system, NVDA, or extension shortcuts can still take priority. AltGr is not supported. Voice/video calls use the available button in the current conversation header, identified by its icon rather than translated text. No custom language string is required. Unavailable or ambiguous buttons are reported without starting a call.
 

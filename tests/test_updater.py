@@ -580,5 +580,20 @@ class UpdaterTests(unittest.TestCase):
 		self.assertEqual(updater.loadBundledVersion(), locked["version"])
 
 
+class ActualHeaderTests(unittest.TestCase):
+	def test_current_bundle_header_is_accepted(self):
+		payload = (bundle.resourcesPath() / bundle.PACKAGED_ASSET).read_bytes()
+		version = json.loads((bundle.resourcesPath() / bundle.PACKAGED_MANIFEST).read_text())["version"]
+		updater.validateDownloadedScript(payload, version)
+
+	def test_unknown_or_extra_grants_are_rejected(self):
+		for grant in ("GM_setValue", "GM_xmlhttpRequest\n// @grant GM_setValue"):
+			with self.subTest(grant=grant), self.assertRaises(updater.UpdateCheckError):
+				updater.validateDownloadedScript(
+					userscript("1").replace(b"@grant        none", ("@grant        " + grant).encode()),
+					"1",
+				)
+
+
 if __name__ == "__main__":
 	unittest.main()

@@ -1,3 +1,4 @@
+import threading
 import unittest
 import time
 from _path import installPackagePath
@@ -147,6 +148,26 @@ class StickerTransportTests(unittest.TestCase):
 		transport = StickerTransport()
 		transport.pump(Session())
 		self.assertEqual(transport._jobs, {})
+
+	def test_busy_transport_reports_busy_not_network_error(self):
+		request = self.request()
+		resolved = []
+
+		class Session:
+			def request(self, method, params, **kwargs):
+				expression = params["expression"]
+				if "resolve(" in expression:
+					resolved.append(expression)
+					return {"result": {"value": True}}
+				return {"result": {"value": {"version": 1, "request": request, "activeId": request["id"]}}}
+
+		transport = StickerTransport()
+		# Two cancelled jobs are still finishing, so a new request cannot start.
+		transport._jobs = {"a": {"cancel": threading.Event()}, "b": {"cancel": threading.Event()}}
+		transport.pump(Session())
+		self.assertEqual(len(resolved), 1)
+		self.assertIn('"stickerBusy"', resolved[0])
+		self.assertNotIn("stickerNetworkError", resolved[0])
 
 
 if __name__ == "__main__":

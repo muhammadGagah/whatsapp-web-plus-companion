@@ -40,7 +40,6 @@ _REQUIRED_DIRECTIVES = {
 	"run-at": "document-start",
 	"updateURL": SCRIPT_METADATA_URL,
 	"downloadURL": SCRIPT_DOWNLOAD_URL,
-	"grant": "none",
 }
 
 
@@ -210,6 +209,8 @@ def validateDownloadedScript(payload: bytes, expectedVersion: str) -> tuple[str,
 	for name, expected in _REQUIRED_DIRECTIVES.items():
 		if directives.get(name) != [expected]:
 			raise UpdateCheckError("validation")
+	if directives.get("grant") not in (["none"], ["GM_xmlhttpRequest"]):
+		raise UpdateCheckError("validation")
 	versions = directives.get("version", [])
 	if len(versions) != 1 or versions[0] != expectedVersion:
 		raise UpdateCheckError("validation")

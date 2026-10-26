@@ -416,6 +416,8 @@ class ControllerPluginTests(unittest.TestCase):
 				"script_reportLastResult",
 				"script_checkForScriptUpdates",
 				"script_diagnoseAndRepairPermissions",
+				"script_startCallRecording",
+				"script_stopCallRecording",
 			},
 		)
 		self.assertTrue(all("speakOnDemand=True" in item for item in decorators))

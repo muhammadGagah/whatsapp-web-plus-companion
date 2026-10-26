@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-web-plus-companion",
-  "version": "2026.10.19",
+  "version": "2026.10.26",
   "license": "GPL-2.0-or-later",
   "private": true,
   "scripts": {
@@ -8,6 +8,7 @@
     "test:python": "uv run python -m unittest discover -s tests -v",
     "lint": "uv run ruff check . && uv run ruff format --check .",
     "build": "uv run python scripts/verify-release.py --source-only && uv run scons && uv run python scripts/verify-release.py",
-    "test": "npm run test:python && npm run lint && npm run build"
+    "test": "npm run test:python && npm run test:recording:native && npm run lint && npm run build",
+    "test:recording:native": "powershell.exe -NoProfile -NonInteractive -Mta -File tests/test-recording-native.ps1"
   }
 }

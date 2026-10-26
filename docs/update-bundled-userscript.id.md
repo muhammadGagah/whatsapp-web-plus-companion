@@ -21,8 +21,8 @@ Gunakan terminal PowerShell yang sama untuk semua langkah. Semua path lokal di b
 ```powershell
 $scriptRoot = 'D:\whatsapp\whatsapp-web-plus'
 $companionRoot = 'D:\whatsapp\whatsapp-web-plus-companion'
-$expectedVersion = '2026.10.19'
-$expectedSequence = 2026101901
+$expectedVersion = '2026.10.26'
+$expectedSequence = 2026102601
 ```
 
 URL unduhan pada blok berikut adalah URL resmi project, bukan contoh path lokal. Untuk fork, perubahan publikasi dan verifikasi harus disesuaikan bersama.
@@ -104,7 +104,7 @@ Jika verifikasi gagal, jangan lanjutkan atau menggantinya dengan build lokal. Fi
 npm --prefix "$companionRoot" test
 ```
 
-Perintah ini menjalankan tes Python, memeriksa lint dan format, lalu membangun add-on. Setelah berhasil, pasang paket `.nvda-addon` yang baru dihasilkan dan mulai ulang NVDA. Selesaikan juga pemeriksaan rilis project menggunakan NVDA yang terpasang.
+Perintah ini menjalankan tes Python, pemeriksaan perekam native, pemeriksaan lint dan format, membangun add-on, lalu memverifikasi paket beserta identitas bundle-nya. Setelah berhasil, pasang paket `.nvda-addon` yang baru dihasilkan dan mulai ulang NVDA. Selesaikan juga pemeriksaan rilis project menggunakan NVDA yang terpasang.
 
 Jangan menjalankan perintah `sync:userscript` tanpa sumber setelahnya, karena perintah itu membaca hasil build lokal dari project di folder sebelah. Jika perlu sinkronisasi lagi, ulangi langkah 3 dengan unduhan yang diverifikasi.
 
@@ -112,14 +112,13 @@ Selama rilis publik belum berubah dan tidak ada pembaruan berbeda dari cache yan
 
 ## Pengembangan lokal sebelum publikasi
 
-Anda tetap bisa membangun dan menyinkronkan userscript lokal untuk menguji perubahan yang belum dipublikasikan. Itu merupakan bundle pengembangan dan dapat berbeda dari GreasyFork meskipun versinya sama. Jangan mengharapkan pemeriksa pembaruan daring menyatakannya identik.
-
-Jika hasil build lokal sudah terbaru, build tidak perlu diulang. Untuk paket Companion yang akan dirilis ke publik, kembali ke panduan ini setelah publikasi dan ganti bundle pengembangan dengan file publik yang sudah diverifikasi.
+Sinkronisasi selalu memverifikasi bundle terhadap `upstream.json` dan manifest bertanda tangan yang berada di samping file sumber. Untuk menguji perubahan yang belum dipublikasikan, build lokal memerlukan manifest yang ditandatangani secara lokal dengan key rilis serta `upstream.json` yang sesuai. Itu merupakan bundle pengembangan. Bundle ini dapat berbeda dari GreasyFork meskipun versinya sama, dan pemeriksa pembaruan daring tidak akan menyatakannya identik. Jangan pernah merilis bundle tersebut, dan jangan commit manifest-nya ke repository script sebelum userscript dipublikasikan. Untuk paket Companion yang akan dirilis ke publik, kembali ke panduan ini setelah publikasi dan ganti bundle pengembangan dengan file publik yang sudah diverifikasi.
 
 ## File yang berubah
 
 - `upstream.json` mencatat versi, hash, ukuran, key ID, dan release sequence yang sudah diverifikasi.
 - `addon/globalPlugins/whatsappWebPlusCompanion/resources/whatsapp_web_plus.user.js` berisi file unduhan yang sama persis.
 - `addon/globalPlugins/whatsappWebPlusCompanion/resources/bundle.json` mencatat metadata hasil sinkronisasi.
+- `addon/globalPlugins/whatsappWebPlusCompanion/resources/update-manifest.json` dan `update-manifest.json.sig` berisi manifest bertanda tangan beserta signature yang sudah diverifikasi.
 
 Build juga membuat ulang file pengemasan. Langkah-langkah ini tidak memublikasikan apa pun atau mengubah add-on terpasang sampai Anda memasang paket baru.

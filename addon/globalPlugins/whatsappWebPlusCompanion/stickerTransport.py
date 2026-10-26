@@ -236,9 +236,11 @@ class StickerTransport:
 					job = {"cancel": threading.Event()}
 					self._jobs[request["id"]] = job
 				threading.Thread(target=self._run, args=(request, job), daemon=True).start()
-			except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+			except (ValueError, TypeError, KeyError, IndexError, AttributeError) as error:
 				if isinstance(request, dict) and request.get("id") == identifier:
-					results.append((identifier, {"error": "stickerNetworkError"}))
+					# Cancelled jobs can still be finishing; that is not a network problem.
+					busy = isinstance(error, ValueError) and error.args == ("busy",)
+					results.append((identifier, {"error": "stickerBusy" if busy else "stickerNetworkError"}))
 		for jobId, result in results:
 			if jobId != identifier:
 				continue
