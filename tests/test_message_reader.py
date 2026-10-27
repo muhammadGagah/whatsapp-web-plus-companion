@@ -340,6 +340,8 @@ class ReaderDeliveryTests(unittest.TestCase):
 
 	def setUp(self):
 		self.module = sys.modules["globalPlugins.whatsappWebPlusCompanion"]
+		# Unit tests never touch the real per-user registry journal.
+		self.module.recoverPendingRegistryStateAtStartup = lambda: None
 		self.plugin = self.module.GlobalPlugin()
 		self.plugin._announcementGuard = security.AnnouncementGuard(lambda: True)
 		self.plugin._brailleMessages = MagicMock()

@@ -1,5 +1,6 @@
 """Process-isolated recording. No endpoint-wide loopback fallback is permitted."""
 
+import contextlib
 import json
 import ctypes
 import os
@@ -318,5 +319,8 @@ class Recording:
 			if process.poll() is None:
 				process.kill()
 			process.wait(timeout=5)
-			process.stdin.close()
+			# A stop line written after the helper exited stays buffered, so closing reports the same
+			# broken pipe. The outcome was already reported; do not turn it into an error.
+			with contextlib.suppress(OSError):
+				process.stdin.close()
 			reader.join(timeout=1)

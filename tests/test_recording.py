@@ -308,6 +308,25 @@ class RecordingTests(unittest.TestCase):
 			recorder._capture(Path("request"), Path("record.wav"))
 		self.assertTrue(recorder.captureStarted)
 
+	def test_stop_after_the_helper_already_exited_reports_once(self):
+		realPopen = recording.subprocess.Popen
+
+		def exitedPopen(*args, **kwargs):
+			process = realPopen(*args, **kwargs)
+			process.wait()  # the helper stopped by itself before the worker loop sees Stop
+			return process
+
+		reports = []
+		recorder = recording.Recording(lambda state, path: reports.append(state))
+		recorder.cancel.set()
+		command = [sys.executable, "-c", "print('STARTED'); print('CALL_ENDED'); print('SAVED')"]
+		with (
+			mock.patch.object(recording, "helperCommand", return_value=command),
+			mock.patch.object(recording.subprocess, "Popen", side_effect=exitedPopen),
+		):
+			recorder._capture(Path("request.json"), Path("record.wav"))
+		self.assertEqual(reports, ["call-ended"])
+
 	def test_limit_and_call_end_are_clean_saved_states(self):
 		for marker, state in (("LIMIT", "limit"), ("CALL_ENDED", "call-ended")):
 			with self.subTest(marker=marker):

@@ -27,7 +27,7 @@ from .announcements import BrailleMessageQueue, ScheduledCall
 from .cleanup import forceCloseOperation
 from .controller import Controller
 from .dialogs import MessageDialog
-from .launcher import launchOperation
+from .launcher import launchOperation, recoverPendingRegistryStateAtStartup
 from .menu import CompanionMenu, MenuSpec
 from .models import Channel, LoaderError, OperationResult
 from .messageReader import isReaderForeground, showReader, validateReader
@@ -177,6 +177,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._subscribeAnnouncementSecurity()
 		if not globalVars.appArgs.secure and NVDAState.shouldWriteToDisk():
 			self._menu = self._createMenu()
+			# NVDA may have exited during a launch. Restore its temporary WebView2 setting now, off the
+			# GUI thread, so a WhatsApp started by hand never keeps the debugging port enabled.
+			threading.Thread(
+				target=recoverPendingRegistryStateAtStartup,
+				name="WhatsAppCompanionRegistryRecovery",
+				daemon=True,
+			).start()
 
 	def _subscribeAnnouncementSecurity(self) -> None:
 		try:

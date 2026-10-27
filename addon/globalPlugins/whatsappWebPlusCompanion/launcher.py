@@ -73,6 +73,10 @@ _UPDATED_BUNDLE_HEALTH_ERRORS = frozenset(
 )
 
 
+class _PackageClosed(Exception):
+	"""WhatsApp exited while the connection was being restored."""
+
+
 @dataclass(slots=True)
 class _AnnouncementState:
 	sessionToken: str = ""
@@ -383,6 +387,16 @@ def _recoverPendingRegistryState() -> None:
 		releaseRegistryMutex(handle)
 
 
+def recoverPendingRegistryStateAtStartup() -> None:
+	"""Best-effort recovery of an interrupted launch; a later launch retries if this fails."""
+	try:
+		_recoverPendingRegistryState()
+	except LoaderError as error:
+		log.warning("WhatsApp Companion startup registry recovery deferred: code=%s", error.code)
+	except Exception:
+		log.exception("Unexpected WhatsApp Companion startup registry recovery failure")
+
+
 def _connectAndInstall(
 	target: Target,
 	source: str,
@@ -653,12 +667,34 @@ def launchOperation(
 						),
 					)
 
-				target, session, _health, unregisterSession = reconnect(
-					lambda: _discoverTarget(port, io=io, validator=validator),
-					connect,
-					cancelEvent,
-					deadline=io.end,
-				)
+				def discoverReplacement() -> Target:
+					try:
+						return _discoverTarget(port, io=io, validator=validator)
+					except LoaderError as discoveryError:
+						# WhatsApp may still have been shutting down at the first check. Look again after
+						# each failed attempt, so a closed app ends as closed instead of a long failed restore.
+						if discoveryError.code != "operation.cancelled" and not findRunningPackageProcesses(
+							package,
+							runner=io.runner,
+						):
+							raise _PackageClosed() from discoveryError
+						raise
+
+				try:
+					target, session, _health, unregisterSession = reconnect(
+						discoverReplacement,
+						connect,
+						cancelEvent,
+						deadline=io.end,
+					)
+				except _PackageClosed:
+					session = None
+					return OperationResult(
+						True,
+						"package.closed",
+						"package.closed",
+						{"channel": channel.value, "recoveryReported": recoveryReported},
+					)
 				nextTargetHealthCheck = time.monotonic() + _TARGET_HEALTH_INTERVAL
 				gateObserver("pageReady")
 				setState(OperationState.ATTACHED)

@@ -2,7 +2,7 @@ import json
 import subprocess
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from _path import installPackagePath
 
@@ -64,7 +64,7 @@ class PackageProcessTests(unittest.TestCase):
 				"-NoProfile",
 				"-NonInteractive",
 				"-Command",
-				"Write-Output '[]'",
+				"[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);Write-Output '[]'",
 			],
 			stdin=subprocess.DEVNULL,
 			capture_output=True,
@@ -74,6 +74,17 @@ class PackageProcessTests(unittest.TestCase):
 			timeout=10,
 			creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
 		)
+
+	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.Popen")
+	def test_undecodable_output_is_a_failure_not_an_empty_process_list(self, popen) -> None:
+		process = Mock()
+		process.communicate.return_value = (None, None)
+		process.returncode = 0
+		popen.return_value = process
+		with self.assertRaisesRegex(LoaderError, "powershell.failed"):
+			runPowerShellCancellable("Get-CimInstance Win32_Process", threading.Event())
+		command = popen.call_args.args[0]
+		self.assertTrue(command[-1].startswith("[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"))
 
 	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.run")
 	def test_sync_timeout_has_safe_stage_details(self, run):

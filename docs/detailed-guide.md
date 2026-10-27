@@ -194,12 +194,15 @@ Companion to check for a newer WhatsApp Web Plus copy.
 
 The command works in the background:
 
-1. The Companion contacts the fixed official Greasy Fork address.
-2. It checks the version and file details.
-3. If a newer version is available, it downloads and validates it, including
-   signature verification with trusted Ed25519 keys.
-4. If the official content changed without a version change, it validates and
-   refreshes that copy.
+1. The Companion downloads the signed release record and its signature from the
+   official WhatsApp Web Plus repository and verifies them with trusted Ed25519 keys.
+2. If that release is the one already installed, the copy is current. An older
+   release is rejected.
+3. For a newer signed release, it downloads the userscript from the fixed official
+   Greasy Fork address and checks that its version, SHA-256 fingerprint, and size
+   match the signed record.
+4. A newer signed release with the same version, such as a corrected file,
+   refreshes the copy.
 5. NVDA tells you whether the copy was current, updated, refreshed, or left
    unchanged because of an error.
 
@@ -499,13 +502,15 @@ contact names, or phone numbers.
 ## Read a message in NVDA
 
 When WhatsApp is launched through Companion, focus a message and press
-**Alt+Shift+C**. Companion opens the complete message in NVDA's browseable text
-window, including links, lists, and its sent time. A shortened message is expanded
-first. This avoids the desktop app's unsupported browser pop-up.
+**Alt+Shift+C**. Companion opens the complete message as unwrapped, read-only
+text with its sent time. A shortened message is expanded first. This avoids the
+desktop app's unsupported browser pop-up. Up and Down Arrow follow the original
+message lines, and long lines scroll horizontally.
 
-Press **Escape** to close the reader. Close and Copy buttons are included when
-supported by your NVDA version. The message is not also queued for a separate
-speech or braille announcement. In an ordinary browser, the same shortcut still
+The reader has **Copy message**, which copies the plain message text without the
+title or sent time, **Formatted view**, which opens a wrapped view with clickable
+links, and **Close**. Press **Escape** to close the reader. The message is not also
+queued for a separate speech or braille announcement. In an ordinary browser, the same shortcut still
 opens the existing reader tab.
 
 Keep WhatsApp in the foreground while the message loads. Switching applications,

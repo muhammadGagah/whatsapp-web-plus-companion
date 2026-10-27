@@ -134,6 +134,19 @@ def validateRequest(value):
 	return url, encoded
 
 
+def _connectToCheckedAddress(addresses, cancel):
+	"""Try each verified global address in turn, so broken IPv6 routing can fall back to IPv4."""
+	lastError = None
+	for item in addresses:
+		if cancel.is_set():
+			break
+		try:
+			return socket.create_connection((item[4][0], 443), timeout=10)
+		except OSError as error:
+			lastError = error
+	raise lastError or OSError("no address")
+
+
 class StickerTransport:
 	def __init__(self):
 		self._lock = threading.Lock()
@@ -162,7 +175,7 @@ class StickerTransport:
 			connection = http.client.HTTPSConnection(url.hostname, timeout=10)
 			job["connection"] = connection
 			connection.sock = ssl.create_default_context().wrap_socket(
-				socket.create_connection((addresses[0][4][0], 443), timeout=10),
+				_connectToCheckedAddress(addresses, job["cancel"]),
 				server_hostname=url.hostname,
 			)
 			if job["cancel"].is_set() or time.time() * 1000 >= request["expiresAt"]:

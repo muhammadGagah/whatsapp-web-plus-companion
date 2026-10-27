@@ -170,5 +170,31 @@ class StickerTransportTests(unittest.TestCase):
 		self.assertNotIn("stickerNetworkError", resolved[0])
 
 
+class AddressFallbackTests(unittest.TestCase):
+	def test_next_verified_address_is_tried_when_the_first_fails(self):
+		from unittest import mock
+
+		from globalPlugins.whatsappWebPlusCompanion import stickerTransport
+
+		attempts = []
+
+		def connect(address, timeout):
+			attempts.append(address[0])
+			if address[0] == "2001:db8::1":
+				raise OSError("network unreachable")
+			return "socket"
+
+		addresses = [
+			(None, None, None, None, ("2001:db8::1", 443)),
+			(None, None, None, None, ("192.0.2.1", 443)),
+		]
+		with mock.patch.object(stickerTransport.socket, "create_connection", side_effect=connect):
+			self.assertEqual(
+				stickerTransport._connectToCheckedAddress(addresses, threading.Event()),
+				"socket",
+			)
+		self.assertEqual(attempts, ["2001:db8::1", "192.0.2.1"])
+
+
 if __name__ == "__main__":
 	unittest.main()

@@ -423,6 +423,52 @@ class LauncherLifecycleTests(unittest.TestCase):
 		self.assertEqual(processes.call_count, 3 + len(failures))
 		session.close.assert_called_once()
 
+	def test_app_closing_during_restore_ends_as_closed_not_a_long_failed_restore(self) -> None:
+		reports = []
+		lease = MagicMock()
+		lease.owned = False
+		lease.acquire.side_effect = lambda: setattr(lease, "owned", True)
+		lease.restore.side_effect = lambda: setattr(lease, "owned", False)
+		session = MagicMock()
+		with (
+			patch.object(launcher, "buildSecurityProbe", return_value=MagicMock()),
+			patch.object(launcher, "checkPreflight"),
+			patch.object(launcher, "_recoverPendingRegistryState"),
+			patch.object(launcher, "resolvePackage", return_value=MagicMock()),
+			# Not running, then running at launch, still running at the first recovery check,
+			# then gone once the replacement target cannot be found.
+			patch.object(launcher, "findRunningPackageProcesses", side_effect=[(), (41,), (41,), ()]),
+			patch.object(launcher, "reserveLoopbackPort", return_value=12345),
+			patch.object(launcher, "RegistryLease", return_value=lease),
+			patch.object(launcher, "activateAumid"),
+			patch.object(launcher, "waitForEndpoint"),
+			patch.object(launcher, "_waitForValidatedListener"),
+			patch.object(launcher, "_waitForTarget", return_value=MagicMock()),
+			patch.object(
+				launcher,
+				"selectEmbeddedBundle",
+				return_value=MagicMock(source="source", version="1.0", sha256="hash", isUpdate=False),
+			),
+			patch.object(
+				launcher,
+				"_waitForInitialAttachment",
+				return_value=(MagicMock(), session, {"state": "ready"}, lambda: None),
+			),
+			patch.object(launcher, "_forwardCompanionAnnouncements", side_effect=LoaderError("cdp.closed")),
+			patch.object(launcher, "_discoverTarget", side_effect=LoaderError("http.transport")) as discover,
+		):
+			result = launcher.launchOperation(
+				Channel.STABLE,
+				_CancelEvent(),
+				lambda _state: None,
+				reportObserver=reports.append,
+			)
+		self.assertEqual(result.messageKey, "package.closed")
+		self.assertTrue(result.values["recoveryReported"])
+		self.assertEqual([report.messageKey for report in reports], ["cdp.recovering"])
+		self.assertEqual(discover.call_count, 1, "no further reconnect attempts after WhatsApp closed")
+		session.close.assert_called_once()
+
 	def test_reconnect_keeps_the_discovered_target_paired_with_its_session(self) -> None:
 		reports = []
 		lease = MagicMock()

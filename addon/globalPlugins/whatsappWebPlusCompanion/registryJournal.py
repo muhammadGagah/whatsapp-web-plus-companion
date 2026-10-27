@@ -311,7 +311,11 @@ class RegistryJournal:
 			separators=(",", ":"),
 			sort_keys=True,
 		).encode("utf-8")
-		self._storage.write(self._crypto.protect(payload))
+		try:
+			protected = self._crypto.protect(payload)
+		except OSError as error:
+			raise JournalError("encrypt") from error
+		self._storage.write(protected)
 
 	def clear(self) -> None:
 		self._storage.clear()

@@ -88,7 +88,7 @@ Buka **Menu NVDA > Peralatan > WhatsApp Companion** untuk membuka WhatsApp atau 
 
 ### Membaca pesan
 
-**Membaca pesan baru otomatis** mengumumkan pesan baru. **Pemantauan aktivitas chat** mengumumkan perubahan status seperti Terkirim, Disampaikan, dan Dibaca, serta aktivitas chat. Kedua pengaturan ini dapat diaktifkan atau dimatikan secara terpisah.
+**Bacakan pesan baru secara otomatis** mengumumkan pesan baru. **Monitor aktivitas chat** mengumumkan perubahan status seperti Terkirim, Disampaikan, dan Dibaca, serta aktivitas chat. Kedua pengaturan ini dapat diaktifkan atau dimatikan secara terpisah.
 
 Alt+Shift+C membuka teks pesan hanya-baca tanpa pembungkusan baris. Panah Atas dan Bawah mengikuti baris asli pesan. Baris panjang bergulir secara horizontal. Gunakan **Salin pesan** untuk menyalin isi pesan sebagai teks biasa tanpa judul atau waktu. Gunakan **Tampilan berformat** untuk tampilan yang membungkus baris dan tautan yang dapat dibuka. Escape menutup jendela baca.
 
@@ -104,7 +104,7 @@ Untuk pesan dengan **Baca selengkapnya**, tekan `Shift+Enter`. Teks yang diperlu
 
 Tekan `Alt+1` untuk kembali ke chat yang diingat dalam daftar chat, lalu gunakan panah untuk melanjutkan navigasi. Ketika Escape menutup chat pribadi, grup, channel, atau pengumuman komunitas, NVDA mengumumkan bahwa chat sudah ditutup. Menutup menu saja tidak memicu pengumuman ini.
 
-**Keep message menus within the window** membantu menu tetap terbuka pada jendela kecil. Pengaturan ini aktif secara bawaan dan dapat diubah melalui **Shift+F8 > Accessibility**.
+**Jaga menu pesan tetap di dalam jendela** membantu menu tetap terbuka pada jendela kecil. Pengaturan ini aktif secara bawaan dan dapat diubah melalui **Shift+F8 > Aksesibilitas**.
 
 ### Mengikuti unduhan
 
@@ -114,9 +114,9 @@ Saat WhatsApp menampilkan progres unduhan dokumen, NVDA mengumumkan persentaseny
 
 Baca Stiker meminta penyedia AI mendeskripsikan stiker yang Anda pilih. Fitur ini mati secara bawaan dan belum memiliki pintasan. Urutan penyedia adalah Gemini, Groq, Cloudflare Workers AI, lalu Custom, OpenAI-compatible.
 
-1. Buka **Shift+F8 > Accessibility > Read Sticker**, lalu aktifkan fiturnya.
-2. Pilih **Configure provider and API key**, tentukan penyedia, dan masukkan kredensialnya. Custom juga memerlukan alamat HTTPS dan model yang dapat membaca gambar.
-3. Simpan pengaturan, lalu tetapkan pintasan **Read Sticker** melalui **Shortcut remapping**.
+1. Buka **Shift+F8 > Aksesibilitas > Baca Stiker**, lalu aktifkan fiturnya.
+2. Pilih **Atur penyedia AI dan API key**, tentukan penyedia, dan masukkan kredensialnya. Custom juga memerlukan alamat HTTPS dan model yang dapat membaca gambar.
+3. Simpan pengaturan, lalu tetapkan pintasan **Baca Stiker** melalui **Pemetaan ulang pintasan**.
 4. Fokuskan pesan stiker atau tombol stikernya, tekan pintasan, lalu tunggu deskripsinya.
 
 Saat pintasan digunakan, hanya stiker pada pesan yang difokuskan yang dikirim, maksimal enam stiker berbeda. Stiker yang sama dideskripsikan sekali beserta jumlahnya, dan stiker berbeda diberi nomor Stiker 1, Stiker 2, dan seterusnya. Fokus boleh berpindah dalam chat yang sama. Pergantian chat, bahasa, atau pengaturan membatalkan permintaan sebelumnya. Hasil dibaca sekali dan tidak mengganti label pesan. Deskripsi AI bisa keliru.
@@ -127,15 +127,15 @@ Animasi dibaca dari beberapa cuplikan dan bergantung pada dukungan WebView2. Per
 
 ### Menggunakan Gemini
 
-Buka [Google AI Studio](https://aistudio.google.com/api-keys), masuk dengan akun Google Anda, lalu selesaikan penyiapan untuk mendapatkan API key. Salin key tersebut, lalu buka **Configure provider and API key** pada pengaturan Read Sticker. Pilih **Gemini**, tempel key ke kolom API key, lalu pilih **Save**.
+Buka [Google AI Studio](https://aistudio.google.com/api-keys), masuk dengan akun Google Anda, lalu selesaikan penyiapan untuk mendapatkan API key. Salin key tersebut, lalu buka **Atur penyedia AI dan API key** pada pengaturan Baca Stiker. Pilih **Gemini**, tempel key ke kolom API key, lalu pilih **Simpan**.
 
 ### Menggunakan Cloudflare
 
-Buka **Workers AI > Use REST API** di Cloudflare. Masukkan **Account ID** dan **Workers AI API Token** pada pengaturan Read Sticker. Kredensial R2 tidak digunakan untuk fitur ini.
+Buka **Workers AI > Use REST API** di Cloudflare. Masukkan **Account ID** dan **API Token Workers AI** pada pengaturan Baca Stiker. Kredensial R2 tidak digunakan untuk fitur ini.
 
 Model bawaan adalah **Llama 3.2 11B Vision**. Anda dapat mengubah **Model ID** menggunakan nama lengkap, misalnya `@cf/meta/llama-4-scout-17b-16e-instruct`. Pilih model vision yang menerima pesan berisi data URL gambar. Llama 3.2 memakai format gambarnya sendiri. Mengganti model saja mempertahankan token. Mengganti akun memerlukan token untuk akun baru.
 
-Jika model Llama bawaan meminta persetujuan, baca ketentuan yang ditautkan dan centang kedua pernyataan hanya jika berlaku bagi Anda. Pilih **Agree and enable model**. Setelah sukses dikonfirmasi, dialog ditutup dan hasil diumumkan. Gunakan Baca Stiker lagi untuk membaca stikernya. Jika konfirmasi tidak tiba dalam 45 detik, dialog menjelaskan bahwa hasilnya belum pasti. Menutup dialog tidak membatalkan persetujuan yang sudah diterima Cloudflare. Persetujuan untuk model lain ditangani melalui Cloudflare.
+Jika model Llama bawaan meminta persetujuan, baca ketentuan yang ditautkan dan centang kedua pernyataan hanya jika berlaku bagi Anda. Pilih **Setujui dan aktifkan model**. Setelah sukses dikonfirmasi, dialog ditutup dan hasil diumumkan. Gunakan Baca Stiker lagi untuk membaca stikernya. Jika konfirmasi tidak tiba dalam 45 detik, dialog menjelaskan bahwa hasilnya belum pasti. Menutup dialog tidak membatalkan persetujuan yang sudah diterima Cloudflare. Persetujuan untuk model lain ditangani melalui Cloudflare.
 
 **Pratinjau persetujuan Cloudflare** dapat dipakai berulang kali untuk tutorial tanpa mengirim persetujuan. Tutup atau tekan Escape untuk kembali ke pengaturan dengan isian yang belum disimpan tetap utuh. Biaya dan batas pemakaian penyedia tetap berlaku untuk permintaan stiker yang sebenarnya.
 
@@ -147,7 +147,7 @@ Pesan tersebut menjelaskan koneksi Companion. Pesan itu tidak memastikan koneksi
 
 ### Pengaturan bawaan
 
-Untuk pemasangan baru, Mode Privasi, pembacaan pesan baru otomatis, pemutaran suara dengan Enter/Space, Clean Status, penyesuaian menu pesan, dan Clean UI aktif. Pengumuman total chat belum dibaca dan Baca Stiker mati. Pembaruan mempertahankan pilihan yang sudah disimpan.
+Untuk pemasangan baru, Mode Privasi, pembacaan pesan baru otomatis, pemutaran suara dengan Enter/Space, Clean Status, penyesuaian menu pesan, dan Antarmuka ringkas aktif. Pengumuman total chat belum dibaca dan Baca Stiker mati. Pembaruan mempertahankan pilihan yang sudah disimpan.
 
 ### Label kontrol panggilan
 
@@ -200,7 +200,7 @@ Shortcut reaksi membuka kontrol reaksi WhatsApp. Pilih reaksi yang ingin dikirim
 
 ## Menetapkan shortcut
 
-Pilih **Shift+F8 > Pemetaan ulang shortcut**, lalu pilih **Read Sticker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
+Pilih **Shift+F8 > Pemetaan ulang pintasan**, lalu pilih **Baca Stiker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
 
 Kombinasi ganda dan perintah tetap script/Companion ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
 
@@ -357,7 +357,7 @@ Untuk diagnostik, buka Gestur Input dari WhatsApp dan tetapkan ulang gestur **Am
 
 Diagnostik juga mencatat tombol yang belum terpetakan pada `controls.unmapped`, termasuk ID teknis, enabled/offscreen, serta ketersediaan pola Invoke/Toggle. Nama tombol yang tidak dikenal tetap dihilangkan. Status `complete` berarti penelusuran selesai, bukan semua tombol sudah dikenali. Ketersediaan Toggle bukan status nyala/mati. Periksa identifier sebelum membagikan log karena provider dapat menyisipkan data pribadi. Jika kamera/reaksi/tangan/berbagi layar masih belum dikenali, kirim satu snapshot baru dahulu. Pemetaan aksi tidak ditambahkan hanya berdasarkan nama ID.
 
-Ctrl+Alt+S mengaktifkan Start screen sharing atau Stop screen sharing sesuai kontrol yang tersedia. Pilihan layar/jendela dan konfirmasi tetap dilakukan pengguna. Tidak ada layar yang dipilih otomatis. Uji mulai, batalkan pemilih dengan Escape, hentikan berbagi, lalu Ctrl+Alt+W saat berbagi aktif. Penelusuran tetap mencakup seluruh jendela dengan batas node/waktu, memakai cache properti UIA per objek untuk mengurangi permintaan antarproses. Identitas dan keadaan kontrol diperiksa langsung lagi sebelum aktivasi. Log propertyCache menunjukkan apakah optimasi ini tersedia. Hasil partial tetap ditolak dan bukan izin mengaktifkan tombol.
+Ctrl+Alt+S mengaktifkan Start screen sharing atau Stop screen sharing sesuai kontrol yang tersedia. Pilihan layar/jendela dan konfirmasi tetap dilakukan pengguna. Tidak ada layar yang dipilih otomatis. Penelusuran tetap mencakup seluruh jendela dengan batas node/waktu, memakai cache properti UIA per objek untuk mengurangi permintaan antarproses. Identitas dan keadaan kontrol diperiksa langsung lagi sebelum aktivasi. Log propertyCache menunjukkan apakah optimasi ini tersedia. Hasil partial tetap ditolak dan bukan izin mengaktifkan tombol.
 
 Enam shortcut panggilan aktif mensyaratkan tombol End call dan target unik dalam host yang sama. Label bawaan berbahasa Inggris; tambahkan label sesuai bahasa WhatsApp melalui **Label kontrol panggilan**. Checkbox React (NewReactionButton) dan Start/Stop screen sharing (NewScreenShareButton) menggunakan satu aktivasi TogglePattern. Kontrol Toggle-only lainnya belum didukung. Reaksi dan berbagi layar membuka kontrol WhatsApp. Pilihan lanjut tetap dilakukan pengguna. Cobalah shortcut tersebut pada panggilan percobaan terlebih dahulu. Bila memakai WhatsAppNG, nonaktifkan sementara lalu restart NVDA agar app module tidak bertabrakan.
 

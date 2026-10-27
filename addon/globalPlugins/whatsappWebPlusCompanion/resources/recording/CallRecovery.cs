@@ -32,6 +32,22 @@ namespace CompanionRecording {
         [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
         [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
         [DllImport("user32.dll")] static extern uint SendInput(uint count, Input[] input, int size);
+        [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
+        // MOVE | ABSOLUTE | VIRTUALDESK, combined with LEFTDOWN (2) or LEFTUP (4).
+        const uint AbsoluteMove = 0x0001 | 0x8000 | 0x4000;
+        // Carry the target in every event: injected input is processed later, so a button event
+        // without coordinates could land wherever the cursor is by then.
+        static Input[] ClickAt(Point point, params uint[] buttons) {
+            int left = GetSystemMetrics(76), top = GetSystemMetrics(77);
+            int width = Math.Max(2, GetSystemMetrics(78)), height = Math.Max(2, GetSystemMetrics(79));
+            int x = (int)Math.Round((point.x - left) * 65535.0 / (width - 1));
+            int y = (int)Math.Round((point.y - top) * 65535.0 / (height - 1));
+            var events = new Input[buttons.Length];
+            for (int i = 0; i < buttons.Length; i++) {
+                events[i].mouse.x = x; events[i].mouse.y = y; events[i].mouse.flags = AbsoluteMove | buttons[i];
+            }
+            return events;
+        }
         [DllImport("user32.dll")] static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint access);
         [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern bool GetUserObjectInformation(IntPtr handle, int index, StringBuilder name, int length, out int needed);
         [DllImport("user32.dll")] static extern bool CloseDesktop(IntPtr desktop);
@@ -152,11 +168,13 @@ namespace CompanionRecording {
                     if (!valid()) Invalid(cancelled);
                     if (!Released() || (!activate && !Automation.Compare(AutomationElement.FocusedElement,focus)) ||
                         !GetCursorPos(out current) || current.x!=point.x || current.y!=point.y) throw new CallUnavailableException();
-                    var events=new Input[2]; events[0].mouse.flags=2; events[1].mouse.flags=4;
+                    var events=ClickAt(point,2,4);
                     if (SendInput(2,events,Marshal.SizeOf(typeof(Input)))!=2) {
-                        var up=new Input[1]; up[0].mouse.flags=4; SendInput(1,up,Marshal.SizeOf(typeof(Input)));
+                        SendInput(1,ClickAt(point,4),Marshal.SizeOf(typeof(Input)));
                         throw new CallUnavailableException();
                     }
+                    // Let Windows process the click before the cursor returns to where the user left it.
+                    Thread.Sleep(80);
                 } finally {
                     Point current;
                     if (GetCursorPos(out current) && current.x==point.x && current.y==point.y) SetCursorPos(original.x,original.y);

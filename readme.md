@@ -161,7 +161,7 @@ You can add labels in several languages at once. There is no need to choose a la
 
 Leave a field blank to use the built-in labels. To remove all your custom labels, choose **Reset all additional labels**, then **Save**. Choose **Cancel** to keep your saved labels.
 
-Your labels are saved in your NVDA settings and shared by WhatsApp Stable and Beta across profiles. They remain available after updating or reinstalling Companion, as long as you keep your NVDA settings. Resetting or deleting those settings also removes your saved labels.
+Your labels are saved in NVDA's `nvda.ini`, in the `[whatsappCompanionCallLabels]` section, and shared by WhatsApp Stable and Beta across profiles. They remain available after updating or reinstalling Companion, as long as you keep your NVDA settings. Resetting or deleting those settings also removes your saved labels.
 
 ### Recording a call
 

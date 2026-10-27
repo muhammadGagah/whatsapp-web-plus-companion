@@ -185,6 +185,8 @@ class PluginOutputTests(unittest.TestCase):
 
 	def setUp(self):
 		self.module = sys.modules["globalPlugins.whatsappWebPlusCompanion"]
+		# Unit tests never touch the real per-user registry journal.
+		self.module.recoverPendingRegistryStateAtStartup = lambda: None
 		self.plugin = self.module.GlobalPlugin()
 		# Test-only injection: no Windows APIs are replaced in production.
 		self.plugin._announcementGuard = security.AnnouncementGuard(lambda: True)

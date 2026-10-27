@@ -223,6 +223,8 @@ class PluginUiFlowTests(unittest.TestCase):
 		_uiMessages.clear()
 		pluginModule = sys.modules["globalPlugins.whatsappWebPlusCompanion"]
 		self.module = pluginModule
+		# Unit tests never touch the real per-user registry journal.
+		pluginModule.recoverPendingRegistryStateAtStartup = lambda: None
 		self.plugin = pluginModule.GlobalPlugin()
 
 	def test_recovery_progress_speaks_without_replacing_last_result(self) -> None:
@@ -1234,6 +1236,8 @@ class PluginUiFlowTests(unittest.TestCase):
 			with self.subTest(errorCode=errorCode):
 				self.uiMessages.clear()
 				_FakeNativeDialog.instances.clear()
+				# Unit tests never touch the real per-user registry journal.
+				self.module.recoverPendingRegistryStateAtStartup = lambda: None
 				plugin = self.module.GlobalPlugin()
 				with (
 					mock.patch.object(self.module.threading.Thread, "start"),

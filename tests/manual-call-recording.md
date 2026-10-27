@@ -1,6 +1,6 @@
 # Call recording validation
 
-Run `npm run test:recording:native` for the WAV writer and native compilation checks. Run `powershell.exe -NoProfile -NonInteractive -Mta -File tests/test-recording-native.ps1 -Loopback` on a supported Windows machine to test process capture against the silent test process. These checks do not open the microphone or record a real call.
+Run `npm run test:recording:native` for the WAV writer and native compilation checks. Run `powershell.exe -NoProfile -NonInteractive -Mta -ExecutionPolicy Bypass -File tests/test-recording-native.ps1 -Loopback` on a supported Windows machine to test process capture against the silent test process. These checks do not open the microphone or record a real call.
 
 Installed NVDA validation is required before release. Start a test call with a participant who knows it is being recorded. Open Tools, WhatsApp Companion, Start call recording. Select the running WhatsApp channel and the microphone used by WhatsApp. Verify that NVDA announces the controls, Tab reaches every control, Escape cancels, and neither opening nor cancelling the dialog starts recording. Assign start and stop gestures through Input Gestures and repeat.
 

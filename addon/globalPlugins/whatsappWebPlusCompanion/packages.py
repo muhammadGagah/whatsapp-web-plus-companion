@@ -48,12 +48,21 @@ class PackageProcessCloseResult:
 		return max(0, self.foundCount - self.remainingCount)
 
 
+# Windows PowerShell writes piped output in the OEM code page. Any process path with a non-ASCII
+# character (for example an accented account name) would otherwise fail UTF-8 decoding.
+_UTF8_OUTPUT = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"
+
+
+def _command(script: str) -> list[str]:
+	return ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _UTF8_OUTPUT + str(script)]
+
+
 def runPowerShell(script: str) -> str:
 	started = time.monotonic()
 	budget = getattr(script, "timeout", 10)
 	try:
 		completed = subprocess.run(
-			["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+			_command(script),
 			stdin=subprocess.DEVNULL,
 			capture_output=True,
 			check=False,
@@ -64,6 +73,8 @@ def runPowerShell(script: str) -> str:
 		)
 	except subprocess.TimeoutExpired as error:
 		raise LoaderError("powershell.failed", _failureDetail(script, "timeout", started, budget)) from error
+	except UnicodeDecodeError as error:
+		raise LoaderError("powershell.failed", _failureDetail(script, "decode", started, budget)) from error
 	if completed.returncode:
 		raise LoaderError(
 			"powershell.failed",
@@ -88,7 +99,7 @@ def runPowerShellCancellable(
 	if time.monotonic() >= end:
 		raise LoaderError("powershell.failed", _failureDetail(script, "timeout", started, budget))
 	process = subprocess.Popen(
-		["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+		_command(script),
 		stdin=subprocess.DEVNULL,
 		stdout=subprocess.PIPE,
 		stderr=subprocess.PIPE,
@@ -114,6 +125,9 @@ def runPowerShellCancellable(
 				"powershell.failed",
 				_failureDetail(script, f"exit={process.returncode}", started, budget),
 			)
+		if stdout is None:
+			# Undecodable output must never look like "no processes".
+			raise LoaderError("powershell.failed", _failureDetail(script, "decode", started, budget))
 		return stdout
 
 

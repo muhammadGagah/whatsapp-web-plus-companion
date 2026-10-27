@@ -176,7 +176,7 @@ Label bawaan tetap aktif.
 | `Alt + Shift + N` | Aktifkan atau nonaktifkan Mode Privasi |
 | `Alt + Shift + L` | Aktifkan atau nonaktifkan pembacaan pesan otomatis |
 | `Shift + F8` | Buka atau tutup pengaturan WhatsApp Web Plus |
-| `Alt + Shift + 8` | Aktifkan atau nonaktifkan Bersihkan Antarmuka |
+| `Alt + Shift + 8` | Aktifkan atau nonaktifkan Antarmuka ringkas |
 | `Alt + Shift + 9` | Aktifkan atau nonaktifkan Mode Gelap Asli |
 
 Pilihan fitur opsional Anda tetap tersimpan setelah WhatsApp dimuat ulang.
@@ -199,12 +199,16 @@ Companion mencari salinan WhatsApp Web Plus yang lebih baru.
 
 Perintah ini bekerja di latar belakang:
 
-1. Companion menghubungi alamat resmi Greasy Fork yang sudah ditentukan.
-2. Companion memeriksa versi dan rincian file.
-3. Jika ada versi lebih baru, Companion mengunduh dan memeriksanya, termasuk
-   memverifikasi tanda tangan dengan kunci Ed25519 tepercaya.
-4. Jika isi resmi berubah tanpa perubahan versi, Companion memeriksa lalu
-   menyegarkan salinan tersebut.
+1. Companion mengunduh catatan rilis bertanda tangan beserta signature-nya dari
+   repository resmi WhatsApp Web Plus, lalu memverifikasinya dengan kunci Ed25519
+   tepercaya.
+2. Jika rilis tersebut sama dengan yang terpasang, salinan sudah terbaru. Rilis
+   yang lebih lama ditolak.
+3. Untuk rilis bertanda tangan yang lebih baru, Companion mengunduh userscript dari
+   alamat resmi Greasy Fork yang sudah ditentukan dan memastikan versi, sidik jari
+   SHA-256, serta ukurannya sesuai dengan catatan bertanda tangan.
+4. Rilis bertanda tangan yang lebih baru dengan versi yang sama, misalnya file
+   yang diperbaiki, menyegarkan salinan tersebut.
 5. NVDA memberi tahu apakah salinan sudah terbaru, diperbarui, disegarkan, atau
    tidak diubah karena terjadi kesalahan.
 
@@ -516,14 +520,17 @@ nama kontak, atau nomor telepon.
 ## Membaca pesan melalui jendela NVDA
 
 Jika WhatsApp dijalankan melalui Companion, fokuskan pesan lalu tekan
-**Alt+Shift+C**. Pesan lengkap ditampilkan dalam jendela teks NVDA, termasuk
-tautan, daftar, dan waktu pengiriman. Pesan yang disingkat akan ditampilkan
-secara lengkap terlebih dahulu. Cara ini tidak membuka pop-up browser pada
-aplikasi desktop.
+**Alt+Shift+C**. Pesan lengkap ditampilkan sebagai teks hanya-baca tanpa
+pembungkusan baris, beserta waktu pengirimannya. Pesan yang disingkat akan
+ditampilkan secara lengkap terlebih dahulu. Cara ini tidak membuka pop-up browser
+pada aplikasi desktop. Panah Atas dan Bawah mengikuti baris asli pesan, dan baris
+panjang bergulir secara horizontal.
 
-Tekan **Escape** untuk menutup pembaca. Tombol Tutup dan Salin disediakan jika
-versi NVDA mendukungnya. Isi pesan tidak sekaligus dimasukkan ke antrean
-pengumuman suara atau braille. Di browser biasa, pintasan tetap membuka tab
+Jendela baca memiliki **Salin pesan** untuk menyalin isi pesan sebagai teks biasa
+tanpa judul atau waktu, **Tampilan berformat** untuk tampilan yang membungkus
+baris dengan tautan yang dapat dibuka, serta **Tutup**. Tekan **Escape** untuk
+menutup pembaca. Isi pesan tidak sekaligus dimasukkan ke antrean pengumuman suara
+atau braille. Di browser biasa, pintasan tetap membuka tab
 pembaca yang sudah tersedia.
 
 Tetap di WhatsApp selama pesan dimuat. Berpindah aplikasi, mengganti chat, atau
@@ -541,7 +548,7 @@ tetap menggunakan lisensi MIT. Asal komponen dan batas lisensi dijelaskan dalam
 
 ## Menetapkan shortcut
 
-Pilih **Shift+F8 > Pemetaan ulang shortcut**, lalu pilih **Read Sticker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
+Pilih **Shift+F8 > Pemetaan ulang pintasan**, lalu pilih **Baca Stiker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
 
 Kombinasi ganda dan perintah tetap script/Companion ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
 
