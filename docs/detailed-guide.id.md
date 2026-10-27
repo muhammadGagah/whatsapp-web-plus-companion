@@ -23,13 +23,13 @@ kirim juga mungkin hilang.
 ### Mendengar kembali hasil terakhir
 
 Gunakan **Laporkan hasil WhatsApp Companion terakhir** jika Anda
-melewatkan sebuah pesan atau memakai mode ucapan Sesuai Permintaan. Perintah
+melewatkan sebuah pesan atau memakai mode ucapan On-demand. Perintah
 ini mengulangi hasil pembukaan, koneksi, penutupan, perbaikan, atau pembaruan
 terakhir.
 
 ## Perintah pada menu WhatsApp Companion
 
-Buka menu NVDA, pilih **Peralatan**, lalu pilih **WhatsApp Companion**. Gunakan
+Buka menu NVDA, pilih **Tools**, lalu pilih **WhatsApp Companion**. Gunakan
 tombol panah untuk berpindah, `Enter` untuk menjalankan perintah, dan `Escape`
 untuk menutup menu.
 
@@ -88,7 +88,7 @@ yang tercantum di bawah.
 Untuk menambahkan gestur sendiri:
 
 1. Buka menu NVDA.
-2. Pilih **Preferensi**, lalu **Gestur Input**.
+2. Pilih **Pilihan**, lalu **Input gestures**.
 3. Ketik `WhatsApp Companion` di kotak penyaring.
 4. Buka kategori **WhatsApp Companion**.
 5. Pilih sebuah perintah.
@@ -164,7 +164,7 @@ reaksi atau layar yang ingin dibagikan. Jika pintasan mengembalikan tampilan
 panggilan penuh dari tampilan kecil, lepaskan tombol, periksa tampilan, lalu
 tekan pintasan lagi untuk menjalankan tindakan.
 
-Gunakan **Menu NVDA > Peralatan > WhatsApp Companion > Label kontrol panggilan**
+Gunakan **Menu NVDA > Tools > WhatsApp Companion > Label kontrol panggilan**
 untuk menambahkan label sesuai bahasa WhatsApp. Masukkan satu nama kontrol
 persis per baris sesuai ucapan NVDA, tanpa jenis atau status kontrolnya.
 Label bawaan tetap aktif.
@@ -406,7 +406,7 @@ mencoba lagi.
 
 ### Hasil yang datang di latar belakang tidak diucapkan
 
-Dalam mode ucapan Sesuai Permintaan, NVDA mungkin tidak membacakan pesan
+Dalam mode ucapan On-demand, NVDA mungkin tidak membacakan pesan
 dari proses yang berjalan di latar belakang. Jalankan **Laporkan hasil WhatsApp Companion terakhir**.
 Output braille tetap tersedia sesuai pengaturan NVDA Anda.
 
@@ -550,7 +550,7 @@ tetap menggunakan lisensi MIT. Asal komponen dan batas lisensi dijelaskan dalam
 
 Pilih **Shift+F8 > Pemetaan ulang pintasan**, lalu pilih **Baca Stiker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
 
-Kombinasi ganda dan perintah tetap script/Companion ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
+Kombinasi ganda, perintah tetap script/Companion, dan shortcut bawaan WhatsApp ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
 
 ### Merekam shortcut
 

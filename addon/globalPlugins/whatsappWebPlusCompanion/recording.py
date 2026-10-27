@@ -265,6 +265,18 @@ class Recording:
 
 		reader = threading.Thread(target=readOutput, daemon=True)
 		reader.start()
+
+		def forwardStop():
+			# Pass Stop to the helper at once, not after the next 100 ms poll, so a Stop pressed just
+			# before capture starts reaches the helper's last cancellation check.
+			while process.poll() is None:
+				if self.cancel.wait(0.05):
+					with contextlib.suppress(OSError, ValueError):
+						process.stdin.write("stop\n")
+						process.stdin.flush()
+					return
+
+		threading.Thread(target=forwardStop, daemon=True).start()
 		started = saved = cancelled = stoppedBeforeStart = False
 		ending = "saved"
 		deadline = time.monotonic() + 30
@@ -301,11 +313,6 @@ class Recording:
 					cancelled = stoppedBeforeStart = True
 				if self.cancel.is_set() and stopDeadline is None:
 					stopDeadline = time.monotonic() + 12
-					try:
-						process.stdin.write("stop\n")
-						process.stdin.flush()
-					except (OSError, BrokenPipeError):
-						pass
 				if process.poll() is not None and not reader.is_alive() and messages.empty():
 					if not (saved or cancelled) or (process.returncode != 0 and not stoppedBeforeStart):
 						raise RuntimeError("capture incomplete")

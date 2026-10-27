@@ -214,6 +214,31 @@ class UpdaterTests(unittest.TestCase):
 			updater.fetchLatestVersion(fakeOpener)
 		self.assertEqual(raised.exception.code, "network")
 
+	def test_quarantined_update_is_not_reinstalled(self) -> None:
+		with tempfile.TemporaryDirectory() as directory:
+			root = Path(directory)
+			store = root / "updates"
+			writePackagedBundle(root, "2.6.74")
+			remote = signedRemote("2.6.75", userscript("2.6.75"), BASE_SEQUENCE + 1)
+			first = updater.checkForUpdate(resources=root, updateStore=store, opener=FakeOpener(*remote))
+			self.assertEqual(first.status, updater.UpdateStatus.UPDATED)
+			digest = bundle.selectEmbeddedBundle(root, store).sha256
+			self.assertTrue(bundle.quarantineUpdatedBundle(digest, store))
+			second = updater.checkForUpdate(resources=root, updateStore=store, opener=FakeOpener(*remote))
+			self.assertEqual(second.status, updater.UpdateStatus.CURRENT)
+			selected = bundle.selectEmbeddedBundle(root, store)
+			self.assertFalse(selected.isUpdate, "the packaged copy stays selected")
+			self.assertEqual(selected.version, "2.6.74")
+
+	def test_truncated_download_is_a_network_error(self) -> None:
+		import http.client
+
+		fakeOpener = mock.Mock()
+		fakeOpener.open.side_effect = http.client.IncompleteRead(b"partial", 100)
+		with self.assertRaises(updater.UpdateCheckError) as raised:
+			updater.fetchLatestVersion(fakeOpener)
+		self.assertEqual(raised.exception.code, "network")
+
 	def test_cancellation_interrupts_a_chunked_response_read(self) -> None:
 		cancel = threading.Event()
 

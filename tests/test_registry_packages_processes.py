@@ -87,6 +87,12 @@ class PackageProcessTests(unittest.TestCase):
 		self.assertTrue(command[-1].startswith("[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"))
 
 	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.run")
+	def test_sync_undecodable_output_is_a_failure(self, run) -> None:
+		run.return_value = subprocess.CompletedProcess([], 0, None, None)
+		with self.assertRaisesRegex(LoaderError, "powershell.failed"):
+			runPowerShell("Get-AppxPackage")
+
+	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.run")
 	def test_sync_timeout_has_safe_stage_details(self, run):
 		run.side_effect = subprocess.TimeoutExpired("private command", 30)
 		with self.assertRaises(LoaderError) as raised:

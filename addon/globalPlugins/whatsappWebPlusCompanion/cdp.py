@@ -98,8 +98,9 @@ _COMPANION_BRIDGE_SOURCE = r"""
 			return false;
 		}
 	};
+	// A "header [title]" fallback would match the header's "Profile details" button for every chat.
 	const currentTitle = main => String(
-		main?.querySelector?.('header [data-testid="conversation-info-header-chat-title"], header [title]')
+		main?.querySelector?.('header [data-testid="conversation-info-header-chat-title"]')
 			?.textContent || ''
 	).trim();
 	const invalidate = (reason, source = '') => {
@@ -775,6 +776,7 @@ def installAndVerify(
 	cancelEvent: threading.Event,
 	healthDeadline: float | None = None,
 	deadline: float | None = None,
+	progress: dict | None = None,
 ) -> tuple[dict, str]:
 	budget = Deadline.after(45.0, cancelEvent, deadline)
 
@@ -902,6 +904,9 @@ def installAndVerify(
 				raise
 			if injected is not True:
 				continue
+			if progress is not None:
+				# Lets the launcher tell a bundle that hung the page from one that never ran.
+				progress["injected"] = True
 			injectionRequested = True
 			injectedDocuments.add(currentDocument)
 			if healthDeadline is not None:

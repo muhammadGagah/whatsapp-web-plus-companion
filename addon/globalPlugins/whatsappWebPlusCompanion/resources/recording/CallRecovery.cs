@@ -40,8 +40,9 @@ namespace CompanionRecording {
         static Input[] ClickAt(Point point, params uint[] buttons) {
             int left = GetSystemMetrics(76), top = GetSystemMetrics(77);
             int width = Math.Max(2, GetSystemMetrics(78)), height = Math.Max(2, GetSystemMetrics(79));
-            int x = (int)Math.Round((point.x - left) * 65535.0 / (width - 1));
-            int y = (int)Math.Round((point.y - top) * 65535.0 / (height - 1));
+            // Windows maps the 0-65535 range back by truncation; rounding up lands on the exact pixel.
+            int x = Math.Min(65535, (int)Math.Ceiling((point.x - left) * 65536.0 / width));
+            int y = Math.Min(65535, (int)Math.Ceiling((point.y - top) * 65536.0 / height));
             var events = new Input[buttons.Length];
             for (int i = 0; i < buttons.Length; i++) {
                 events[i].mouse.x = x; events[i].mouse.y = y; events[i].mouse.flags = AbsoluteMove | buttons[i];
@@ -177,7 +178,8 @@ namespace CompanionRecording {
                     Thread.Sleep(80);
                 } finally {
                     Point current;
-                    if (GetCursorPos(out current) && current.x==point.x && current.y==point.y) SetCursorPos(original.x,original.y);
+                    // Within one pixel still means the cursor was moved by this click, so put it back.
+                    if (GetCursorPos(out current) && Math.Abs(current.x-point.x)<=1 && Math.Abs(current.y-point.y)<=1) SetCursorPos(original.x,original.y);
                 }
                 var wait=Stopwatch.StartNew();
                 while (wait.ElapsedMilliseconds<2000) {

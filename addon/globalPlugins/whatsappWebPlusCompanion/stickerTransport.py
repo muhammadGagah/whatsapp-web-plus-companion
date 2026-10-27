@@ -184,6 +184,9 @@ class StickerTransport:
 			headers["x-goog-api-key" if request["provider"] == "gemini" else "Authorization"] = (
 				request["key"] if request["provider"] == "gemini" else "Bearer " + request["key"]
 			)
+			# The 10 s limit covers connecting only. A provider may stay silent until its whole answer is
+			# ready, so reads may use the rest of the request deadline.
+			connection.sock.settimeout(max(0.5, request["expiresAt"] / 1000 - time.time()))
 			connection.request("POST", url.path, body=body, headers=headers)
 			request["key"] = ""
 			response = connection.getresponse()

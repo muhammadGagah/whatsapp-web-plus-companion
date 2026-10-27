@@ -87,8 +87,16 @@ class _AnnouncementState:
 	suppressed: bool = False
 
 
-def _raiseBundleInstallError(bundle: object, error: LoaderError) -> None:
-	if getattr(bundle, "isUpdate", False) and error.code in _UPDATED_BUNDLE_HEALTH_ERRORS:
+# After the updated script was injected, a page that stops answering or keeps crashing is
+# caused by that update too. Before injection these are ordinary connection problems.
+_POST_INJECTION_HEALTH_ERRORS = frozenset({"cdp.timeout", "cdp.initialAttach"})
+
+
+def _raiseBundleInstallError(bundle: object, error: LoaderError, *, injected: bool = False) -> None:
+	healthErrors = _UPDATED_BUNDLE_HEALTH_ERRORS | (
+		_POST_INJECTION_HEALTH_ERRORS if injected else frozenset()
+	)
+	if getattr(bundle, "isUpdate", False) and error.code in healthErrors:
 		digest = getattr(bundle, "sha256", "")
 		quarantined = quarantineUpdatedBundle(digest)
 		log.warning(
@@ -407,6 +415,7 @@ def _connectAndInstall(
 	*,
 	deadline: float | None = None,
 	validator=None,
+	progress: dict | None = None,
 ) -> tuple[CdpSession, dict, Callable[[], None]]:
 	budget = Deadline.after(45.0, cancelEvent, deadline)
 	try:
@@ -446,6 +455,7 @@ def _connectAndInstall(
 			cancelEvent,
 			healthDeadline=BUNDLE_HEALTH_DEADLINE,
 			deadline=budget.end,
+			progress=progress,
 		)
 	except Exception as error:
 		unregisterSession()
@@ -468,6 +478,7 @@ def _waitForInitialAttachment(
 	*,
 	io=None,
 	validator=None,
+	progress: dict | None = None,
 ) -> tuple[Target, CdpSession, dict, Callable[[], None]]:
 	io = (io or _OperationIO(cancelEvent, registerCloser, time.monotonic() + 45)).child(45)
 	end = io.end
@@ -488,6 +499,7 @@ def _waitForInitialAttachment(
 				registerCloser,
 				deadline=end,
 				validator=validator,
+				progress=progress,
 			)
 			return current, session, health, unregisterSession
 		except LoaderError as error:
@@ -567,6 +579,7 @@ def launchOperation(
 		gateObserver("oneTarget")
 		bundle = selectEmbeddedBundle()
 		setState(OperationState.ATTACHING)
+		attachProgress = {"injected": False}
 		try:
 			target, session, _health, unregisterSession = _waitForInitialAttachment(
 				port,
@@ -578,9 +591,10 @@ def launchOperation(
 				registerCloser,
 				io=io,
 				validator=validator,
+				progress=attachProgress,
 			)
 		except LoaderError as error:
-			_raiseBundleInstallError(bundle, error)
+			_raiseBundleInstallError(bundle, error, injected=attachProgress["injected"])
 		gateObserver("webSocket")
 		gateObserver("mainWorld")
 		gateObserver("pageReady")

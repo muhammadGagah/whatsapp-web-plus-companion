@@ -80,6 +80,9 @@ def runPowerShell(script: str) -> str:
 			"powershell.failed",
 			_failureDetail(script, f"exit={completed.returncode}", started, budget),
 		)
+	if completed.stdout is None:
+		# On Windows a decode failure ends the reader thread and leaves no output, without raising.
+		raise LoaderError("powershell.failed", _failureDetail(script, "decode", started, budget))
 	return completed.stdout
 
 

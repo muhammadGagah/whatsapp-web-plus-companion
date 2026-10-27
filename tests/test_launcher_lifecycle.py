@@ -292,6 +292,24 @@ class LauncherLifecycleTests(unittest.TestCase):
 			self.assertEqual(raised.exception.safeDetail, code)
 			quarantine.assert_called_once_with("a" * 64)
 
+	def test_update_that_hangs_after_injection_is_quarantined_but_not_before(self) -> None:
+		bundle = MagicMock(isUpdate=True, sha256="b" * 64)
+		for code in ("cdp.timeout", "cdp.initialAttach"):
+			with (
+				self.subTest(code=code, injected=True),
+				patch.object(launcher, "quarantineUpdatedBundle", return_value=True) as quarantine,
+				self.assertRaisesRegex(LoaderError, "bundle.updateQuarantined"),
+			):
+				launcher._raiseBundleInstallError(bundle, LoaderError(code), injected=True)
+			quarantine.assert_called_once_with("b" * 64)
+			with (
+				self.subTest(code=code, injected=False),
+				patch.object(launcher, "quarantineUpdatedBundle") as quarantine,
+				self.assertRaisesRegex(LoaderError, code),
+			):
+				launcher._raiseBundleInstallError(bundle, LoaderError(code), injected=False)
+			quarantine.assert_not_called()
+
 	def test_packaged_bundle_failure_is_not_quarantined(self) -> None:
 		bundle = MagicMock(isUpdate=False, sha256="b" * 64)
 		with (

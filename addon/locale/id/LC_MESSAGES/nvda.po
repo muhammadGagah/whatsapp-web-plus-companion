@@ -192,7 +192,7 @@ msgid "A Windows policy controls the WebView2 launch settings for all applicatio
 msgstr "Kebijakan Windows mengontrol pengaturan peluncuran WebView2 untuk semua aplikasi. Companion tidak dapat mengesampingkan kebijakan tersebut, sehingga pengaturannya tidak diubah. Hubungi administrator Anda untuk meminta bantuan."
 
 msgid "Windows blocked access to the per-user WebView2 policy setting required by the Companion. In NVDA Tools, open WhatsApp Companion and choose Diagnose and repair WebView2 policy permissions, then try again."
-msgstr "Windows memblokir akses ke pengaturan kebijakan WebView2 per pengguna yang dibutuhkan Companion. Di menu Peralatan NVDA, buka WhatsApp Companion dan pilih Diagnosa dan perbaiki izin kebijakan WebView2, lalu coba lagi."
+msgstr "Windows memblokir akses ke pengaturan kebijakan WebView2 per pengguna yang dibutuhkan Companion. Di menu Tools NVDA, buka WhatsApp Companion dan pilih Diagnosa dan perbaiki izin kebijakan WebView2, lalu coba lagi."
 
 msgid "The per-user WebView2 policy setting could not be read. Close WhatsApp and try again. If this continues, report the error."
 msgstr "Pengaturan kebijakan WebView2 per pengguna tidak dapat dibaca. Tutup WhatsApp dan coba lagi. Jika terus berlanjut, laporkan kesalahan ini."
