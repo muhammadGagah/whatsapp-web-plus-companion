@@ -314,6 +314,31 @@ class PluginUiFlowTests(unittest.TestCase):
 			timer.call_args.args[1]()
 			say.assert_not_called()
 
+	def test_terminal_recording_result_blocked_during_speech_delay_is_held(self):
+		from globalPlugins.whatsappWebPlusCompanion.security import AnnouncementGuard
+
+		self.plugin._announcementGuard = AnnouncementGuard(lambda: True)
+		with (
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(self.module.wx, "CallLater") as timer,
+			mock.patch.object(self.module.commandFeedback, "message") as say,
+		):
+			self.plugin._recordingReport("saved", "private.wav")
+			speak = timer.call_args.args[1]
+			self.plugin._announcementGuard.setBlocked("lock", True)
+			speak()
+			say.assert_not_called()
+			self.assertEqual(self.plugin._heldRecordingReport, ("saved", "private.wav"))
+			# Progress messages are not terminal outcomes and are simply dropped.
+			self.plugin._heldRecordingReport = None
+			self.plugin._announcementGuard.setBlocked("lock", False)
+			self.plugin._recording.cancel.clear()
+			self.plugin._recordingReport("started", "private.wav")
+			speak = timer.call_args.args[1]
+			self.plugin._announcementGuard.setBlocked("lock", True)
+			speak()
+			self.assertIsNone(self.plugin._heldRecordingReport)
+
 	def test_recording_setup_speech_is_suppressed_after_lock(self):
 		from globalPlugins.whatsappWebPlusCompanion.security import AnnouncementGuard
 
@@ -400,7 +425,11 @@ class PluginUiFlowTests(unittest.TestCase):
 				self.plugin._queueRecordingReport("saved", "private.wav")
 				announce.assert_not_called()
 				unlocked()
-				announce.assert_called_once_with("Recording saved: private.wav", protected=True)
+				announce.assert_called_once_with(
+					"Recording saved: private.wav",
+					protected=True,
+					onBlocked=mock.ANY,
+				)
 				self.assertIsNone(self.plugin._heldRecordingReport)
 				unlocked()
 				announce.assert_called_once()
@@ -447,7 +476,7 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._recording.stop()
 			self.plugin._recordingReport("unavailable", "")
-			announce.assert_called_once_with("Recording cancelled.", protected=True)
+			announce.assert_called_once_with("Recording cancelled.", protected=True, onBlocked=mock.ANY)
 			availability.invalidate.assert_not_called()
 
 	def test_automatic_stops_are_announced_with_saved_path(self):
@@ -461,7 +490,7 @@ class PluginUiFlowTests(unittest.TestCase):
 				mock.patch.object(self.plugin, "_announce") as announce,
 			):
 				self.plugin._recordingReport(state, "call.wav")
-				announce.assert_called_once_with(expected, protected=True)
+				announce.assert_called_once_with(expected, protected=True, onBlocked=mock.ANY)
 
 	def test_lock_before_queued_start_clears_preparation_state(self):
 		allowed = [True, True]

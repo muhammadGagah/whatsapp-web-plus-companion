@@ -29,4 +29,4 @@ jobs:
       - name: Run test suite via unittest
         run: uv run --python ${{ matrix.python-version }} python -m unittest discover -s tests -v
       - name: Check native recording source and WAV output
-        run: powershell.exe -NoProfile -NonInteractive -Mta -File tests/test-recording-native.ps1
+        run: powershell.exe -NoProfile -NonInteractive -Mta -ExecutionPolicy Bypass -File tests/test-recording-native.ps1

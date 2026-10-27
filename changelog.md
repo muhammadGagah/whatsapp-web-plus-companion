@@ -6,7 +6,7 @@ Run the recording helper with a process-scoped execution policy, so microphone l
 
 Stop recording automatically when the call window has been gone for about 15 seconds, and announce where the file was saved. A minimized call window or an uncertain check never stops recording. Stop cleanly at the 4-hour limit, announce a recording that was stopped by a session lock or secure desktop after unlocking, and report Stop during preparation as cancelled. Do not leave behind or announce an empty WAV file when recording fails to start, and keep the other microphones listed when one has no name.
 
-Start recording with the window that is in front once NVDA's setup dialog has closed, so a dialog still closing is not mistaken for a focus change. If the call window really loses focus during setup, say so instead of reporting that no call was found. Report Stop or a session lock during preparation as cancelled, and say that preparation is being cancelled rather than that the file is being saved. Report a busy sticker transport as busy instead of as a network error.
+Start recording with the window that is in front once NVDA's setup dialog has closed, so a dialog still closing is not mistaken for a focus change. If the call window really loses focus during setup, say so instead of reporting that no call was found. Report Stop or a session lock during preparation as cancelled, and say that preparation is being cancelled rather than that the file is being saved. Report a busy sticker transport as busy instead of as a network error. When no call controls can be found, pass call shortcuts through to WhatsApp as before instead of reporting a failed action. Keep a recording outcome for after unlock when the session locks while it is being announced.
 
 Reuse recent call checks while the menu or recording dialog is open instead of starting a PowerShell probe every two seconds, and report a failed check as unknown rather than as no call. Say that call controls are being restored when a call shortcut has to wait, translate the channel names in the recording dialog, and run call diagnostics on the call worker.
 
@@ -24,7 +24,7 @@ Add manual call recording from the Companion menu and assignable NVDA gestures. 
 
 Route Companion announcements through NVDA's speech function used by Speech History, so bridged announcements such as sticker descriptions and message status can be recorded. Preserve language commands, braille output, and existing output guards, with one speech call per announcement. This routing change affects Companion only, not the browser userscript.
 
-## 2026.10.19 - 2026-10-19
+Included WhatsApp Web Plus 2026.10.26 changes:
 
 Help load older messages when Arrow Up stalls at the first available message. Scroll only after native navigation leaves focus unchanged, with bounded movement and no continuous polling.
 
@@ -37,6 +37,8 @@ Read existing sticker image descriptions in Focus Mode when WhatsApp leaves the 
 Recognize the Indonesian message status Dikirim as Sent so delivery changes are announced in group chats as well.
 
 Restore Enter and Space voice-message playback for the new WhatsApp microphone icons while preserving support for the previous layout.
+
+## 2026.10.19 - 2026-10-19
 
 Clean UI now recognizes the Indonesian desktop promotion description, so the promotion is hidden without a custom title.
 

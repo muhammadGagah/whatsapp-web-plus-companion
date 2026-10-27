@@ -821,6 +821,28 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.gesture.send.assert_not_called()
 		self.ui.message.assert_called_once()
 
+	def test_discovery_errors_pass_the_key_through_without_a_failure_message(self):
+		actions = sys.modules["appModules.wwpCallSupport.actions"]
+
+		def incomplete(*args, **kwargs):
+			raise actions.IncompleteSearch()
+
+		with patch.object(actions, "collectControls", incomplete):
+			self.runtime.performCallAction(CallAction.MUTE, self.gesture)
+		self.gesture.send.assert_called_once_with()
+		self.ui.message.assert_not_called()
+		self.gesture.reset_mock()
+		self.runtime._lastAttempt = (0, 0.0)
+
+		def unavailable(hwnd):
+			raise OSError("COM error")
+
+		with patch.object(self.client, "ElementFromHandle", unavailable):
+			self.runtime.performCallAction(CallAction.MUTE, self.gesture)
+		self.gesture.send.assert_called_once_with()
+		self.ui.message.assert_not_called()
+		self.pattern.Invoke.assert_not_called()
+
 	def test_foreground_change_during_discovery_aborts(self):
 		self.win.getForegroundWindow.side_effect = [100, 999]
 		self.runtime.performCallAction(CallAction.ANSWER, self.gesture)

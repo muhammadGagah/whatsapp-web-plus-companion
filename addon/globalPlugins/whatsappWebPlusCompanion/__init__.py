@@ -639,7 +639,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _recordingReport(self, state, path) -> None:
 		if not self._recordingAllowed():
 			return
-		announce = partial(self._announce, protected=True)
+		if state in _TERMINAL_RECORDING_STATES:
+			# If a lock arrives during the speech delay, keep the outcome for unlock instead of losing it.
+			announce = partial(
+				self._announce,
+				protected=True,
+				onBlocked=lambda: self._holdRecordingReport(state, path),
+			)
+		else:
+			announce = partial(self._announce, protected=True)
 		self._refreshRecordingAvailability()
 		if state == "unavailable" and self._recording.cancel.is_set():
 			state = "cancelled"
@@ -962,12 +970,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			speech.speech.speak([text])
 		self._brailleMessages.enqueue(text, source)
 
-	def _announce(self, message: str, *, protected: bool = False) -> None:
+	def _announce(
+		self,
+		message: str,
+		*,
+		protected: bool = False,
+		onBlocked: Callable[[], None] | None = None,
+	) -> None:
 		"""Speak after the closing menu's focus announcement."""
 		epoch = self._announcementGuard.snapshot()[1] if protected else None
 
 		def speak() -> None:
-			if self._disposed or (protected and not self._announcementGuard.permits(epoch)):
+			if self._disposed:
+				return
+			if protected and not self._announcementGuard.permits(epoch):
+				if onBlocked is not None:
+					onBlocked()
 				return
 			commandFeedback.message(message)
 

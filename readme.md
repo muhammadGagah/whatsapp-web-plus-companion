@@ -119,7 +119,7 @@ Read Sticker sends the sticker you choose to an AI provider for a short descript
 3. Save your settings and assign **Read Sticker** in **Shortcut remapping**.
 4. Focus a sticker message or its sticker button, press the shortcut, and wait for the description.
 
-Only that sticker is sent when you use the shortcut. Moving within the same chat is allowed. Switching chats, language, or settings cancels the old request. Results are read once and do not replace message labels. AI descriptions may be inaccurate.
+Only the stickers in the focused message are sent when you use the shortcut, up to six different ones. Identical stickers are described once with a count, and different ones are numbered Sticker 1, Sticker 2, and so on. Moving within the same chat is allowed. Switching chats, language, or settings cancels the old request. Results are read once and do not replace message labels. AI descriptions may be inaccurate.
 
 Companion connects to the provider directly in the background. No browser extension or extra server is required. Keys are encrypted in the WhatsApp profile, separate from your browser profile. Leave the key field blank to keep a saved key. Clearing site data may remove it. Encryption does not protect the key from page scripts or malware. Saving settings does not test the provider.
 
@@ -169,7 +169,7 @@ During a call, open NVDA's Tools menu, then WhatsApp Companion, then Start call 
 
 The WAV file contains WhatsApp audio on the left channel and your microphone on the right. Recordings are saved locally in the chosen folder, initially Documents/WhatsApp Recordings. The recorder captures only the selected WhatsApp process tree, not all speaker output. Other sounds produced by WhatsApp can still be included. NVDA output is excluded from that capture, but a microphone near speakers can pick it up. Use headphones to avoid this.
 
-Start call recording is unavailable only when the last check found no call. If the call state is not known yet, it stays available and checks again when chosen. After you choose Start, the setup dialog closes and Companion opens the call window to verify that the call is connected. If needed, it restores the full view with one click on the participant area. Recording starts only after verification succeeds. Keep the call window active during this step. Stop recording also cancels pending preparation.
+Start call recording is unavailable while a recording is running or being prepared, and when the last check found no call. If the call state is not known yet, it stays available and checks again when chosen. After you choose Start, the setup dialog closes and Companion opens the call window to verify that the call is connected. If needed, it restores the full view with one click on the participant area. Recording starts only after verification succeeds. Keep the call window active during this step. Stop recording also cancels pending preparation.
 
 The microphone is recorded independently, including while muted in WhatsApp. When the call window has been gone for about 15 seconds, recording stops by itself and NVDA announces that the call ended and where the file was saved. A minimized call window or an uncertain check never stops recording. Recording also stops when the selected WhatsApp process exits, NVDA exits, the session locks, the secure desktop opens, or the four-hour limit is reached. An error may leave a partial WAV file, whose location is announced when available.
 

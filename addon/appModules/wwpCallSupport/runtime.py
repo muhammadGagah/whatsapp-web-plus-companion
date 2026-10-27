@@ -236,21 +236,28 @@ def _performCallWork(
 
 	if not timely():
 		return "failed"
-	root = client.ElementFromHandle(hwnd)
-	if root.currentProcessId != pid or not timely():
-		return "failed"
-	searchRoot, searchWalker = cachedTraversal(client, root, uia)
-	if action in {CallAction.ANSWER, CallAction.DECLINE}:
-		pair = findIncomingPair(searchRoot, searchWalker, pid, uia.UIA_ButtonControlTypeId)
-	else:
-		pair = findActiveControls(searchRoot, searchWalker, pid, uia.UIA_ButtonControlTypeId, action)
+	try:
+		root = client.ElementFromHandle(hwnd)
+		if root.currentProcessId != pid or not timely():
+			return "failed"
+		searchRoot, searchWalker = cachedTraversal(client, root, uia)
+		if action in {CallAction.ANSWER, CallAction.DECLINE}:
+			pair = findIncomingPair(searchRoot, searchWalker, pid, uia.UIA_ButtonControlTypeId)
+		else:
+			pair = findActiveControls(searchRoot, searchWalker, pid, uia.UIA_ButtonControlTypeId, action)
+		candidate = None
+		if pair is None:
+			focus = client.GetFocusedElement()
+			if kind(focus, pid, allowHiddenMute=True) != "mute":
+				return "passthrough"
+			candidate = findCompact(root, client.RawViewWalker, pid)
+	except Exception:
+		# No usable call controls (no call, or a large or slow tree). As before the call worker
+		# existed, WhatsApp receives the key; only a failure after a control was found is reported.
+		return "passthrough"
 	if not timely():
 		return "failed"
 	if pair is None:
-		focus = client.GetFocusedElement()
-		if kind(focus, pid, allowHiddenMute=True) != "mute":
-			return "passthrough"
-		candidate = findCompact(root, client.RawViewWalker, pid)
 		if candidate is None or candidate[2] != focusHost:
 			return "passthrough"
 		if not timely():
