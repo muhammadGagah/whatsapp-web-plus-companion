@@ -1,6 +1,6 @@
 # WhatsApp Companion changelog
 
-## 2026.10.26 - 2026-10-26
+## 2026.10.27 - 2026-10-27
 
 Run the recording helper with a process-scoped execution policy, so microphone listing, call detection, recording and compact call-view restore also work on computers that keep the default Restricted PowerShell policy.
 
@@ -10,11 +10,11 @@ Start recording with the window that is in front once NVDA's setup dialog has cl
 
 Read PowerShell output as UTF-8, so launching works when any running program's path contains accented or other non-English characters. End a restore as closed when WhatsApp exits while the connection is being restored. Restore the temporary WebView2 setting when NVDA starts if a previous launch was interrupted. Treat a failed reply to a connection check and a failed journal encryption as recoverable errors. Report a recording only once when Stop arrives just after the recorder finished by itself. Read call labels without changing NVDA's configuration from the call worker. Try every verified address when describing stickers, so broken IPv6 routing can fall back to IPv4. Send the restore click with its own screen position, so it never lands where the mouse pointer was left.
 
-Let a slow sticker provider use the whole request time instead of failing after 10 seconds. Do not reinstall an update that already failed its startup check, and quarantine an update that hangs or crashes WhatsApp after it was loaded. Report a truncated update download as a network problem. Pass Stop to the recorder immediately, so Stop pressed at the end of preparation does not still record. Use the names NVDA shows for its Tools and Preferences menus in the Indonesian help.
+Let a slow sticker provider use the whole request time instead of failing after 10 seconds, and allow up to 2048 tokens for its answer, so a model that reasons first still has room for the description. Do not reinstall an update that already failed its startup check, and quarantine an update that hangs or crashes WhatsApp after it was loaded. Report a truncated update download as a network problem. Pass Stop to the recorder immediately, so Stop pressed at the end of preparation does not still record. Use the names NVDA shows for its Tools and Preferences menus in the Indonesian help.
 
 Reuse recent call checks while the menu or recording dialog is open instead of starting a PowerShell probe every two seconds, and report a failed check as unknown rather than as no call. Say that call controls are being restored when a call shortcut has to wait, translate the channel names in the recording dialog, and run call diagnostics on the call worker.
 
-Include WhatsApp Web Plus 2026.10.26. Its new browser tab recording menu is hidden in Companion, which keeps its native call recorder.
+Include WhatsApp Web Plus 2026.10.27. Its new browser tab recording menu is hidden in Companion, which keeps its native call recorder.
 
 Run native call-control discovery and activation on a dedicated COM worker so slow accessibility providers do not block NVDA. Reject expired actions and changed call windows without replaying shortcuts. Protect recording preparation and queued worker announcements across lock and secure-desktop transitions.
 
@@ -28,7 +28,7 @@ Add manual call recording from the Companion menu and assignable NVDA gestures. 
 
 Route Companion announcements through NVDA's speech function used by Speech History, so bridged announcements such as sticker descriptions and message status can be recorded. Preserve language commands, braille output, and existing output guards, with one speech call per announcement. This routing change affects Companion only, not the browser userscript.
 
-Included WhatsApp Web Plus 2026.10.26 changes:
+Included WhatsApp Web Plus 2026.10.27 changes:
 
 Help load older messages when Arrow Up stalls at the first available message. Scroll only after native navigation leaves focus unchanged, with bounded movement and no continuous polling.
 

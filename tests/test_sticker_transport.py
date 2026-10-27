@@ -48,7 +48,7 @@ class StickerTransportTests(unittest.TestCase):
 		}
 		url, body = validateRequest(request)
 		self.assertEqual(url.hostname, "api.cloudflare.com")
-		self.assertEqual(json.loads(body)["max_tokens"], 512)
+		self.assertEqual(json.loads(body)["max_tokens"], 2048)
 		self.assertFalse(json.loads(body)["stream"])
 		endpoint = request["endpoint"]
 		for invalid in (endpoint.replace("api.cloudflare.com", "evil.test"), endpoint + "?key=x"):
@@ -103,7 +103,7 @@ class StickerTransportTests(unittest.TestCase):
 		)
 		_, encoded = validateRequest(request)
 		body = json.loads(encoded)
-		self.assertEqual(body["max_tokens"], 512)
+		self.assertEqual(body["max_tokens"], 2048)
 		self.assertNotIn("model", body)
 		self.assertEqual(body["messages"][0]["content"][1]["image_url"]["url"], "data:image/png;base64,AA==")
 		endpoint = request["endpoint"]

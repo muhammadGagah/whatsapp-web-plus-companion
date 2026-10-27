@@ -334,7 +334,7 @@ Gunakan shortcut ini ketika kontrol panggilan tersedia. Tombol yang sama dapat m
 
 Langkah ini memperbarui salinan WhatsApp Web Plus yang digunakan Companion. Untuk memperbarui add-on Companion, pasang paket `.nvda-addon` yang lebih baru. Jika Anda juga memakai WhatsApp Web Plus di browser, perbarui pemasangan tersebut secara terpisah.
 
-Versi sumber saat ini adalah **2026.10.26**, dengan WhatsApp Web Plus **2026.10.26**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
+Versi sumber saat ini adalah **2026.10.27**, dengan WhatsApp Web Plus **2026.10.27**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
 
 ## Pemecahan masalah
 

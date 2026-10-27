@@ -76,7 +76,7 @@ def validateRequest(value):
 				raise ValueError("image")
 			if not base64.b64decode(image.split(",", 1)[1], validate=True):
 				raise ValueError("image")
-			body = {"prompt": prompt, "image": image, "max_tokens": 512, "stream": False}
+			body = {"prompt": prompt, "image": image, "max_tokens": 2048, "stream": False}
 			return url, json.dumps(body, separators=(",", ":")).encode("utf-8")
 	if provider == "gemini":
 		parts = body.get("contents", [{}])[0].get("parts")
@@ -114,7 +114,7 @@ def validateRequest(value):
 	if provider == "gemini":
 		body = {
 			"contents": [{"role": "user", "parts": cleanParts}],
-			"generationConfig": {"maxOutputTokens": 512},
+			"generationConfig": {"maxOutputTokens": 2048},
 		}
 	else:
 		model = body.get("model")
@@ -123,13 +123,13 @@ def validateRequest(value):
 		body = {
 			"model": model,
 			"messages": [{"role": "user", "content": cleanParts}],
-			"max_completion_tokens": 512,
+			"max_completion_tokens": 2048,
 			"stream": False,
 		}
 	if provider == "cloudflare":
 		del body["model"]
 		del body["max_completion_tokens"]
-		body["max_tokens"] = 512
+		body["max_tokens"] = 2048
 	encoded = json.dumps(body, separators=(",", ":")).encode("utf-8")
 	return url, encoded
 
