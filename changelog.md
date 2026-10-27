@@ -18,7 +18,7 @@ Include WhatsApp Web Plus 2026.10.27. Its new browser tab recording menu is hidd
 
 Run native call-control discovery and activation on a dedicated COM worker so slow accessibility providers do not block NVDA. Reject expired actions and changed call windows without replaying shortcuts. Protect recording preparation and queued worker announcements across lock and secure-desktop transitions.
 
-Move embedded userscript delivery-status announcements to Chat activity monitor, independent of automatic new-message reading.
+Move embedded userscript delivery-status announcements to Chat activity monitor, independent of automatic new-message reading. Automatically read messages no longer end with their delivery status; the first status of a message you just sent is announced by Chat activity monitor instead.
 
 Fix cancellation during the final native call check, suppress delayed recording results across lock transitions, and keep new call checks separate from cancelled workers. Restore compact controls when WhatsApp reports the verified microphone checkbox as offscreen. Accept the current official userscript grant while rejecting unexpected permissions. Verify signed bundle metadata during synchronization and source/package release checks.
 
