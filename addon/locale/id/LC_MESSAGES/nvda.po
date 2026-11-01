@@ -584,9 +584,9 @@ msgstr "Koneksi WhatsApp Companion berhasil dipulihkan."
 msgid "The WhatsApp Companion connection could not be restored. Close WhatsApp, then launch it again."
 msgstr "Koneksi WhatsApp Companion tidak dapat dipulihkan. Tutup WhatsApp, lalu luncurkan kembali."
 
-#. Release summary for WhatsApp Companion 2026.10.27.
-msgid "Add manual WhatsApp call recording and make Companion announcements available to Speech History. Include WhatsApp Web Plus 2026.10.27. Requires NVDA 2025.1 or later."
-msgstr "Menambahkan perekaman panggilan WhatsApp secara manual dan memperbaiki pengumuman Companion agar tercatat di Speech History. Menyertakan WhatsApp Web Plus 2026.10.27. Memerlukan NVDA 2025.1 atau yang lebih baru."
+#. Release summary for WhatsApp Companion 2026.11.01.
+msgid "Add manual WhatsApp call recording and make Companion announcements available to Speech History. Include WhatsApp Web Plus 2026.11.01. Requires NVDA 2025.1 or later."
+msgstr "Menambahkan perekaman panggilan WhatsApp secara manual dan memperbaiki pengumuman Companion agar tercatat di Speech History. Menyertakan WhatsApp Web Plus 2026.11.01. Memerlukan NVDA 2025.1 atau yang lebih baru."
 
 #. Call recording.
 msgid "Start call &recording..."

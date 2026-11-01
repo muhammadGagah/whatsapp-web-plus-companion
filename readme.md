@@ -334,7 +334,7 @@ Use these shortcuts while call controls are available. The same key can have a d
 
 This updates the WhatsApp Web Plus copy used by Companion. To update the Companion add-on itself, install a newer `.nvda-addon` package. If you also use WhatsApp Web Plus in a browser, update that installation separately.
 
-The current source version is **2026.10.27**, including WhatsApp Web Plus **2026.10.27**. Read the [Companion release history](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) for changes.
+The current source version is **2026.11.01**, including WhatsApp Web Plus **2026.11.01**. Read the [Companion release history](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) for changes.
 
 ## Troubleshooting
 

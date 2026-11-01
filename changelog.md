@@ -1,6 +1,6 @@
 # WhatsApp Companion changelog
 
-## 2026.10.27 - 2026-10-27
+## 2026.11.01 - 2026-11-01
 
 Run the recording helper with a process-scoped execution policy, so microphone listing, call detection, recording and compact call-view restore also work on computers that keep the default Restricted PowerShell policy.
 
@@ -14,7 +14,7 @@ Let a slow sticker provider use the whole request time instead of failing after 
 
 Reuse recent call checks while the menu or recording dialog is open instead of starting a PowerShell probe every two seconds, and report a failed check as unknown rather than as no call. Say that call controls are being restored when a call shortcut has to wait, translate the channel names in the recording dialog, and run call diagnostics on the call worker.
 
-Include WhatsApp Web Plus 2026.10.27. Its new browser tab recording menu is hidden in Companion, which keeps its native call recorder.
+Include WhatsApp Web Plus 2026.11.01. Its new browser tab recording menu is hidden in Companion, which keeps its native call recorder.
 
 Run native call-control discovery and activation on a dedicated COM worker so slow accessibility providers do not block NVDA. Reject expired actions and changed call windows without replaying shortcuts. Protect recording preparation and queued worker announcements across lock and secure-desktop transitions.
 
@@ -28,7 +28,7 @@ Add manual call recording from the Companion menu and assignable NVDA gestures. 
 
 Route Companion announcements through NVDA's speech function used by Speech History, so bridged announcements such as sticker descriptions and message status can be recorded. Preserve language commands, braille output, and existing output guards, with one speech call per announcement. This routing change affects Companion only, not the browser userscript.
 
-Included WhatsApp Web Plus 2026.10.27 changes:
+Included WhatsApp Web Plus 2026.11.01 changes:
 
 Help load older messages when Arrow Up stalls at the first available message. Scroll only after native navigation leaves focus unchanged, with bounded movement and no continuous polling.
 
