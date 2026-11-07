@@ -293,7 +293,7 @@ def showReader(reader: dict, language: str = "") -> None:
 		except Exception:
 			copied = False
 		# Translators: Short result of copying the message body from the reader.
-		ui.message(_("Message copied.") if copied else _("Could not copy the message."))
+		ui.message(_("Message copied.") if copied else _("Couldn't copy the message."))
 
 	def close(event) -> None:
 		dialog.Destroy()

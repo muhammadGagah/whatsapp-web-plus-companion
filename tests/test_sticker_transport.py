@@ -1,3 +1,4 @@
+import threading
 import unittest
 import time
 from _path import installPackagePath
@@ -47,7 +48,7 @@ class StickerTransportTests(unittest.TestCase):
 		}
 		url, body = validateRequest(request)
 		self.assertEqual(url.hostname, "api.cloudflare.com")
-		self.assertEqual(json.loads(body)["max_tokens"], 512)
+		self.assertEqual(json.loads(body)["max_tokens"], 2048)
 		self.assertFalse(json.loads(body)["stream"])
 		endpoint = request["endpoint"]
 		for invalid in (endpoint.replace("api.cloudflare.com", "evil.test"), endpoint + "?key=x"):
@@ -102,7 +103,7 @@ class StickerTransportTests(unittest.TestCase):
 		)
 		_, encoded = validateRequest(request)
 		body = json.loads(encoded)
-		self.assertEqual(body["max_tokens"], 512)
+		self.assertEqual(body["max_tokens"], 2048)
 		self.assertNotIn("model", body)
 		self.assertEqual(body["messages"][0]["content"][1]["image_url"]["url"], "data:image/png;base64,AA==")
 		endpoint = request["endpoint"]
@@ -147,6 +148,52 @@ class StickerTransportTests(unittest.TestCase):
 		transport = StickerTransport()
 		transport.pump(Session())
 		self.assertEqual(transport._jobs, {})
+
+	def test_busy_transport_reports_busy_not_network_error(self):
+		request = self.request()
+		resolved = []
+
+		class Session:
+			def request(self, method, params, **kwargs):
+				expression = params["expression"]
+				if "resolve(" in expression:
+					resolved.append(expression)
+					return {"result": {"value": True}}
+				return {"result": {"value": {"version": 1, "request": request, "activeId": request["id"]}}}
+
+		transport = StickerTransport()
+		# Two cancelled jobs are still finishing, so a new request cannot start.
+		transport._jobs = {"a": {"cancel": threading.Event()}, "b": {"cancel": threading.Event()}}
+		transport.pump(Session())
+		self.assertEqual(len(resolved), 1)
+		self.assertIn('"stickerBusy"', resolved[0])
+		self.assertNotIn("stickerNetworkError", resolved[0])
+
+
+class AddressFallbackTests(unittest.TestCase):
+	def test_next_verified_address_is_tried_when_the_first_fails(self):
+		from unittest import mock
+
+		from globalPlugins.whatsappWebPlusCompanion import stickerTransport
+
+		attempts = []
+
+		def connect(address, timeout):
+			attempts.append(address[0])
+			if address[0] == "2001:db8::1":
+				raise OSError("network unreachable")
+			return "socket"
+
+		addresses = [
+			(None, None, None, None, ("2001:db8::1", 443)),
+			(None, None, None, None, ("192.0.2.1", 443)),
+		]
+		with mock.patch.object(stickerTransport.socket, "create_connection", side_effect=connect):
+			self.assertEqual(
+				stickerTransport._connectToCheckedAddress(addresses, threading.Event()),
+				"socket",
+			)
+		self.assertEqual(attempts, ["2001:db8::1", "192.0.2.1"])
 
 
 if __name__ == "__main__":

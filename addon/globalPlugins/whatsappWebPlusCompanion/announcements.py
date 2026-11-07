@@ -20,7 +20,7 @@ _PASSIVE_SOURCE = "message-log"
 
 
 def _defaultOverflowMessage(count: int) -> str:
-	return f"Skipped WhatsApp Web Plus braille announcements: {count}."
+	return f"{count} braille announcements skipped."
 
 
 def _defaultClearedMessage() -> str:

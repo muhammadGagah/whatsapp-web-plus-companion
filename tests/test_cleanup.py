@@ -14,6 +14,33 @@ SAFE_PROBE = SecurityProbe(True, False, False, False)
 
 
 class CleanupTests(unittest.TestCase):
+	def test_only_the_selected_channel_is_closed(self) -> None:
+		closed = []
+
+		def packageFinder(policy):
+			return PackageInfo(policy.id.value, policy.packageFamily, f"C:\\{policy.id.value}")
+
+		def processCloser(package):
+			closed.append(package.fullName)
+			return PackageProcessCloseResult(2, 0)
+
+		result = forceCloseOperation(
+			packageFinder=packageFinder,
+			processCloser=processCloser,
+			probeBuilder=lambda: SAFE_PROBE,
+			channels=(Channel.BETA,),
+		)
+		self.assertEqual(closed, ["beta"])
+		self.assertEqual((result.code, result.messageKey), ("processes.closed", "processes.closed.one"))
+		self.assertEqual(result.values["channel"], "beta")
+		none = forceCloseOperation(
+			packageFinder=lambda policy: None,
+			processCloser=processCloser,
+			probeBuilder=lambda: SAFE_PROBE,
+			channels=(Channel.STABLE,),
+		)
+		self.assertEqual((none.code, none.messageKey), ("processes.none", "processes.none.one"))
+
 	def test_no_installed_or_running_packages_is_successful(self) -> None:
 		result = forceCloseOperation(
 			packageFinder=lambda policy: None,

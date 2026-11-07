@@ -184,8 +184,7 @@ foreach ($dir in Get-ChildItem -Path "_addonL10n/$addonId" -Directory) {
         Write-Host "WARNING: Remote XLIFF score is below threshold ($threshold)."
     }
 
-    # No Markdown fallback upload anymore.
-    # XLIFF is now the single translation source in Crowdin.
+    # XLIFF is the single translation source in Crowdin, so Markdown is not uploaded.
 }
 
 # --- STEP 4: COMMIT UPDATED TRANSLATIONS ---

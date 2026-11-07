@@ -1,5 +1,6 @@
-"""D02: fail-closed session gates, GUI generations and braille backlog invalidation.
-NVDA/Windows APIs are simulated here; see COMPATIBILITY_MATRIX.md for real gates.
+"""Fail-closed session gates, GUI generations and braille backlog invalidation.
+
+NVDA and Windows APIs are simulated here.
 """
 
 import sys
@@ -185,6 +186,8 @@ class PluginOutputTests(unittest.TestCase):
 
 	def setUp(self):
 		self.module = sys.modules["globalPlugins.whatsappWebPlusCompanion"]
+		# Unit tests never touch the real per-user registry journal.
+		self.module.recoverPendingRegistryStateAtStartup = lambda: None
 		self.plugin = self.module.GlobalPlugin()
 		# Test-only injection: no Windows APIs are replaced in production.
 		self.plugin._announcementGuard = security.AnnouncementGuard(lambda: True)

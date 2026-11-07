@@ -252,8 +252,8 @@ def defaultJournalPath() -> Path:
 	except ImportError:
 		pass
 	if base is None:
-		# NVDA 2024.1 exposes the active --config-path through appArgs. Keep
-		# this fallback for older supported builds and test environments.
+		# Fall back to the active --config-path in appArgs when NVDAState.WritePaths
+		# is unavailable, for example in test environments.
 		try:
 			import globalVars
 
@@ -311,7 +311,11 @@ class RegistryJournal:
 			separators=(",", ":"),
 			sort_keys=True,
 		).encode("utf-8")
-		self._storage.write(self._crypto.protect(payload))
+		try:
+			protected = self._crypto.protect(payload)
+		except OSError as error:
+			raise JournalError("encrypt") from error
+		self._storage.write(protected)
 
 	def clear(self) -> None:
 		self._storage.clear()

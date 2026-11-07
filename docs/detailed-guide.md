@@ -14,9 +14,10 @@ launch command.
 
 Close WhatsApp normally. Do not run the launch command again to stop it.
 
-If WhatsApp stays open in the background, use **Force close all Microsoft Store
-WhatsApp processes**. The Companion asks for confirmation because force
-closing WhatsApp can interrupt calls and file transfers. Text that you have not
+If WhatsApp stays open in the background, use **Force close Microsoft Store
+WhatsApp processes**. Choose WhatsApp Stable, WhatsApp Beta or All, then select
+**Force close**. The Companion asks first because force closing WhatsApp can
+interrupt calls and file transfers. Text that you have not
 sent may also be lost.
 
 ### Hear the last result again
@@ -45,13 +46,26 @@ install either one or both.
 
 ### Recovery commands
 
-- **Force close all Microsoft Store WhatsApp processes** closes every running
-  Stable and Beta process after you confirm the warning. Use it only when
+- **Force close Microsoft Store WhatsApp processes** closes the running
+  Stable processes, Beta processes, or both, whichever you choose. Use it only when
   WhatsApp did not close normally.
 - **Diagnose and repair WebView2 policy permissions** checks a Windows
   permission that the Companion needs. Run it after your first installation on
   this computer, before launching WhatsApp. Run it again if that permission is
   removed or Windows is reinstalled, or if Companion reports a permission problem.
+
+### Call commands
+
+- **Call control labels...** adds names for call controls in your WhatsApp
+  language, so the call shortcuts can find them.
+- **Start call recording...** checks for a connected call, then opens the
+  recording dialog. Choose the WhatsApp channel, the microphone used by
+  WhatsApp, and the folder.
+- **Stop recording** stops and saves the recording, or cancels a recording
+  that is still being prepared. Recording also stops by itself shortly after
+  the call window closes.
+
+See [Recording a call](../readme.md#recording-a-call) for details.
 
 ### Result and update commands
 
@@ -63,8 +77,9 @@ install either one or both.
 
 ## Assign an optional keyboard gesture
 
-The Companion's global commands, such as launching WhatsApp and reporting the
-last result, have no default keyboard gestures. You can assign gestures that
+The Companion's global commands, such as launching WhatsApp, starting or
+stopping call recording, and reporting the last result, have no default
+keyboard gestures. You can assign gestures that
 fit your setup. Native call commands have the default shortcuts listed below.
 
 To add your own gesture:
@@ -110,7 +125,7 @@ you need.
 | `Alt + Down Arrow` | Open the next chat when enabled in Shortcut remapping |
 | `Alt + T` | Read the current chat title. Press twice quickly to turn Chat activity monitor on or off |
 | `Alt + 0` | Close the open WhatsApp audio or video player, or dismiss the desktop app promotion |
-| `Alt + M` | Start recording a voice message when enabled in Shortcut remapping |
+| `Alt + M` | Start recording a voice message. Enabled by default; change it in Shortcut remapping |
 
 ### Incoming call controls
 
@@ -180,12 +195,15 @@ Companion to check for a newer WhatsApp Web Plus copy.
 
 The command works in the background:
 
-1. The Companion contacts the fixed official Greasy Fork address.
-2. It checks the version and file details.
-3. If a newer version is available, it downloads and validates it, including
-   signature verification with trusted Ed25519 keys.
-4. If the official content changed without a version change, it validates and
-   refreshes that copy.
+1. The Companion downloads the signed release record and its signature from the
+   official WhatsApp Web Plus repository and verifies them with trusted Ed25519 keys.
+2. If that release is the one already installed, the copy is current. An older
+   release is rejected.
+3. For a newer signed release, it downloads the userscript from the fixed official
+   Greasy Fork address and checks that its version, SHA-256 fingerprint, and size
+   match the signed record.
+4. A newer signed release with the same version, such as a corrected file,
+   refreshes the copy.
 5. NVDA tells you whether the copy was current, updated, refreshed, or left
    unchanged because of an error.
 
@@ -431,11 +449,10 @@ Install the locked development environment:
 uv sync
 ```
 
-Synchronize the exact built userscript from the sibling source repository:
-
-```powershell
-npm run sync:userscript
-```
+For a release, bundle the userscript published on GreasyFork after it has been
+signed. Follow [Bundle the published WhatsApp Web Plus release](update-bundled-userscript.md).
+A local build differs from the published file, so it is used only for
+development with a locally signed manifest.
 
 Run linting, tests, translated documentation generation, and packaging:
 
@@ -462,8 +479,8 @@ The permission repair helper is packaged as `registryRepair.ps1` and
 `resources/registry-repair.json`. Regenerate that record after changing either
 helper file.
 
-Before release, verify `upstream.json`, synchronize the userscript, run the
-full tests, build the `.nvda-addon` package, install it, and complete the required
+Before release, synchronize the verified public userscript, check
+`upstream.json`, run the full tests, build the `.nvda-addon` package, install it, and complete the required
 manual NVDA and WhatsApp tests.
 
 Generated HTML help, translated manifests, compiled message catalogs, SCons
@@ -486,13 +503,15 @@ contact names, or phone numbers.
 ## Read a message in NVDA
 
 When WhatsApp is launched through Companion, focus a message and press
-**Alt+Shift+C**. Companion opens the complete message in NVDA's browseable text
-window, including links, lists, and its sent time. A shortened message is expanded
-first. This avoids the desktop app's unsupported browser pop-up.
+**Alt+Shift+C**. Companion opens the complete message as unwrapped, read-only
+text with its sent time. A shortened message is expanded first. This avoids the
+desktop app's unsupported browser pop-up. Up and Down Arrow follow the original
+message lines, and long lines scroll horizontally.
 
-Press **Escape** to close the reader. Close and Copy buttons are included when
-supported by your NVDA version. The message is not also queued for a separate
-speech or braille announcement. In an ordinary browser, the same shortcut still
+The reader has **Copy message**, which copies the plain message text without the
+title or sent time, **Formatted view**, which opens a wrapped view with clickable
+links, and **Close**. Press **Escape** to close the reader. The message is not also
+queued for a separate speech or braille announcement. In an ordinary browser, the same shortcut still
 opens the existing reader tab.
 
 Keep WhatsApp in the foreground while the message loads. Switching applications,
@@ -509,9 +528,9 @@ Component sources and license boundaries are described in
 
 ## Assigning shortcuts
 
-Choose **Shift+F8 > Shortcut remapping**, then select **Record voice message**, **Previous chat**, **Next chat**, **Start voice call**, or **Start video call**. Type a combination such as `Alt+C` or `Alt+V`, then choose **Save**. Use Ctrl or Alt, optionally Shift, followed by a letter, digit, punctuation key such as comma or period, F1–F12, or ArrowUp/Down/Left/Right. Letters refer to physical keyboard positions. Leave the field blank to disable an action. **Restore default** only changes the field. Choose Save to apply or Cancel/Escape to discard. Existing enabled/disabled remaps are preserved. New call shortcuts start unassigned. The recording default is Alt+M. Previous/next defaults are Alt+ArrowUp/Alt+ArrowDown, initially disabled.
+Choose **Shift+F8 > Shortcut remapping**, then select **Read Sticker**, **Record voice message**, **Previous chat**, **Next chat**, **Start voice call**, or **Start video call**. Type a combination such as `Alt+C` or `Alt+V`, then choose **Save**. Use Ctrl or Alt, optionally Shift, followed by a letter, digit, punctuation key such as comma or period, F1–F12, or ArrowUp/Down/Left/Right. Letters refer to physical keyboard positions. Leave the field blank to disable an action. **Restore default** only changes the field. Choose Save to apply or Cancel/Escape to discard. Existing enabled/disabled remaps are preserved. New call shortcuts start unassigned. The recording default is Alt+M. Previous/next defaults are Alt+ArrowUp/Alt+ArrowDown, initially disabled.
 
-Duplicate assignments and fixed script/Companion commands are rejected. Browser, system, NVDA, or extension shortcuts can still take priority. AltGr is not supported. Voice/video calls use the available button in the current conversation header, identified by its icon rather than translated text. No custom language string is required. Unavailable or ambiguous buttons are reported without starting a call.
+Duplicate assignments, fixed script/Companion commands, and WhatsApp's own shortcuts are rejected. Browser, system, NVDA, or extension shortcuts can still take priority. AltGr is not supported. Voice/video calls use the available button in the current conversation header, identified by its icon rather than translated text. No custom language string is required. Unavailable or ambiguous buttons are reported without starting a call.
 
 ### Record a shortcut
 

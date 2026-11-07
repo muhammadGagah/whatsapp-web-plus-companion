@@ -68,9 +68,14 @@ def defaultLabels(action):
 	)
 
 
-def _section():
+def _section(create=True):
 	import config
 
+	if not create:
+		# Readers, including the call worker thread, never modify NVDA's configuration. Only saving,
+		# which runs on the GUI thread, registers the spec and creates the section.
+		section = config.conf.profiles[0].get(SECTION)
+		return section if section is not None else {}
 	if SECTION not in config.conf.spec:
 		config.conf.spec[SECTION] = {action.value: "string(default='')" for action in CallAction}
 	# ConfigManager.save always saves profiles[0]. Read/write the base profile
@@ -82,7 +87,7 @@ def _section():
 
 
 def _rawValues():
-	section = _section()
+	section = _section(create=False)
 	return tuple(section.get(action.value, "") for action in CallAction)
 
 

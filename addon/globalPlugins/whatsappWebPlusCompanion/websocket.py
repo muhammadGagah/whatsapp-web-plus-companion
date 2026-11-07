@@ -237,7 +237,13 @@ class WebSocket:
 			if opcode == 8:
 				raise LoaderError("websocket.closed")
 			if opcode == 9:
-				sendAll(self.sock, encodeClientFrame(10, payload), budget)
+				# A failed pong is a broken connection, which the session recovers like any send failure.
+				try:
+					sendAll(self.sock, encodeClientFrame(10, payload), budget)
+				except socket.timeout:
+					raise
+				except OSError as error:
+					raise LoaderError("websocket.send", type(error).__name__) from error
 				continue
 			if opcode == 10:
 				continue

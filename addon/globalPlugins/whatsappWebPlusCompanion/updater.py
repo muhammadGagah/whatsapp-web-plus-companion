@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import StrEnum
+import http.client
 import hashlib
 import json
 import os
@@ -17,6 +18,7 @@ from .bundle import (
 	SIGNED_MANIFEST_URL,
 	TRUST_STORE,
 	UPDATE_MANIFEST,
+	isQuarantined,
 	loadEmbeddedBundle,
 	loadPackagedBundle,
 	selectEmbeddedBundle,
@@ -40,7 +42,6 @@ _REQUIRED_DIRECTIVES = {
 	"run-at": "document-start",
 	"updateURL": SCRIPT_METADATA_URL,
 	"downloadURL": SCRIPT_DOWNLOAD_URL,
-	"grant": "none",
 }
 
 
@@ -131,7 +132,8 @@ def _readBounded(
 					break
 				chunks.append(chunk)
 				byteCount += len(chunk)
-	except OSError as error:
+	except (OSError, http.client.HTTPException) as error:
+		# A connection that ends early (IncompleteRead) is a network problem, not a bad release.
 		raise UpdateCheckError("network") from error
 	payload = b"".join(chunks)
 	if len(payload) > maximumBytes:
@@ -210,6 +212,8 @@ def validateDownloadedScript(payload: bytes, expectedVersion: str) -> tuple[str,
 	for name, expected in _REQUIRED_DIRECTIVES.items():
 		if directives.get(name) != [expected]:
 			raise UpdateCheckError("validation")
+	if directives.get("grant") not in (["none"], ["GM_xmlhttpRequest"]):
+		raise UpdateCheckError("validation")
 	versions = directives.get("version", [])
 	if len(versions) != 1 or versions[0] != expectedVersion:
 		raise UpdateCheckError("validation")
@@ -432,6 +436,15 @@ def checkForUpdate(
 		comparison = compareVersions(release.version, currentVersion)
 		if comparison < 0:
 			raise UpdateCheckError("downgrade")
+		if isQuarantined(release.sha256, updateStore):
+			# This exact release failed its startup check here. Keep the working copy until a new
+			# release is published, instead of reinstalling it and failing every launch again.
+			return UpdateCheckResult(
+				UpdateStatus.CURRENT,
+				currentVersion,
+				currentVersion,
+				latestSequence=current.releaseSequence,
+			)
 		payload, _digest = fetchReleaseScript(release, httpOpener, cancelEvent)
 		installed = installDownloadedBundle(
 			payload,

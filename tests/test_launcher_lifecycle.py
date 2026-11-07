@@ -292,6 +292,24 @@ class LauncherLifecycleTests(unittest.TestCase):
 			self.assertEqual(raised.exception.safeDetail, code)
 			quarantine.assert_called_once_with("a" * 64)
 
+	def test_update_that_hangs_after_injection_is_quarantined_but_not_before(self) -> None:
+		bundle = MagicMock(isUpdate=True, sha256="b" * 64)
+		for code in ("cdp.timeout", "cdp.initialAttach"):
+			with (
+				self.subTest(code=code, injected=True),
+				patch.object(launcher, "quarantineUpdatedBundle", return_value=True) as quarantine,
+				self.assertRaisesRegex(LoaderError, "bundle.updateQuarantined"),
+			):
+				launcher._raiseBundleInstallError(bundle, LoaderError(code), injected=True)
+			quarantine.assert_called_once_with("b" * 64)
+			with (
+				self.subTest(code=code, injected=False),
+				patch.object(launcher, "quarantineUpdatedBundle") as quarantine,
+				self.assertRaisesRegex(LoaderError, code),
+			):
+				launcher._raiseBundleInstallError(bundle, LoaderError(code), injected=False)
+			quarantine.assert_not_called()
+
 	def test_packaged_bundle_failure_is_not_quarantined(self) -> None:
 		bundle = MagicMock(isUpdate=False, sha256="b" * 64)
 		with (
@@ -421,6 +439,52 @@ class LauncherLifecycleTests(unittest.TestCase):
 		self.assertEqual([report.messageKey for report in reports], ["cdp.recovering"] if failures else [])
 		discover.assert_not_called()
 		self.assertEqual(processes.call_count, 3 + len(failures))
+		session.close.assert_called_once()
+
+	def test_app_closing_during_restore_ends_as_closed_not_a_long_failed_restore(self) -> None:
+		reports = []
+		lease = MagicMock()
+		lease.owned = False
+		lease.acquire.side_effect = lambda: setattr(lease, "owned", True)
+		lease.restore.side_effect = lambda: setattr(lease, "owned", False)
+		session = MagicMock()
+		with (
+			patch.object(launcher, "buildSecurityProbe", return_value=MagicMock()),
+			patch.object(launcher, "checkPreflight"),
+			patch.object(launcher, "_recoverPendingRegistryState"),
+			patch.object(launcher, "resolvePackage", return_value=MagicMock()),
+			# Not running, then running at launch, still running at the first recovery check,
+			# then gone once the replacement target cannot be found.
+			patch.object(launcher, "findRunningPackageProcesses", side_effect=[(), (41,), (41,), ()]),
+			patch.object(launcher, "reserveLoopbackPort", return_value=12345),
+			patch.object(launcher, "RegistryLease", return_value=lease),
+			patch.object(launcher, "activateAumid"),
+			patch.object(launcher, "waitForEndpoint"),
+			patch.object(launcher, "_waitForValidatedListener"),
+			patch.object(launcher, "_waitForTarget", return_value=MagicMock()),
+			patch.object(
+				launcher,
+				"selectEmbeddedBundle",
+				return_value=MagicMock(source="source", version="1.0", sha256="hash", isUpdate=False),
+			),
+			patch.object(
+				launcher,
+				"_waitForInitialAttachment",
+				return_value=(MagicMock(), session, {"state": "ready"}, lambda: None),
+			),
+			patch.object(launcher, "_forwardCompanionAnnouncements", side_effect=LoaderError("cdp.closed")),
+			patch.object(launcher, "_discoverTarget", side_effect=LoaderError("http.transport")) as discover,
+		):
+			result = launcher.launchOperation(
+				Channel.STABLE,
+				_CancelEvent(),
+				lambda _state: None,
+				reportObserver=reports.append,
+			)
+		self.assertEqual(result.messageKey, "package.closed")
+		self.assertTrue(result.values["recoveryReported"])
+		self.assertEqual([report.messageKey for report in reports], ["cdp.recovering"])
+		self.assertEqual(discover.call_count, 1, "no further reconnect attempts after WhatsApp closed")
 		session.close.assert_called_once()
 
 	def test_reconnect_keeps_the_discovered_target_paired_with_its_session(self) -> None:

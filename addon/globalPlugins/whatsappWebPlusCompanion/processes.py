@@ -2,6 +2,7 @@ import json
 import pathlib
 from dataclasses import dataclass
 
+from . import nativeProbes
 from .models import LoaderError
 from .packages import PowerShellCommand, PowerShellRunner, runPowerShell
 from .policy import LOOPBACK_HOST
@@ -42,7 +43,21 @@ def validateListener(
 def collectProcessTopology(
 	port: int,
 	runner: PowerShellRunner = runPowerShell,
+	*,
+	native: bool = False,
 ) -> tuple[list[Listener], dict[int, int]]:
+	"""Return the listeners on port and a pid -> parent pid map.
+
+	With native=True the snapshot comes from Win32 directly; PowerShell is only the fallback.
+	"""
+	if native:
+		try:
+			return _topologyFromRows(
+				nativeProbes.tcpRows("listen", int(port)),
+				nativeProbes.processRows(details=False),
+			)
+		except nativeProbes.NativeProbeUnavailable as error:
+			nativeProbes.noteFallback("listener", error)
 	listenerScript = (
 		f"$listeners = @(Get-NetTCPConnection -State Listen -LocalPort {int(port)} "
 		"-ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,OwningProcess); "
@@ -63,10 +78,13 @@ def collectProcessTopology(
 			or not isinstance(processData.get("Processes"), list)
 		):
 			raise ValueError("snapshot")
-		data = {"Listeners": listenerData["Listeners"], "Processes": processData["Processes"]}
 	except (TypeError, ValueError) as error:
 		raise LoaderError("processes.json", type(error).__name__) from error
+	return _topologyFromRows(listenerData["Listeners"], processData["Processes"])
 
+
+def _topologyFromRows(listenerRows, processRows) -> tuple[list[Listener], dict[int, int]]:
+	data = {"Listeners": listenerRows, "Processes": processRows}
 	listeners = [
 		Listener(
 			str(row.get("LocalAddress", "")),
@@ -100,6 +118,7 @@ def captureEndpointIdentity(
 	runner: PowerShellRunner = runPowerShell,
 	*,
 	clientPort: int | None = None,
+	native: bool = False,
 ) -> EndpointIdentity:
 	if isinstance(port, bool) or not isinstance(port, int) or not 1024 <= port <= 65535:
 		raise LoaderError("listener.port")
@@ -122,8 +141,21 @@ def captureEndpointIdentity(
 		+ connectionQuery
 		+ "@{Listeners=$listeners;Processes=$processes;Connections=$connections} | ConvertTo-Json -Compress -Depth 4"
 	)
+	data = None
+	if native:
+		try:
+			data = {
+				"Listeners": nativeProbes.tcpRows("listen", port),
+				"Processes": nativeProbes.processRows(details=True),
+				"Connections": (
+					nativeProbes.tcpRows("established", port, clientPort) if clientPort is not None else []
+				),
+			}
+		except nativeProbes.NativeProbeUnavailable as error:
+			nativeProbes.noteFallback("identity", error)
 	try:
-		data = json.loads(runner(PowerShellCommand(script, "listener.identity", 30)) or "{}")
+		if data is None:
+			data = json.loads(runner(PowerShellCommand(script, "listener.identity", 30)) or "{}")
 		if (
 			not isinstance(data, dict)
 			or not isinstance(data.get("Listeners"), list)

@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
+from . import nativeProbes
 from .models import LoaderError
 from .policy import ChannelPolicy
 
@@ -48,12 +49,21 @@ class PackageProcessCloseResult:
 		return max(0, self.foundCount - self.remainingCount)
 
 
+# Windows PowerShell writes piped output in the OEM code page. Any process path with a non-ASCII
+# character (for example an accented account name) would otherwise fail UTF-8 decoding.
+_UTF8_OUTPUT = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"
+
+
+def _command(script: str) -> list[str]:
+	return ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _UTF8_OUTPUT + str(script)]
+
+
 def runPowerShell(script: str) -> str:
 	started = time.monotonic()
 	budget = getattr(script, "timeout", 10)
 	try:
 		completed = subprocess.run(
-			["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+			_command(script),
 			stdin=subprocess.DEVNULL,
 			capture_output=True,
 			check=False,
@@ -64,11 +74,16 @@ def runPowerShell(script: str) -> str:
 		)
 	except subprocess.TimeoutExpired as error:
 		raise LoaderError("powershell.failed", _failureDetail(script, "timeout", started, budget)) from error
+	except UnicodeDecodeError as error:
+		raise LoaderError("powershell.failed", _failureDetail(script, "decode", started, budget)) from error
 	if completed.returncode:
 		raise LoaderError(
 			"powershell.failed",
 			_failureDetail(script, f"exit={completed.returncode}", started, budget),
 		)
+	if completed.stdout is None:
+		# On Windows a decode failure ends the reader thread and leaves no output, without raising.
+		raise LoaderError("powershell.failed", _failureDetail(script, "decode", started, budget))
 	return completed.stdout
 
 
@@ -88,7 +103,7 @@ def runPowerShellCancellable(
 	if time.monotonic() >= end:
 		raise LoaderError("powershell.failed", _failureDetail(script, "timeout", started, budget))
 	process = subprocess.Popen(
-		["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+		_command(script),
 		stdin=subprocess.DEVNULL,
 		stdout=subprocess.PIPE,
 		stderr=subprocess.PIPE,
@@ -114,6 +129,9 @@ def runPowerShellCancellable(
 				"powershell.failed",
 				_failureDetail(script, f"exit={process.returncode}", started, budget),
 			)
+		if stdout is None:
+			# Undecodable output must never look like "no processes".
+			raise LoaderError("powershell.failed", _failureDetail(script, "decode", started, budget))
 		return stdout
 
 
@@ -173,13 +191,23 @@ def resolvePackage(policy: ChannelPolicy, runner: PowerShellRunner = runPowerShe
 def findRunningPackageProcesses(
 	package: PackageInfo,
 	runner: PowerShellRunner = runPowerShell,
+	*,
+	native: bool = False,
 ) -> tuple[int, ...]:
 	script = (
 		"Get-CimInstance Win32_Process | Select-Object ProcessId,ExecutablePath | ConvertTo-Json -Compress"
 	)
+	rows = None
+	if native:
+		try:
+			rows = nativeProbes.processRows(details=True)
+		except nativeProbes.NativeProbeUnavailable as error:
+			nativeProbes.noteFallback("package", error)
+	if rows is None:
+		rows = _rows(runner(PowerShellCommand(script, "package.processes", 20)))
 	root = pathlib.PureWindowsPath(package.installLocation)
 	pids: set[int] = set()
-	for row in _rows(runner(PowerShellCommand(script, "package.processes", 20))):
+	for row in rows:
 		if not isinstance(row, dict) or not row.get("ExecutablePath"):
 			continue
 		path = pathlib.PureWindowsPath(str(row["ExecutablePath"]))
@@ -191,6 +219,37 @@ def findRunningPackageProcesses(
 		if pid > 0:
 			pids.add(pid)
 	return tuple(sorted(pids))
+
+
+def packageProcessesStartedWithin(package: PackageInfo, seconds: float) -> bool:
+	"""True when WhatsApp is running and every one of its processes started within ``seconds``.
+
+	Only the direct Windows check is used. If it is unavailable, the answer is False, so a WhatsApp
+	that may have been open for a long time is never closed automatically.
+	"""
+	try:
+		rows = nativeProbes.processRows(details=True)
+	except nativeProbes.NativeProbeUnavailable as error:
+		nativeProbes.noteFallback("autoConnect", error)
+		return False
+	root = pathlib.PureWindowsPath(package.installLocation)
+	# FILETIME counts 100-nanosecond intervals since 1601-01-01.
+	now = int((time.time() + 11644473600) * 10_000_000)
+	limit = int(seconds * 10_000_000)
+	found = False
+	for row in rows:
+		path = row.get("ExecutablePath")
+		if not path:
+			continue
+		try:
+			pathlib.PureWindowsPath(str(path)).relative_to(root)
+		except ValueError:
+			continue
+		created = row.get("Created")
+		if not isinstance(created, int) or created <= 0 or now - created > limit:
+			return False
+		found = True
+	return found
 
 
 def forceClosePackageProcesses(

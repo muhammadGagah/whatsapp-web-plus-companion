@@ -237,6 +237,14 @@ def loadEmbeddedBundle(
 	return bundle.source, bundle.version, bundle.sha256
 
 
+def isQuarantined(digest: str, updateStore: Path | None = None) -> bool:
+	"""True when this update digest already failed its startup health check on this computer."""
+	if re.fullmatch(r"[0-9a-f]{64}", digest or "") is None:
+		return False
+	root = updateStore if updateStore is not None else updateStorePath()
+	return root is not None and (root / f"bundle-update.quarantined.{digest}.json").exists()
+
+
 def quarantineUpdatedBundle(
 	expectedDigest: str,
 	updateStore: Path | None = None,

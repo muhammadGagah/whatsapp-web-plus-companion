@@ -35,6 +35,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Run unit tests
       run: uv run --python ${{ matrix.python-version }} python -m unittest discover -s tests -v
+    - name: Check native recording source and WAV output
+      run: powershell.exe -NoProfile -NonInteractive -Mta -ExecutionPolicy Bypass -File tests/test-recording-native.ps1
 
   build:
     # Building the add-on template as an add-on does not make sense (and fails).
@@ -96,8 +98,10 @@ jobs:
         merge-multiple: true
     - name: Display structure of downloaded files
       run: ls -R
+    - name: Install uv for signed release verification
+      uses: astral-sh/setup-uv@v9.0.0
     - name: Verify downloaded release package
-      run: python3 scripts/verify-release.py --artifacts-dir .
+      run: uv run python scripts/verify-release.py --artifacts-dir .
     - name: Calculate sha256
       run: |
         echo -e "\nSHA256: " >> changelog.md

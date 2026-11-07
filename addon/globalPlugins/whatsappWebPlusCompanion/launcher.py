@@ -24,7 +24,13 @@ from .cdp import (
 from .http import endpointResponds, httpGetJson
 from .ioDeadline import Deadline
 from .models import Channel, LoaderError, OperationResult, OperationState
-from .packages import findRunningPackageProcesses, resolvePackage, runPowerShellCancellable
+from .packages import (
+	findRunningPackageProcesses,
+	forceClosePackageProcesses,
+	packageProcessesStartedWithin,
+	resolvePackage,
+	runPowerShellCancellable,
+)
 from .policy import (
 	BUNDLE_HEALTH_DEADLINE,
 	CHANNELS,
@@ -52,6 +58,15 @@ RegisterCloser = Callable[[Callable[[], None]], Callable[[], None]]
 ReportCallback = Callable[[OperationResult], bool | None]
 
 _ANNOUNCEMENT_POLL_INTERVAL = 0.1
+# Take process and listener snapshots in-process. PowerShell remains the fallback.
+_NATIVE_PROBES = True
+# Stable and Beta can launch at the same time, but the WebView2 policy value, the recovery journal and
+# the registry mutex are shared. One launch at a time holds them from recovery until the value is restored.
+_REGISTRY_PHASE = threading.Lock()
+# Automatic connection only replaces a WhatsApp that the user opened recently. NVDA already checked
+# 30 seconds when the window appeared; the package lookup before this check can take a while.
+_AUTO_CONNECT_WINDOW = 60.0
+_AUTO_CONNECT_CLOSE_DEADLINE = 15.0
 _TARGET_HEALTH_INTERVAL = 1.0
 
 _TRANSIENT_INITIAL_ATTACH_ERRORS = frozenset(
@@ -73,6 +88,10 @@ _UPDATED_BUNDLE_HEALTH_ERRORS = frozenset(
 )
 
 
+class _PackageClosed(Exception):
+	"""WhatsApp exited while the connection was being restored."""
+
+
 @dataclass(slots=True)
 class _AnnouncementState:
 	sessionToken: str = ""
@@ -83,8 +102,16 @@ class _AnnouncementState:
 	suppressed: bool = False
 
 
-def _raiseBundleInstallError(bundle: object, error: LoaderError) -> None:
-	if getattr(bundle, "isUpdate", False) and error.code in _UPDATED_BUNDLE_HEALTH_ERRORS:
+# After the updated script was injected, a page that stops answering or keeps crashing is
+# caused by that update too. Before injection these are ordinary connection problems.
+_POST_INJECTION_HEALTH_ERRORS = frozenset({"cdp.timeout", "cdp.initialAttach"})
+
+
+def _raiseBundleInstallError(bundle: object, error: LoaderError, *, injected: bool = False) -> None:
+	healthErrors = _UPDATED_BUNDLE_HEALTH_ERRORS | (
+		_POST_INJECTION_HEALTH_ERRORS if injected else frozenset()
+	)
+	if getattr(bundle, "isUpdate", False) and error.code in healthErrors:
 		digest = getattr(bundle, "sha256", "")
 		quarantined = quarantineUpdatedBundle(digest)
 		log.warning(
@@ -227,6 +254,7 @@ def _forwardCompanionAnnouncements(
 					"language": announcement.language,
 					"privacy": announcement.privacy,
 					"text": announcement.text,
+					"processIds": getattr(session, "readerProcessIds", ()),
 					**(
 						{
 							"reader": announcement.reader,
@@ -286,7 +314,13 @@ class _OperationIO:
 def _endpointValidator(port, package, io):
 	def validate(*, deadline=None, clientPort=None):
 		operation = replace(io, end=min(io.end, deadline)) if deadline is not None else io
-		return captureEndpointIdentity(port, package, runner=operation.runner, clientPort=clientPort)
+		return captureEndpointIdentity(
+			port,
+			package,
+			runner=operation.runner,
+			clientPort=clientPort,
+			native=_NATIVE_PROBES,
+		)
 
 	return validate
 
@@ -304,36 +338,76 @@ def _discoverTarget(port: int, *, io: _OperationIO | None = None, validator=None
 	return replace(target, endpointIdentity=identity) if identity is not None else target
 
 
+def _isTimeout(error: LoaderError) -> bool:
+	return error.code == "operation.timeout" or (
+		error.code == "powershell.failed" and error.safeDetail.startswith("timeout")
+	)
+
+
+class _WaitDiagnostics:
+	"""Describe a wait loop that ran out of time without hiding why it kept retrying."""
+
+	def __init__(self, io: _OperationIO) -> None:
+		self.started = time.monotonic()
+		self.budget = max(0.0, io.end - self.started)
+		self.attempts = 0
+		self.lastError: LoaderError | None = None
+
+	def detail(self, fallback: str, cause: LoaderError | None = None) -> str:
+		last = self.lastError
+		parts = [f"last={last.code if last else fallback}"]
+		if last is not None and last.safeDetail:
+			parts[0] += f"[{last.safeDetail}]"
+		if cause is not None:
+			parts.append(f"cause={cause.code}[{cause.safeDetail}]")
+		parts.append(f"attempts={self.attempts}")
+		parts.append(f"elapsed={time.monotonic() - self.started:.2f}s")
+		parts.append(f"budget={self.budget:.2f}s")
+		parts.append("probe=" + ("native" if _NATIVE_PROBES else "powershell"))
+		return ";".join(parts)
+
+
 def _waitForTarget(port: int, cancelEvent: threading.Event, *, io=None, validator=None) -> Target:
 	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_IDENTITY_DEADLINE)).child(
 		TARGET_IDENTITY_DEADLINE,
 	)
-	lastError = None
+	diagnostics = _WaitDiagnostics(io)
 	while time.monotonic() < io.end:
-		io.remaining()
+		try:
+			io.remaining()
+		except LoaderError as error:
+			raise LoaderError("target.timeout", diagnostics.detail("noTarget", error)) from error
+		diagnostics.attempts += 1
 		try:
 			return _discoverTarget(port, io=io, validator=validator)
 		except LoaderError as error:
 			if error.code == "operation.cancelled":
 				raise
-			lastError = error
+			diagnostics.lastError = error
 		if cancelEvent.wait(min(0.25, max(0, io.end - time.monotonic()))):
 			raise LoaderError("operation.cancelled")
-	raise LoaderError("target.timeout", lastError.code if lastError else "noTarget")
+	raise LoaderError("target.timeout", diagnostics.detail("noTarget"))
 
 
 def _waitForPackageProcesses(package, cancelEvent: threading.Event, *, io=None) -> set[int]:
 	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + TARGET_DEADLINE)).child(
 		TARGET_DEADLINE,
 	)
+	diagnostics = _WaitDiagnostics(io)
 	while time.monotonic() < io.end:
-		io.remaining()
-		pids = set(findRunningPackageProcesses(package, runner=io.runner))
+		try:
+			io.remaining()
+			diagnostics.attempts += 1
+			pids = set(findRunningPackageProcesses(package, runner=io.runner, native=_NATIVE_PROBES))
+		except LoaderError as error:
+			if _isTimeout(error):
+				raise LoaderError("package.processTimeout", diagnostics.detail("noProcess", error)) from error
+			raise
 		if pids:
 			return pids
 		if cancelEvent.wait(min(0.25, max(0, io.end - time.monotonic()))):
 			raise LoaderError("operation.cancelled")
-	raise LoaderError("package.processTimeout")
+	raise LoaderError("package.processTimeout", diagnostics.detail("noProcess"))
 
 
 def _waitForValidatedListener(
@@ -342,23 +416,42 @@ def _waitForValidatedListener(
 	cancelEvent: threading.Event,
 	*,
 	io=None,
+	package=None,
 ) -> int:
 	io = (io or _OperationIO(cancelEvent, _noopRegister, time.monotonic() + LISTENER_DEADLINE)).child(
 		LISTENER_DEADLINE,
 	)
-	lastError = None
+	diagnostics = _WaitDiagnostics(io)
+	refreshPids = False
 	while time.monotonic() < io.end:
-		io.remaining()
-		listeners, parents = collectProcessTopology(port, runner=io.runner)
+		try:
+			io.remaining()
+			if refreshPids and package is not None:
+				# WhatsApp can replace the process that started WebView2 after the first
+				# inventory. Check ancestry against the processes running now, and drop old
+				# PIDs so a reused PID can never vouch for a foreign listener.
+				current = set(findRunningPackageProcesses(package, runner=io.runner, native=_NATIVE_PROBES))
+				if current:
+					packagePids = current
+			refreshPids = False
+			diagnostics.attempts += 1
+			listeners, parents = collectProcessTopology(port, runner=io.runner, native=_NATIVE_PROBES)
+		except LoaderError as error:
+			if _isTimeout(error):
+				# Report the validation failure that kept the loop retrying, not only the
+				# probe that happened to be running when the launch budget ran out.
+				raise LoaderError("listener.timeout", diagnostics.detail("noListener", error)) from error
+			raise
 		try:
 			return validateListener(port, listeners, parents, packagePids)
 		except LoaderError as error:
 			if not error.code.startswith("listener."):
 				raise
-			lastError = error
+			diagnostics.lastError = error
+			refreshPids = error.code == "listener.ancestry"
 		if cancelEvent.wait(min(0.25, max(0, io.end - time.monotonic()))):
 			raise LoaderError("operation.cancelled")
-	raise LoaderError("listener.timeout", lastError.code if lastError else "noListener")
+	raise LoaderError("listener.timeout", diagnostics.detail("noListener"))
 
 
 def _recoverPendingRegistryState() -> None:
@@ -383,6 +476,16 @@ def _recoverPendingRegistryState() -> None:
 		releaseRegistryMutex(handle)
 
 
+def recoverPendingRegistryStateAtStartup() -> None:
+	"""Best-effort recovery of an interrupted launch; a later launch retries if this fails."""
+	try:
+		_recoverPendingRegistryState()
+	except LoaderError as error:
+		log.warning("WhatsApp Companion startup registry recovery deferred: code=%s", error.code)
+	except Exception:
+		log.exception("Unexpected WhatsApp Companion startup registry recovery failure")
+
+
 def _connectAndInstall(
 	target: Target,
 	source: str,
@@ -393,6 +496,7 @@ def _connectAndInstall(
 	*,
 	deadline: float | None = None,
 	validator=None,
+	progress: dict | None = None,
 ) -> tuple[CdpSession, dict, Callable[[], None]]:
 	budget = Deadline.after(45.0, cancelEvent, deadline)
 	try:
@@ -432,6 +536,7 @@ def _connectAndInstall(
 			cancelEvent,
 			healthDeadline=BUNDLE_HEALTH_DEADLINE,
 			deadline=budget.end,
+			progress=progress,
 		)
 	except Exception as error:
 		unregisterSession()
@@ -454,6 +559,7 @@ def _waitForInitialAttachment(
 	*,
 	io=None,
 	validator=None,
+	progress: dict | None = None,
 ) -> tuple[Target, CdpSession, dict, Callable[[], None]]:
 	io = (io or _OperationIO(cancelEvent, registerCloser, time.monotonic() + 45)).child(45)
 	end = io.end
@@ -474,6 +580,7 @@ def _waitForInitialAttachment(
 				registerCloser,
 				deadline=end,
 				validator=validator,
+				progress=progress,
 			)
 			return current, session, health, unregisterSession
 		except LoaderError as error:
@@ -490,6 +597,29 @@ def _waitForInitialAttachment(
 	raise LoaderError("cdp.initialAttach", lastError.code if lastError else "noTarget")
 
 
+def _acquireRegistryPhase(io: _OperationIO) -> None:
+	"""Wait while the other WhatsApp channel finishes its own registry step."""
+	while not _REGISTRY_PHASE.acquire(timeout=0.1):
+		io.remaining()
+
+
+def _closeRecentInstance(package, cancelEvent, *, io: _OperationIO) -> None:
+	"""Close a WhatsApp the user just opened, so it can be reopened with WhatsApp Companion."""
+	if not packageProcessesStartedWithin(package, _AUTO_CONNECT_WINDOW):
+		raise LoaderError("autoConnect.tooLate")
+	closeIO = io.child(_AUTO_CONNECT_CLOSE_DEADLINE)
+	forceClosePackageProcesses(package, runner=closeIO.runner)
+	while findRunningPackageProcesses(package, runner=closeIO.runner, native=_NATIVE_PROBES):
+		if cancelEvent.wait(0.2):
+			raise LoaderError("operation.cancelled")
+		try:
+			closeIO.remaining()
+		except LoaderError as error:
+			if error.code == "operation.timeout":
+				raise LoaderError("autoConnect.closeFailed") from error
+			raise
+
+
 def launchOperation(
 	channel: Channel,
 	cancelEvent: threading.Event,
@@ -499,6 +629,52 @@ def launchOperation(
 	gateObserver: GateCallback = lambda name: None,
 	stayAttached: bool = True,
 	announcementGuard: AnnouncementGuard | None = None,
+	*,
+	replaceRecentInstance: bool = False,
+) -> OperationResult:
+	started = time.monotonic()
+	gates: list[str] = []
+
+	def observeGate(name: str) -> None:
+		if len(gates) < 16:
+			gates.append(f"{name}@{time.monotonic() - started:.1f}s")
+		gateObserver(name)
+
+	try:
+		return _launchOperation(
+			channel,
+			cancelEvent,
+			setState,
+			registerCloser,
+			reportObserver,
+			observeGate,
+			stayAttached,
+			announcementGuard,
+			replaceRecentInstance=replaceRecentInstance,
+		)
+	except LoaderError as error:
+		# A failed launch logs when each step finished, so a slow computer can be told
+		# apart from a step that never succeeds.
+		if error.code != "operation.cancelled" and not any(
+			gate.startswith("bundleHealth@") for gate in gates
+		):
+			timeline = ",".join(gates) or "none"
+			suffix = f"gates={timeline};failedAt={time.monotonic() - started:.1f}s"
+			error.safeDetail = f"{error.safeDetail};{suffix}" if error.safeDetail else suffix
+		raise
+
+
+def _launchOperation(
+	channel: Channel,
+	cancelEvent: threading.Event,
+	setState: StateCallback,
+	registerCloser: RegisterCloser,
+	reportObserver: ReportCallback,
+	gateObserver: GateCallback,
+	stayAttached: bool,
+	announcementGuard: AnnouncementGuard | None,
+	*,
+	replaceRecentInstance: bool = False,
 ) -> OperationResult:
 	io = _OperationIO(cancelEvent, registerCloser, time.monotonic() + 90.0)
 	io.remaining()
@@ -508,21 +684,30 @@ def launchOperation(
 	checkPreflight(buildSecurityProbe())
 	package = resolvePackage(policy, runner=io.runner)
 	gateObserver("package")
-	if findRunningPackageProcesses(package, runner=io.runner):
-		raise LoaderError("package.running")
+	if findRunningPackageProcesses(package, runner=io.runner, native=_NATIVE_PROBES):
+		if not replaceRecentInstance:
+			raise LoaderError("package.running")
+		_closeRecentInstance(package, cancelEvent, io=io)
+		gateObserver("replaced")
 	gateObserver("notRunning")
 
 	io.remaining()
 	port = reserveLoopbackPort()
-	_recoverPendingRegistryState()
-	lease = RegistryLease(
-		policy,
-		port,
-		WinRegistry(),
-		journal=RegistryJournal.createDefault(),
-		operationId=newOperationId(),
-	)
-	lease.acquire()
+	_acquireRegistryPhase(io)
+	registryPhaseHeld = True
+	try:
+		_recoverPendingRegistryState()
+		lease = RegistryLease(
+			policy,
+			port,
+			WinRegistry(),
+			journal=RegistryJournal.createDefault(),
+			operationId=newOperationId(),
+		)
+		lease.acquire()
+	except BaseException:
+		_REGISTRY_PHASE.release()
+		raise
 	gateObserver("registry")
 	session: CdpSession | None = None
 	unregisterSession = _noopUnregister
@@ -541,10 +726,12 @@ def launchOperation(
 			deadline=endpointIO.remaining(),
 		)
 		lease.restore()
+		_REGISTRY_PHASE.release()
+		registryPhaseHeld = False
 		gateObserver("registryRestored")
 
 		packagePids = _waitForPackageProcesses(package, cancelEvent, io=io)
-		_waitForValidatedListener(port, packagePids, cancelEvent, io=io)
+		_waitForValidatedListener(port, packagePids, cancelEvent, io=io, package=package)
 		gateObserver("loopbackOnly")
 
 		setState(OperationState.DISCOVERING_TARGET)
@@ -553,6 +740,7 @@ def launchOperation(
 		gateObserver("oneTarget")
 		bundle = selectEmbeddedBundle()
 		setState(OperationState.ATTACHING)
+		attachProgress = {"injected": False}
 		try:
 			target, session, _health, unregisterSession = _waitForInitialAttachment(
 				port,
@@ -564,9 +752,10 @@ def launchOperation(
 				registerCloser,
 				io=io,
 				validator=validator,
+				progress=attachProgress,
 			)
 		except LoaderError as error:
-			_raiseBundleInstallError(bundle, error)
+			_raiseBundleInstallError(bundle, error, injected=attachProgress["injected"])
 		gateObserver("webSocket")
 		gateObserver("mainWorld")
 		gateObserver("pageReady")
@@ -609,7 +798,7 @@ def launchOperation(
 
 				def discoverProcesses():
 					try:
-						return findRunningPackageProcesses(package, runner=io.runner)
+						return findRunningPackageProcesses(package, runner=io.runner, native=_NATIVE_PROBES)
 					except LoaderError as probeError:
 						if probeError.code != "operation.cancelled":
 							reportRecovery()
@@ -653,12 +842,35 @@ def launchOperation(
 						),
 					)
 
-				target, session, _health, unregisterSession = reconnect(
-					lambda: _discoverTarget(port, io=io, validator=validator),
-					connect,
-					cancelEvent,
-					deadline=io.end,
-				)
+				def discoverReplacement() -> Target:
+					try:
+						return _discoverTarget(port, io=io, validator=validator)
+					except LoaderError as discoveryError:
+						# WhatsApp may still have been shutting down at the first check. Look again after
+						# each failed attempt, so a closed app ends as closed instead of a long failed restore.
+						if discoveryError.code != "operation.cancelled" and not findRunningPackageProcesses(
+							package,
+							runner=io.runner,
+							native=_NATIVE_PROBES,
+						):
+							raise _PackageClosed() from discoveryError
+						raise
+
+				try:
+					target, session, _health, unregisterSession = reconnect(
+						discoverReplacement,
+						connect,
+						cancelEvent,
+						deadline=io.end,
+					)
+				except _PackageClosed:
+					session = None
+					return OperationResult(
+						True,
+						"package.closed",
+						"package.closed",
+						{"channel": channel.value, "recoveryReported": recoveryReported},
+					)
 				nextTargetHealthCheck = time.monotonic() + _TARGET_HEALTH_INTERVAL
 				gateObserver("pageReady")
 				setState(OperationState.ATTACHED)
@@ -674,5 +886,9 @@ def launchOperation(
 		if session is not None:
 			session.close()
 			unregisterSession()
-		if lease.owned:
-			lease.restore()
+		try:
+			if lease.owned:
+				lease.restore()
+		finally:
+			if registryPhaseHeld:
+				_REGISTRY_PHASE.release()

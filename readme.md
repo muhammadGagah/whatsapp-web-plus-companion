@@ -59,7 +59,20 @@ If Companion has already worked on this computer, an ordinary update does not re
 
 If WhatsApp opens without receiving focus, press `Alt + Tab`.
 
-Always launch WhatsApp from the Companion menu when you want its features. Opening WhatsApp from the Start menu does not prepare it for Companion.
+Launch WhatsApp from the Companion menu when you want its features. Opening WhatsApp from the Start menu does not prepare it for Companion, unless automatic connection is on.
+
+### Using Stable and Beta at the same time
+
+WhatsApp Stable and WhatsApp Beta can both run with Companion at the same time. Launch each one from the Companion menu. When both are open, NVDA speaks WhatsApp Web Plus announcements only from the WhatsApp that is in front. When another program is in front, announcements from both are spoken. **Force close Microsoft Store WhatsApp processes** lets you close only Stable, only Beta, or both.
+
+### Connecting automatically
+
+Turn on **Connect automatically when WhatsApp is opened** in the Companion menu. After that, when you open WhatsApp Stable or Beta from the Start menu, the taskbar or the desktop, Companion closes it and opens it again, prepared for Companion. NVDA says that WhatsApp is reopening, then confirms when Companion is connected. The setting is off by default.
+
+- This only happens within 30 seconds after WhatsApp started. A WhatsApp that was already open, for example before NVDA started, is never closed automatically. Close it and open it again.
+- If WhatsApp was opened by selecting a notification, the chat from that notification is not opened after the restart.
+- If an automatic connection fails, Companion does not try again for that WhatsApp until you launch it from the menu or turn the setting off and on.
+- You can assign a shortcut to **Turn automatic WhatsApp Companion connection on or off** in NVDA's Input Gestures dialog.
 
 ## Check that it works
 
@@ -80,13 +93,15 @@ Open **NVDA menu > Tools > WhatsApp Companion** to launch WhatsApp or manage Com
 
 **Repeat a message:** choose **Report the last WhatsApp Companion result** if you missed a result or use NVDA speech On-demand mode.
 
-**Close WhatsApp:** close it normally. If it stays running, use **Force close all Microsoft Store WhatsApp processes**. This can interrupt calls or transfers and lose unsent text.
+**Close WhatsApp:** close it normally. If it stays running, use **Force close Microsoft Store WhatsApp processes**, choose WhatsApp Stable, WhatsApp Beta or All, then select **Force close**. Pressing `Enter` keeps WhatsApp open. This can interrupt calls or transfers and lose unsent text.
 
 **Read a full message:** focus a message and press `Alt + Shift + C` to open it in NVDA's reading window. Press `Escape` to close it.
 
 **Change settings:** press `Shift + F8` inside WhatsApp.
 
 ### Reading messages
+
+**Automatic reading of messages** announces new messages. **Chat activity monitor** announces delivery changes such as Sent, Delivered, and Read, along with chat activity. You can turn either setting on or off independently.
 
 Alt+Shift+C opens unwrapped, read-only message text. Up and Down Arrow follow original message lines. Long lines scroll horizontally. Use **Copy message** for plain body text without the reader title or sent time. Use **Formatted view** for wrapped visual reading and clickable links. Escape closes the reader.
 
@@ -117,7 +132,7 @@ Read Sticker sends the sticker you choose to an AI provider for a short descript
 3. Save your settings and assign **Read Sticker** in **Shortcut remapping**.
 4. Focus a sticker message or its sticker button, press the shortcut, and wait for the description.
 
-Only that sticker is sent when you use the shortcut. Moving within the same chat is allowed. Switching chats, language, or settings cancels the old request. Results are read once and do not replace message labels. AI descriptions may be inaccurate.
+Only the stickers in the focused message are sent when you use the shortcut, up to six different ones. Identical stickers are described once with a count, and different ones are numbered Sticker 1, Sticker 2, and so on. Moving within the same chat is allowed. Switching chats, language, or settings cancels the old request. Results are read once and do not replace message labels. AI descriptions may be inaccurate.
 
 Companion connects to the provider directly in the background. No browser extension or extra server is required. Keys are encrypted in the WhatsApp profile, separate from your browser profile. Leave the key field blank to keep a saved key. Clearing site data may remove it. Encryption does not protect the key from page scripts or malware. Saving settings does not test the provider.
 
@@ -159,13 +174,27 @@ You can add labels in several languages at once. There is no need to choose a la
 
 Leave a field blank to use the built-in labels. To remove all your custom labels, choose **Reset all additional labels**, then **Save**. Choose **Cancel** to keep your saved labels.
 
-Your labels are saved in your NVDA settings and shared by WhatsApp Stable and Beta across profiles. They remain available after updating or reinstalling Companion, as long as you keep your NVDA settings. Resetting or deleting those settings also removes your saved labels.
+Your labels are saved in NVDA's `nvda.ini`, in the `[whatsappCompanionCallLabels]` section, and shared by WhatsApp Stable and Beta across profiles. They remain available after updating or reinstalling Companion, as long as you keep your NVDA settings. Resetting or deleting those settings also removes your saved labels.
+
+### Recording a call
+
+During a call, open NVDA's Tools menu, then WhatsApp Companion, then Start call recording. Choose Stable or Beta, select the microphone used by WhatsApp, and choose a recording folder. Start recording after informing the participants. Use Stop recording in the same menu to stop at any time. You can assign shortcuts to both commands in NVDA's Input Gestures under WhatsApp Companion.
+
+The WAV file contains WhatsApp audio on the left channel and your microphone on the right. Recordings are saved locally in the chosen folder, initially Documents/WhatsApp Recordings. The recorder captures only the selected WhatsApp process tree, not all speaker output. Other sounds produced by WhatsApp can still be included. NVDA output is excluded from that capture, but a microphone near speakers can pick it up. Use headphones to avoid this.
+
+Start call recording is unavailable while a recording is running or being prepared, and when the last check found no call. If the call state is not known yet, it stays available and checks again when chosen. After you choose Start, the setup dialog closes and Companion opens the call window to verify that the call is connected. If needed, it restores the full view with one click on the participant area. Recording starts only after verification succeeds. Keep the call window active during this step. Stop recording also cancels pending preparation.
+
+The microphone is recorded independently, including while muted in WhatsApp. When the call window has been gone for about 15 seconds, recording stops by itself and NVDA announces that the call ended and where the file was saved. A minimized call window or an uncertain check never stops recording. Recording also stops when the selected WhatsApp process exits, NVDA exits, the session locks, the secure desktop opens, or the four-hour limit is reached. An error may leave a partial WAV file, whose location is announced when available.
+
+Recording requires Windows build 20348 or later, permission for desktop applications to access the microphone, and Windows PowerShell with Add-Type available. The helper runs with a Bypass execution policy for its own process only, so the default Restricted PowerShell policy does not block it, and no system setting is changed. No extra browser extension, encoder, or recorder installation is needed. If process capture fails, the recorder reports an error rather than switching to all system audio. Recording calls in the desktop app is available only through Companion. In a browser, WhatsApp Web Plus has its own Record call menu.
 
 ### Call shortcuts
 
 See the [full shortcut list](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/docs/detailed-guide.md#whatsapp-keyboard-shortcuts) for navigation, incoming calls, and optional features.
 
 Use these shortcuts while the WhatsApp call window is active. Press `Alt + Tab` to switch to it if needed.
+
+Call commands appear in **NVDA > Preferences > Input Gestures > WhatsApp Companion** only when the dialog is opened from WhatsApp, so focus WhatsApp first. Global commands such as launching WhatsApp remain available from other applications. Reassign any custom call gestures from earlier versions, because these commands moved to the WhatsApp app module.
 
 | Action | Shortcut |
 | --- | --- |
@@ -178,7 +207,7 @@ Use these shortcuts while the WhatsApp call window is active. Press `Alt + Tab` 
 | Start/stop screen sharing | Ctrl+Alt+S |
 | End call | Ctrl+Alt+W |
 
-If a shortcut opens the full call window from the small call view, release the keys and press the shortcut again to perform the action. If the full window does not open, open it manually and try again.
+If a call shortcut cannot find its control in the small call view, Companion can restore the full view with one click on the participant area. Release the keys and wait for the result, then press the shortcut again to perform the action. The click uses the current position of the verified call window. Switching windows cancels recovery. If recovery fails, open the full view manually.
 
 The reactions shortcut opens WhatsApp's reaction controls. Choose the reaction you want to send. When starting screen sharing, choose what to share in WhatsApp. Press `Ctrl + Alt + S` again to stop sharing.
 
@@ -186,7 +215,7 @@ The reactions shortcut opens WhatsApp's reaction controls. Choose the reaction y
 
 Choose **Shift+F8 > Shortcut remapping**, then select **Read Sticker**, **Record voice message**, **Previous chat**, **Next chat**, **Start voice call**, or **Start video call**. Type a combination such as `Alt+C` or `Alt+V`, then choose **Save**. Use Ctrl or Alt, optionally Shift, followed by a letter, digit, punctuation key such as comma or period, F1–F12, or ArrowUp/Down/Left/Right. Letters refer to physical keyboard positions. Leave the field blank to disable an action. **Restore default** only changes the field. Choose Save to apply or Cancel/Escape to discard. Existing enabled/disabled remaps are preserved. New call shortcuts start unassigned. The recording default is Alt+M. Previous/next defaults are Alt+ArrowUp/Alt+ArrowDown, initially disabled.
 
-Duplicate assignments and fixed script/Companion commands are rejected. Browser, system, NVDA, or extension shortcuts can still take priority. AltGr is not supported. Voice/video calls use the available button in the current conversation header, identified by its icon rather than translated text. No custom language string is required. Unavailable or ambiguous buttons are reported without starting a call.
+Duplicate assignments, fixed script/Companion commands, and WhatsApp's own shortcuts are rejected. Browser, system, NVDA, or extension shortcuts can still take priority. AltGr is not supported. Voice/video calls use the available button in the current conversation header, identified by its icon rather than translated text. No custom language string is required. Unavailable or ambiguous buttons are reported without starting a call.
 
 ### Record a shortcut
 
@@ -251,6 +280,7 @@ These are defaults, not your saved remappings.
 | `Alt+ArrowDown` | Next chat. Disabled until enabled in Shortcut remapping |
 | Not assigned | Start voice call: no default shortcut. Assign in Shortcut remapping |
 | Not assigned | Start video call: no default shortcut. Assign in Shortcut remapping |
+| Not assigned | Read Sticker: no default shortcut. Assign in Shortcut remapping |
 
 ## WhatsApp built-in shortcuts
 
@@ -317,11 +347,11 @@ Use these shortcuts while call controls are available. The same key can have a d
 
 This updates the WhatsApp Web Plus copy used by Companion. To update the Companion add-on itself, install a newer `.nvda-addon` package. If you also use WhatsApp Web Plus in a browser, update that installation separately.
 
-The current source version is **2026.10.19**, including WhatsApp Web Plus **2026.10.19**. Read the [Companion release history](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) for changes.
+The current source version is **2026.11.07**, including WhatsApp Web Plus **2026.11.01**. Read the [Companion release history](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) for changes.
 
 ## Troubleshooting
 
-**WhatsApp is already running:** close it completely, then launch it through Companion.
+**WhatsApp is already running:** close it completely, then launch it through Companion. To connect without closing it yourself, turn on **Connect automatically when WhatsApp is opened**.
 
 **WhatsApp cannot be found:** check that the selected Stable or Beta app is installed from Microsoft Store.
 
@@ -334,6 +364,16 @@ The current source version is **2026.10.19**, including WhatsApp Web Plus **2026
 Read the [detailed troubleshooting guide](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/docs/detailed-guide.md#troubleshooting) for other messages and recovery steps.
 
 ## More help
+
+For a native incoming call, focus the call window with Alt+Tab, then press **Ctrl+Alt+A** to answer or **Ctrl+Alt+D** to decline. Companion requires one visible, enabled pair of Accept and Decline buttons in that window. End call is never treated as Decline. In other applications, in editable fields, or with AltGr, the keys pass through as usual. Secure, locked, and no-write sessions also pass the keys through. Holding or repeating a key does not activate a control again immediately. WhatsApp gives its own feedback about the call result.
+
+For diagnostics, open Input Gestures from WhatsApp and assign a gesture to **Save WhatsApp call diagnostics to the NVDA log**, which has no default shortcut. During a connected call, capture one snapshot. The `controls` part of `WWP-CALL-SNAPSHOT` lists every recognized control without activating it. If needed, capture another snapshot after the microphone or camera changes state or after raising your hand. If a control is not recorded, focus it with Tab, make sure the NVDA navigator is on it, press NVDA+F1, and copy its object information after removing personal details. There is no need to collect NVDA+F1 output for every control in advance.
+
+Diagnostics also list unmapped controls in `controls.unmapped`, including technical IDs, enabled and offscreen states, and whether the Invoke and Toggle patterns are available. Names of unknown controls are left out. The status `complete` means the scan finished, not that every control was recognized. Toggle availability is not an on or off state. Check identifiers before sharing a log, because providers can insert personal data. If the camera, reactions, raise hand, or screen sharing are still not recognized, send one new snapshot first. Actions are never mapped from ID names alone.
+
+**Ctrl+Alt+S** activates Start screen sharing or Stop screen sharing, depending on the available control. You still choose the screen or window and confirm it; nothing is selected automatically. The scan covers the whole call window within node and time limits and uses a per-object UIA property cache to reduce cross-process requests. The identity and state of a control are checked again right before activation. The `propertyCache` log entry shows whether this optimization is available. A partial result is always rejected and never activates a control.
+
+The six active-call shortcuts require the End call control and a unique target in the same window. Built-in labels are in English; add the labels used by your WhatsApp language under **Call control labels**. The React checkbox (NewReactionButton) and Start/Stop screen sharing (NewScreenShareButton) use one TogglePattern activation. Other toggle-only controls are not supported yet. Reactions and screen sharing open WhatsApp's controls, and you make the remaining choices. Try the shortcuts on a test call first. If you use WhatsAppNG, disable it temporarily and restart NVDA so the two app modules do not conflict.
 
 These online guides are optional. You do not need them to complete installation.
 

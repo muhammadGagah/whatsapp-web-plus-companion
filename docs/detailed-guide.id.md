@@ -15,21 +15,22 @@ untuk perintah membuka WhatsApp nanti.
 Tutup WhatsApp seperti biasa. Jangan menjalankan lagi perintah untuk membuka
 WhatsApp saat ingin menutupnya.
 
-Jika WhatsApp tetap berjalan di latar belakang, gunakan **Tutup paksa semua
-proses WhatsApp dari Microsoft Store**. Companion meminta konfirmasi karena
+Jika WhatsApp tetap berjalan di latar belakang, gunakan **Tutup paksa proses
+WhatsApp dari Microsoft Store**. Pilih WhatsApp Stable, WhatsApp Beta, atau
+Semua, lalu pilih **Tutup paksa**. Companion meminta konfirmasi karena
 penutupan paksa dapat memutus panggilan dan transfer file. Teks yang belum Anda
 kirim juga mungkin hilang.
 
 ### Mendengar kembali hasil terakhir
 
 Gunakan **Laporkan hasil WhatsApp Companion terakhir** jika Anda
-melewatkan sebuah pesan atau memakai mode ucapan Sesuai Permintaan. Perintah
+melewatkan sebuah pesan atau memakai mode ucapan On-demand. Perintah
 ini mengulangi hasil pembukaan, koneksi, penutupan, perbaikan, atau pembaruan
 terakhir.
 
 ## Perintah pada menu WhatsApp Companion
 
-Buka menu NVDA, pilih **Peralatan**, lalu pilih **WhatsApp Companion**. Gunakan
+Buka menu NVDA, pilih **Tools**, lalu pilih **WhatsApp Companion**. Gunakan
 tombol panah untuk berpindah, `Enter` untuk menjalankan perintah, dan `Escape`
 untuk menutup menu.
 
@@ -47,13 +48,26 @@ terpisah. Anda boleh memasang salah satu atau keduanya.
 
 ### Perintah untuk mengatasi masalah
 
-- **Tutup paksa semua proses WhatsApp dari Microsoft Store** menutup semua
-  proses Stable dan Beta setelah Anda menyetujui peringatannya. Gunakan hanya
+- **Tutup paksa proses WhatsApp dari Microsoft Store** menutup proses Stable,
+  proses Beta, atau keduanya, sesuai pilihan Anda. Gunakan hanya
   jika WhatsApp tidak dapat ditutup seperti biasa.
 - **Diagnosa dan perbaiki izin kebijakan WebView2** memeriksa izin Windows yang
   diperlukan Companion. Jalankan setelah pemasangan pertama di komputer ini,
   sebelum membuka WhatsApp. Jalankan kembali jika izin dihapus, Windows
   dipasang ulang, atau Companion melaporkan masalah izin.
+
+### Perintah panggilan
+
+- **Label kontrol panggilan...** menambahkan nama kontrol panggilan sesuai
+  bahasa WhatsApp, agar pintasan panggilan dapat menemukannya.
+- **Mulai rekam panggilan...** memeriksa panggilan yang tersambung, lalu
+  membuka dialog rekaman. Pilih varian WhatsApp, mikrofon yang digunakan
+  WhatsApp, dan folder penyimpanan.
+- **Hentikan rekaman** menghentikan dan menyimpan rekaman, atau membatalkan
+  rekaman yang masih dipersiapkan. Rekaman juga berhenti sendiri tidak lama
+  setelah jendela panggilan ditutup.
+
+Lihat [Merekam panggilan](../addon/doc/id/readme.md#merekam-panggilan) untuk detailnya.
 
 ### Perintah hasil dan pembaruan
 
@@ -66,15 +80,16 @@ terpisah. Anda boleh memasang salah satu atau keduanya.
 
 ## Menetapkan gestur keyboard opsional
 
-Perintah global Companion, seperti membuka WhatsApp dan melaporkan hasil
-terakhir, tidak memiliki gestur keyboard bawaan. Anda dapat menetapkan gestur
+Perintah global Companion, seperti membuka WhatsApp, memulai atau menghentikan
+rekaman panggilan, dan melaporkan hasil terakhir, tidak memiliki gestur
+keyboard bawaan. Anda dapat menetapkan gestur
 yang sesuai dengan kebutuhan. Perintah panggilan memiliki pintasan bawaan
 yang tercantum di bawah.
 
 Untuk menambahkan gestur sendiri:
 
 1. Buka menu NVDA.
-2. Pilih **Preferensi**, lalu **Gestur Input**.
+2. Pilih **Pilihan**, lalu **Input gestures**.
 3. Ketik `WhatsApp Companion` di kotak penyaring.
 4. Buka kategori **WhatsApp Companion**.
 5. Pilih sebuah perintah.
@@ -114,7 +129,7 @@ Anda perlukan.
 | `Alt + Down Arrow` | Buka chat berikutnya jika diaktifkan pada Pemetaan ulang pintasan |
 | `Alt + T` | Baca judul chat saat ini. Tekan dua kali dengan cepat untuk mengaktifkan atau menonaktifkan pemantau aktivitas chat |
 | `Alt + 0` | Tutup pemutar audio atau video WhatsApp, atau tutup promosi aplikasi desktop |
-| `Alt + M` | Mulai merekam pesan suara jika diaktifkan pada Pemetaan ulang pintasan |
+| `Alt + M` | Mulai merekam pesan suara. Aktif secara bawaan; ubah melalui Pemetaan ulang pintasan |
 
 ### Kontrol panggilan masuk
 
@@ -150,7 +165,7 @@ reaksi atau layar yang ingin dibagikan. Jika pintasan mengembalikan tampilan
 panggilan penuh dari tampilan kecil, lepaskan tombol, periksa tampilan, lalu
 tekan pintasan lagi untuk menjalankan tindakan.
 
-Gunakan **Menu NVDA > Peralatan > WhatsApp Companion > Label kontrol panggilan**
+Gunakan **Menu NVDA > Tools > WhatsApp Companion > Label kontrol panggilan**
 untuk menambahkan label sesuai bahasa WhatsApp. Masukkan satu nama kontrol
 persis per baris sesuai ucapan NVDA, tanpa jenis atau status kontrolnya.
 Label bawaan tetap aktif.
@@ -162,7 +177,7 @@ Label bawaan tetap aktif.
 | `Alt + Shift + N` | Aktifkan atau nonaktifkan Mode Privasi |
 | `Alt + Shift + L` | Aktifkan atau nonaktifkan pembacaan pesan otomatis |
 | `Shift + F8` | Buka atau tutup pengaturan WhatsApp Web Plus |
-| `Alt + Shift + 8` | Aktifkan atau nonaktifkan Bersihkan Antarmuka |
+| `Alt + Shift + 8` | Aktifkan atau nonaktifkan Antarmuka ringkas |
 | `Alt + Shift + 9` | Aktifkan atau nonaktifkan Mode Gelap Asli |
 
 Pilihan fitur opsional Anda tetap tersimpan setelah WhatsApp dimuat ulang.
@@ -185,12 +200,16 @@ Companion mencari salinan WhatsApp Web Plus yang lebih baru.
 
 Perintah ini bekerja di latar belakang:
 
-1. Companion menghubungi alamat resmi Greasy Fork yang sudah ditentukan.
-2. Companion memeriksa versi dan rincian file.
-3. Jika ada versi lebih baru, Companion mengunduh dan memeriksanya, termasuk
-   memverifikasi tanda tangan dengan kunci Ed25519 tepercaya.
-4. Jika isi resmi berubah tanpa perubahan versi, Companion memeriksa lalu
-   menyegarkan salinan tersebut.
+1. Companion mengunduh catatan rilis bertanda tangan beserta signature-nya dari
+   repository resmi WhatsApp Web Plus, lalu memverifikasinya dengan kunci Ed25519
+   tepercaya.
+2. Jika rilis tersebut sama dengan yang terpasang, salinan sudah terbaru. Rilis
+   yang lebih lama ditolak.
+3. Untuk rilis bertanda tangan yang lebih baru, Companion mengunduh userscript dari
+   alamat resmi Greasy Fork yang sudah ditentukan dan memastikan versi, sidik jari
+   SHA-256, serta ukurannya sesuai dengan catatan bertanda tangan.
+4. Rilis bertanda tangan yang lebih baru dengan versi yang sama, misalnya file
+   yang diperbaiki, menyegarkan salinan tersebut.
 5. NVDA memberi tahu apakah salinan sudah terbaru, diperbarui, disegarkan, atau
    tidak diubah karena terjadi kesalahan.
 
@@ -328,7 +347,7 @@ privasi, atau sesi saat ini akan dibuang.
 
 Tutup WhatsApp seperti biasa. Jika masih berada di area notifikasi, gunakan
 perintah **Keluar** atau **Exit** WhatsApp. Jika WhatsApp tetap tidak tertutup,
-gunakan **Tutup paksa semua proses WhatsApp dari Microsoft Store** dari submenu
+gunakan **Tutup paksa proses WhatsApp dari Microsoft Store** dari submenu
 Companion.
 
 ### Kanal WhatsApp yang dipilih tidak ditemukan
@@ -388,7 +407,7 @@ mencoba lagi.
 
 ### Hasil yang datang di latar belakang tidak diucapkan
 
-Dalam mode ucapan Sesuai Permintaan, NVDA mungkin tidak membacakan pesan
+Dalam mode ucapan On-demand, NVDA mungkin tidak membacakan pesan
 dari proses yang berjalan di latar belakang. Jalankan **Laporkan hasil WhatsApp Companion terakhir**.
 Output braille tetap tersedia sesuai pengaturan NVDA Anda.
 
@@ -446,11 +465,10 @@ Pasang lingkungan pengembangan dengan versi yang sudah ditentukan:
 uv sync
 ```
 
-Sinkronkan userscript hasil build dari repository sumber di sebelahnya:
-
-```powershell
-npm run sync:userscript
-```
+Untuk rilis, gunakan userscript yang diterbitkan GreasyFork setelah
+ditandatangani. Ikuti [Menyertakan rilis WhatsApp Web Plus yang sudah dipublikasikan](update-bundled-userscript.id.md).
+Build lokal berbeda dari file publik, sehingga hanya dipakai untuk pengembangan
+dengan manifest yang ditandatangani secara lokal.
 
 Jalankan lint, pengujian, pembuatan dokumentasi terjemahan, dan pembuatan paket:
 
@@ -478,8 +496,8 @@ Alat bantu perbaikan izin dikemas sebagai `registryRepair.ps1` dan
 `resources/registry-repair.json`. Buat ulang catatan tersebut setelah mengubah
 salah satu file alat bantu.
 
-Sebelum rilis, periksa `upstream.json`, sinkronkan userscript, jalankan semua
-pengujian, buat paket `.nvda-addon`, pasang paket, lalu selesaikan pengujian
+Sebelum rilis, sinkronkan userscript publik yang sudah diverifikasi, periksa
+`upstream.json`, jalankan semua pengujian, buat paket `.nvda-addon`, pasang paket, lalu selesaikan pengujian
 manual NVDA dan WhatsApp.
 
 Bantuan HTML, manifest terjemahan, katalog pesan terkompilasi, keadaan SCons,
@@ -503,14 +521,17 @@ nama kontak, atau nomor telepon.
 ## Membaca pesan melalui jendela NVDA
 
 Jika WhatsApp dijalankan melalui Companion, fokuskan pesan lalu tekan
-**Alt+Shift+C**. Pesan lengkap ditampilkan dalam jendela teks NVDA, termasuk
-tautan, daftar, dan waktu pengiriman. Pesan yang disingkat akan ditampilkan
-secara lengkap terlebih dahulu. Cara ini tidak membuka pop-up browser pada
-aplikasi desktop.
+**Alt+Shift+C**. Pesan lengkap ditampilkan sebagai teks hanya-baca tanpa
+pembungkusan baris, beserta waktu pengirimannya. Pesan yang disingkat akan
+ditampilkan secara lengkap terlebih dahulu. Cara ini tidak membuka pop-up browser
+pada aplikasi desktop. Panah Atas dan Bawah mengikuti baris asli pesan, dan baris
+panjang bergulir secara horizontal.
 
-Tekan **Escape** untuk menutup pembaca. Tombol Tutup dan Salin disediakan jika
-versi NVDA mendukungnya. Isi pesan tidak sekaligus dimasukkan ke antrean
-pengumuman suara atau braille. Di browser biasa, pintasan tetap membuka tab
+Jendela baca memiliki **Salin pesan** untuk menyalin isi pesan sebagai teks biasa
+tanpa judul atau waktu, **Tampilan berformat** untuk tampilan yang membungkus
+baris dengan tautan yang dapat dibuka, serta **Tutup**. Tekan **Escape** untuk
+menutup pembaca. Isi pesan tidak sekaligus dimasukkan ke antrean pengumuman suara
+atau braille. Di browser biasa, pintasan tetap membuka tab
 pembaca yang sudah tersedia.
 
 Tetap di WhatsApp selama pesan dimuat. Berpindah aplikasi, mengganti chat, atau
@@ -528,9 +549,9 @@ tetap menggunakan lisensi MIT. Asal komponen dan batas lisensi dijelaskan dalam
 
 ## Menetapkan shortcut
 
-Pilih **Shift+F8 > Pemetaan ulang shortcut**, lalu pilih **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
+Pilih **Shift+F8 > Pemetaan ulang pintasan**, lalu pilih **Baca Stiker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
 
-Kombinasi ganda dan perintah tetap script/Companion ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
+Kombinasi ganda, perintah tetap script/Companion, dan shortcut bawaan WhatsApp ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
 
 ### Merekam shortcut
 

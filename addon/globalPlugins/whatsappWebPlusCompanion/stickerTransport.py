@@ -76,7 +76,7 @@ def validateRequest(value):
 				raise ValueError("image")
 			if not base64.b64decode(image.split(",", 1)[1], validate=True):
 				raise ValueError("image")
-			body = {"prompt": prompt, "image": image, "max_tokens": 512, "stream": False}
+			body = {"prompt": prompt, "image": image, "max_tokens": 2048, "stream": False}
 			return url, json.dumps(body, separators=(",", ":")).encode("utf-8")
 	if provider == "gemini":
 		parts = body.get("contents", [{}])[0].get("parts")
@@ -114,7 +114,7 @@ def validateRequest(value):
 	if provider == "gemini":
 		body = {
 			"contents": [{"role": "user", "parts": cleanParts}],
-			"generationConfig": {"maxOutputTokens": 512},
+			"generationConfig": {"maxOutputTokens": 2048},
 		}
 	else:
 		model = body.get("model")
@@ -123,15 +123,28 @@ def validateRequest(value):
 		body = {
 			"model": model,
 			"messages": [{"role": "user", "content": cleanParts}],
-			"max_completion_tokens": 512,
+			"max_completion_tokens": 2048,
 			"stream": False,
 		}
 	if provider == "cloudflare":
 		del body["model"]
 		del body["max_completion_tokens"]
-		body["max_tokens"] = 512
+		body["max_tokens"] = 2048
 	encoded = json.dumps(body, separators=(",", ":")).encode("utf-8")
 	return url, encoded
+
+
+def _connectToCheckedAddress(addresses, cancel):
+	"""Try each verified global address in turn, so broken IPv6 routing can fall back to IPv4."""
+	lastError = None
+	for item in addresses:
+		if cancel.is_set():
+			break
+		try:
+			return socket.create_connection((item[4][0], 443), timeout=10)
+		except OSError as error:
+			lastError = error
+	raise lastError or OSError("no address")
 
 
 class StickerTransport:
@@ -162,7 +175,7 @@ class StickerTransport:
 			connection = http.client.HTTPSConnection(url.hostname, timeout=10)
 			job["connection"] = connection
 			connection.sock = ssl.create_default_context().wrap_socket(
-				socket.create_connection((addresses[0][4][0], 443), timeout=10),
+				_connectToCheckedAddress(addresses, job["cancel"]),
 				server_hostname=url.hostname,
 			)
 			if job["cancel"].is_set() or time.time() * 1000 >= request["expiresAt"]:
@@ -171,6 +184,9 @@ class StickerTransport:
 			headers["x-goog-api-key" if request["provider"] == "gemini" else "Authorization"] = (
 				request["key"] if request["provider"] == "gemini" else "Bearer " + request["key"]
 			)
+			# The 10 s limit covers connecting only. A provider may stay silent until its whole answer is
+			# ready, so reads may use the rest of the request deadline.
+			connection.sock.settimeout(max(0.5, request["expiresAt"] / 1000 - time.time()))
 			connection.request("POST", url.path, body=body, headers=headers)
 			request["key"] = ""
 			response = connection.getresponse()
@@ -236,9 +252,11 @@ class StickerTransport:
 					job = {"cancel": threading.Event()}
 					self._jobs[request["id"]] = job
 				threading.Thread(target=self._run, args=(request, job), daemon=True).start()
-			except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+			except (ValueError, TypeError, KeyError, IndexError, AttributeError) as error:
 				if isinstance(request, dict) and request.get("id") == identifier:
-					results.append((identifier, {"error": "stickerNetworkError"}))
+					# Cancelled jobs can still be finishing; that is not a network problem.
+					busy = isinstance(error, ValueError) and error.args == ("busy",)
+					results.append((identifier, {"error": "stickerBusy" if busy else "stickerNetworkError"}))
 		for jobId, result in results:
 			if jobId != identifier:
 				continue

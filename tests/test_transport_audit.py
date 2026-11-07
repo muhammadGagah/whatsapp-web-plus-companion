@@ -1,4 +1,4 @@
-"""Resource-boundary regressions added during the September 2026 audit."""
+"""Resource-boundary regression tests for the loopback HTTP and WebSocket transports."""
 
 import base64
 import hashlib
@@ -167,7 +167,6 @@ class TransportAuditTests(unittest.TestCase):
 		)
 		stream = TrackingStream(response)
 		sock = SocketStub(stream)
-		# Default lets this test run against the original module as well.
 		with (
 			patch.object(websocket, "MAX_HTTP_HEADER_BYTES", 128, create=True),
 			patch.object(websocket, "connectLoopback", return_value=(sock, lambda: None)),

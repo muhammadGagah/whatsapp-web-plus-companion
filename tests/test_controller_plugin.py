@@ -33,7 +33,8 @@ class ControllerPluginTests(unittest.TestCase):
 				break
 			time.sleep(0.001)
 		warning.assert_called_once_with(
-			"WhatsApp Companion launch failed: code=%s detail=%s",
+			"WhatsApp Companion launch failed: channel=%s code=%s detail=%s",
+			"beta",
 			"endpoint.timeout",
 			"socketTimeout",
 		)
@@ -50,7 +51,7 @@ class ControllerPluginTests(unittest.TestCase):
 
 		controller = Controller(operation, notifications.append)
 		self.assertTrue(controller.start(Channel.BETA))
-		self.assertFalse(controller.start(Channel.STABLE))
+		self.assertFalse(controller.start(Channel.BETA))
 		for _ in range(100):
 			if notifications:
 				break
@@ -416,6 +417,9 @@ class ControllerPluginTests(unittest.TestCase):
 				"script_reportLastResult",
 				"script_checkForScriptUpdates",
 				"script_diagnoseAndRepairPermissions",
+				"script_startCallRecording",
+				"script_stopCallRecording",
+				"script_toggleAutoConnect",
 			},
 		)
 		self.assertTrue(all("speakOnDemand=True" in item for item in decorators))
@@ -441,9 +445,12 @@ class ControllerPluginTests(unittest.TestCase):
 		self.assertIn("self._dialog.Close()", source)
 		self.assertIn("fallbackAction=True", source)
 		self.assertIn('label=_("&Keep WhatsApp open")', source)
-		self.assertIn('_("Force close WhatsApp applications?")', source)
-		self.assertIn('label=_("&Force close")', source)
 		self.assertIn("defaultFocus=True", source)
+		dialogSource = (path.parent / "forceCloseDialog.py").read_text(encoding="utf-8")
+		self.assertIn('label=_("&Keep WhatsApp open")', dialogSource)
+		self.assertIn('label=_("&Force close")', dialogSource)
+		self.assertIn("cancel.SetDefault()", dialogSource)
+		self.assertIn("self.SetEscapeId(wx.ID_CANCEL)", dialogSource)
 		self.assertIn("not self.controller.launchTokenIsActive(launchToken)", source)
 		self.assertIn(
 			"if self._updateCheckPending or self._updateTerminalPending:",

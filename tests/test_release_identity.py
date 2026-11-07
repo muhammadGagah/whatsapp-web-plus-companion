@@ -1,5 +1,8 @@
 import importlib.util
 import hashlib
+import base64
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 import json
 import pathlib
 import tempfile
@@ -38,6 +41,43 @@ class ReleaseIdentityTests(unittest.TestCase):
 			"keyId": "release-key",
 		}
 		(self.root / "upstream.json").write_text(json.dumps(self.lock), encoding="utf-8")
+		key = Ed25519PrivateKey.generate()
+		public = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+		manifest = {
+			"schemaVersion": 2,
+			"keyId": self.lock["keyId"],
+			"releaseSequence": self.lock["releaseSequence"],
+			"version": self.lock["version"],
+			"downloadUrl": self.lock["source"],
+			"sha256": self.lock["sha256"],
+			"bytes": self.lock["bytes"],
+		}
+		payload = (json.dumps(manifest, indent=2) + "\n").encode()
+		self.signedFiles = {
+			"update-manifest.json": payload,
+			"update-manifest.json.sig": base64.b64encode(key.sign(payload)) + b"\n",
+			"update-public-keys.json": json.dumps(
+				{
+					"schemaVersion": 1,
+					"keys": [
+						{
+							"keyId": self.lock["keyId"],
+							"algorithm": "Ed25519",
+							"publicKey": base64.b64encode(public).decode(),
+							"status": "active",
+							"fingerprint": hashlib.sha256(public).hexdigest(),
+						},
+					],
+				},
+			).encode(),
+		}
+		resources = self.root / "addon/globalPlugins/whatsappWebPlusCompanion/resources"
+		resources.mkdir(parents=True)
+		for name, data in self.signedFiles.items():
+			(resources / name).write_bytes(data)
+		(resources / "whatsapp_web_plus.user.js").write_bytes(self.bundle)
+		metadata = {key: self.lock[key] for key in ("version", "sha256", "bytes", "releaseSequence", "keyId")}
+		(resources / "bundle.json").write_text(json.dumps(metadata))
 		self.writePackage(self.version)
 
 	def writePackage(self, version):
@@ -50,6 +90,24 @@ class ReleaseIdentityTests(unittest.TestCase):
 			}
 			metadata["upstream"] = self.lock["source"]
 			archive.writestr(base + "bundle.json", json.dumps(metadata))
+			for name, data in self.signedFiles.items():
+				archive.writestr(base + name, data)
+
+	def test_source_gate_rejects_reused_sequence_with_different_hash(self):
+		resources = self.root / "addon/globalPlugins/whatsappWebPlusCompanion/resources"
+		payload = self.bundle + b"changed"
+		self.lock.update(sha256=hashlib.sha256(payload).hexdigest(), bytes=len(payload))
+		(self.root / "upstream.json").write_text(json.dumps(self.lock))
+		(resources / "bundle.json").write_text(json.dumps(self.lock))
+		(resources / "whatsapp_web_plus.user.js").write_bytes(payload)
+		with self.assertRaisesRegex(ValueError, "Signed manifest"):
+			verifier.verifyRelease(self.root, sourceOnly=True)
+
+	def test_packaged_signature_tampering_is_rejected(self):
+		self.signedFiles["update-manifest.json.sig"] = b"A" * 86 + b"==\n"
+		self.writePackage(self.version)
+		with self.assertRaisesRegex(RuntimeError, "signatureInvalid"):
+			verifier.verifyRelease(self.root)
 
 	def test_corrupt_userscript_rejected_even_with_correct_addon_version(self):
 		self.bundle += b"modified"

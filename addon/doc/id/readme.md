@@ -38,7 +38,7 @@ Paket yang lebih baru akan memperbarui Companion yang sudah terpasang. Anda tida
 **Langkah ini wajib dilakukan sebelum membuka WhatsApp jika Anda baru pertama kali memasang Companion di komputer ini.** Langkah ini menyiapkan izin Windows yang dibutuhkan Companion.
 
 1. Tekan `NVDA + N` untuk membuka menu NVDA.
-2. Pilih **Peralatan**, lalu **WhatsApp Companion**.
+2. Pilih **Tools**, lalu **WhatsApp Companion**.
 3. Pilih **Diagnosa dan perbaiki izin kebijakan WebView2**.
 4. Ikuti petunjuk yang diucapkan NVDA dan setujui perbaikan jika diperlukan.
 5. Izinkan perbaikan ketika Windows meminta persetujuan administrator.
@@ -53,13 +53,26 @@ Jika Companion sudah pernah berfungsi di komputer ini, pembaruan biasa tidak mem
 
 1. Pastikan WhatsApp sudah tertutup.
 2. Tekan `NVDA + N`.
-3. Pilih **Peralatan**, lalu **WhatsApp Companion**.
+3. Pilih **Tools**, lalu **WhatsApp Companion**.
 4. Pilih **Luncurkan WhatsApp Stable dengan WhatsApp Companion** atau **Luncurkan WhatsApp Beta dengan WhatsApp Companion**.
 5. Tunggu sampai NVDA mengonfirmasi bahwa WhatsApp berjalan dengan Companion.
 
 Jika WhatsApp terbuka tetapi fokus belum berpindah ke sana, tekan `Alt + Tab`.
 
-Selalu buka WhatsApp dari menu Companion ketika ingin memakai fiturnya. Membuka WhatsApp dari menu Mulai tidak menyiapkannya untuk Companion.
+Buka WhatsApp dari menu Companion ketika ingin memakai fiturnya. Membuka WhatsApp dari menu Mulai tidak menyiapkannya untuk Companion, kecuali sambungan otomatis aktif.
+
+### Memakai Stable dan Beta bersamaan
+
+WhatsApp Stable dan WhatsApp Beta bisa berjalan dengan Companion pada saat yang sama. Luncurkan masing-masing dari menu Companion. Saat keduanya terbuka, NVDA hanya menyuarakan pengumuman WhatsApp Web Plus dari WhatsApp yang sedang di depan. Saat program lain yang di depan, pengumuman dari keduanya tetap disuarakan. **Tutup paksa proses WhatsApp dari Microsoft Store** dapat menutup Stable saja, Beta saja, atau keduanya.
+
+### Menghubungkan secara otomatis
+
+Aktifkan **Hubungkan otomatis saat WhatsApp dibuka** di menu Companion. Setelah itu, saat Anda membuka WhatsApp Stable atau Beta dari menu Mulai, taskbar, atau desktop, Companion menutupnya lalu membukanya lagi dalam keadaan siap untuk Companion. NVDA memberi tahu bahwa WhatsApp sedang dibuka ulang, lalu mengonfirmasi saat Companion sudah terhubung. Pengaturan ini nonaktif secara bawaan.
+
+- Ini hanya terjadi dalam 30 detik setelah WhatsApp dimulai. WhatsApp yang sudah terbuka sebelumnya, misalnya sebelum NVDA berjalan, tidak pernah ditutup otomatis. Tutup lalu buka kembali WhatsApp tersebut.
+- Jika WhatsApp dibuka dengan memilih notifikasi, chat dari notifikasi itu tidak terbuka setelah WhatsApp dibuka ulang.
+- Jika sambungan otomatis gagal, Companion tidak mencoba lagi untuk WhatsApp tersebut sampai Anda meluncurkannya dari menu, atau menonaktifkan lalu mengaktifkan kembali pengaturannya.
+- Anda dapat menetapkan pintasan untuk **Aktifkan atau nonaktifkan sambungan otomatis WhatsApp Companion** melalui Input gestures NVDA pada kategori WhatsApp Companion.
 
 ## Memastikan Companion berfungsi
 
@@ -76,17 +89,19 @@ Jika pintasan tersebut berfungsi, Companion sudah terhubung dan siap digunakan. 
 
 ## Penggunaan sehari-hari
 
-Buka **Menu NVDA > Peralatan > WhatsApp Companion** untuk membuka WhatsApp atau mengelola Companion.
+Buka **Menu NVDA > Tools > WhatsApp Companion** untuk membuka WhatsApp atau mengelola Companion.
 
-**Mengulang pesan:** pilih **Laporkan hasil WhatsApp Companion terakhir** jika Anda melewatkan hasil atau menggunakan mode ucapan Sesuai Permintaan di NVDA.
+**Mengulang pesan:** pilih **Laporkan hasil WhatsApp Companion terakhir** jika Anda melewatkan hasil atau menggunakan mode ucapan On-demand di NVDA.
 
-**Menutup WhatsApp:** tutup seperti biasa. Jika masih berjalan, gunakan **Tutup paksa semua proses WhatsApp dari Microsoft Store**. Tindakan ini dapat memutus panggilan atau transfer dan menghilangkan teks yang belum dikirim.
+**Menutup WhatsApp:** tutup seperti biasa. Jika masih berjalan, gunakan **Tutup paksa proses WhatsApp dari Microsoft Store**, pilih WhatsApp Stable, WhatsApp Beta, atau Semua, lalu pilih **Tutup paksa**. Menekan `Enter` membiarkan WhatsApp tetap terbuka. Tindakan ini dapat memutus panggilan atau transfer dan menghilangkan teks yang belum dikirim.
 
 **Membaca pesan lengkap:** fokuskan sebuah pesan dan tekan `Alt + Shift + C` untuk membukanya di jendela baca NVDA. Tekan `Escape` untuk menutupnya.
 
 **Mengubah pengaturan:** tekan `Shift + F8` di WhatsApp.
 
 ### Membaca pesan
+
+**Bacakan pesan baru secara otomatis** mengumumkan pesan baru. **Monitor aktivitas chat** mengumumkan perubahan status seperti Terkirim, Disampaikan, dan Dibaca, serta aktivitas chat. Kedua pengaturan ini dapat diaktifkan atau dimatikan secara terpisah.
 
 Alt+Shift+C membuka teks pesan hanya-baca tanpa pembungkusan baris. Panah Atas dan Bawah mengikuti baris asli pesan. Baris panjang bergulir secara horizontal. Gunakan **Salin pesan** untuk menyalin isi pesan sebagai teks biasa tanpa judul atau waktu. Gunakan **Tampilan berformat** untuk tampilan yang membungkus baris dan tautan yang dapat dibuka. Escape menutup jendela baca.
 
@@ -102,7 +117,7 @@ Untuk pesan dengan **Baca selengkapnya**, tekan `Shift+Enter`. Teks yang diperlu
 
 Tekan `Alt+1` untuk kembali ke chat yang diingat dalam daftar chat, lalu gunakan panah untuk melanjutkan navigasi. Ketika Escape menutup chat pribadi, grup, channel, atau pengumuman komunitas, NVDA mengumumkan bahwa chat sudah ditutup. Menutup menu saja tidak memicu pengumuman ini.
 
-**Keep message menus within the window** membantu menu tetap terbuka pada jendela kecil. Pengaturan ini aktif secara bawaan dan dapat diubah melalui **Shift+F8 > Accessibility**.
+**Jaga menu pesan tetap di dalam jendela** membantu menu tetap terbuka pada jendela kecil. Pengaturan ini aktif secara bawaan dan dapat diubah melalui **Shift+F8 > Aksesibilitas**.
 
 ### Mengikuti unduhan
 
@@ -112,12 +127,12 @@ Saat WhatsApp menampilkan progres unduhan dokumen, NVDA mengumumkan persentaseny
 
 Baca Stiker meminta penyedia AI mendeskripsikan stiker yang Anda pilih. Fitur ini mati secara bawaan dan belum memiliki pintasan. Urutan penyedia adalah Gemini, Groq, Cloudflare Workers AI, lalu Custom, OpenAI-compatible.
 
-1. Buka **Shift+F8 > Accessibility > Read Sticker**, lalu aktifkan fiturnya.
-2. Pilih **Configure provider and API key**, tentukan penyedia, dan masukkan kredensialnya. Custom juga memerlukan alamat HTTPS dan model yang dapat membaca gambar.
-3. Simpan pengaturan, lalu tetapkan pintasan **Read Sticker** melalui **Shortcut remapping**.
+1. Buka **Shift+F8 > Aksesibilitas > Baca Stiker**, lalu aktifkan fiturnya.
+2. Pilih **Atur penyedia AI dan API key**, tentukan penyedia, dan masukkan kredensialnya. Custom juga memerlukan alamat HTTPS dan model yang dapat membaca gambar.
+3. Simpan pengaturan, lalu tetapkan pintasan **Baca Stiker** melalui **Pemetaan ulang pintasan**.
 4. Fokuskan pesan stiker atau tombol stikernya, tekan pintasan, lalu tunggu deskripsinya.
 
-Hanya stiker yang dipilih yang dikirim saat pintasan digunakan. Fokus boleh berpindah dalam chat yang sama. Pergantian chat, bahasa, atau pengaturan membatalkan permintaan sebelumnya. Hasil dibaca sekali dan tidak mengganti label pesan. Deskripsi AI bisa keliru.
+Saat pintasan digunakan, hanya stiker pada pesan yang difokuskan yang dikirim, maksimal enam stiker berbeda. Stiker yang sama dideskripsikan sekali beserta jumlahnya, dan stiker berbeda diberi nomor Stiker 1, Stiker 2, dan seterusnya. Fokus boleh berpindah dalam chat yang sama. Pergantian chat, bahasa, atau pengaturan membatalkan permintaan sebelumnya. Hasil dibaca sekali dan tidak mengganti label pesan. Deskripsi AI bisa keliru.
 
 Companion terhubung langsung ke penyedia di latar belakang. Tidak diperlukan ekstensi browser atau server tambahan. Key dienkripsi di profil WhatsApp yang terpisah dari profil browser. Kosongkan kolom key untuk mempertahankan key tersimpan. Menghapus data situs dapat menghilangkannya. Enkripsi tidak melindungi key dari script halaman atau malware. Menyimpan pengaturan tidak menguji penyedia.
 
@@ -125,15 +140,15 @@ Animasi dibaca dari beberapa cuplikan dan bergantung pada dukungan WebView2. Per
 
 ### Menggunakan Gemini
 
-Buka [Google AI Studio](https://aistudio.google.com/api-keys), masuk dengan akun Google Anda, lalu selesaikan penyiapan untuk mendapatkan API key. Salin key tersebut, lalu buka **Configure provider and API key** pada pengaturan Read Sticker. Pilih **Gemini**, tempel key ke kolom API key, lalu pilih **Save**.
+Buka [Google AI Studio](https://aistudio.google.com/api-keys), masuk dengan akun Google Anda, lalu selesaikan penyiapan untuk mendapatkan API key. Salin key tersebut, lalu buka **Atur penyedia AI dan API key** pada pengaturan Baca Stiker. Pilih **Gemini**, tempel key ke kolom API key, lalu pilih **Simpan**.
 
 ### Menggunakan Cloudflare
 
-Buka **Workers AI > Use REST API** di Cloudflare. Masukkan **Account ID** dan **Workers AI API Token** pada pengaturan Read Sticker. Kredensial R2 tidak digunakan untuk fitur ini.
+Buka **Workers AI > Use REST API** di Cloudflare. Masukkan **Account ID** dan **API Token Workers AI** pada pengaturan Baca Stiker. Kredensial R2 tidak digunakan untuk fitur ini.
 
 Model bawaan adalah **Llama 3.2 11B Vision**. Anda dapat mengubah **Model ID** menggunakan nama lengkap, misalnya `@cf/meta/llama-4-scout-17b-16e-instruct`. Pilih model vision yang menerima pesan berisi data URL gambar. Llama 3.2 memakai format gambarnya sendiri. Mengganti model saja mempertahankan token. Mengganti akun memerlukan token untuk akun baru.
 
-Jika model Llama bawaan meminta persetujuan, baca ketentuan yang ditautkan dan centang kedua pernyataan hanya jika berlaku bagi Anda. Pilih **Agree and enable model**. Setelah sukses dikonfirmasi, dialog ditutup dan hasil diumumkan. Gunakan Baca Stiker lagi untuk membaca stikernya. Jika konfirmasi tidak tiba dalam 45 detik, dialog menjelaskan bahwa hasilnya belum pasti. Menutup dialog tidak membatalkan persetujuan yang sudah diterima Cloudflare. Persetujuan untuk model lain ditangani melalui Cloudflare.
+Jika model Llama bawaan meminta persetujuan, baca ketentuan yang ditautkan dan centang kedua pernyataan hanya jika berlaku bagi Anda. Pilih **Setujui dan aktifkan model**. Setelah sukses dikonfirmasi, dialog ditutup dan hasil diumumkan. Gunakan Baca Stiker lagi untuk membaca stikernya. Jika konfirmasi tidak tiba dalam 45 detik, dialog menjelaskan bahwa hasilnya belum pasti. Menutup dialog tidak membatalkan persetujuan yang sudah diterima Cloudflare. Persetujuan untuk model lain ditangani melalui Cloudflare.
 
 **Pratinjau persetujuan Cloudflare** dapat dipakai berulang kali untuk tutorial tanpa mengirim persetujuan. Tutup atau tekan Escape untuk kembali ke pengaturan dengan isian yang belum disimpan tetap utuh. Biaya dan batas pemakaian penyedia tetap berlaku untuk permintaan stiker yang sebenarnya.
 
@@ -145,11 +160,11 @@ Pesan tersebut menjelaskan koneksi Companion. Pesan itu tidak memastikan koneksi
 
 ### Pengaturan bawaan
 
-Untuk pemasangan baru, Mode Privasi, pembacaan pesan baru otomatis, pemutaran suara dengan Enter/Space, Clean Status, penyesuaian menu pesan, dan Clean UI aktif. Pengumuman total chat belum dibaca dan Baca Stiker mati. Pembaruan mempertahankan pilihan yang sudah disimpan.
+Untuk pemasangan baru, Mode Privasi, pembacaan pesan baru otomatis, pemutaran suara dengan Enter/Space, Clean Status, penyesuaian menu pesan, dan Antarmuka ringkas aktif. Pengumuman total chat belum dibaca dan Baca Stiker mati. Pembaruan mempertahankan pilihan yang sudah disimpan.
 
 ### Label kontrol panggilan
 
-Pilih **Menu NVDA > Peralatan > WhatsApp Companion > Label kontrol panggilan** untuk menambahkan label sesuai bahasa WhatsApp. Anda dapat menyesuaikan label jawab, tolak, kamera, mikrofon, reaksi, angkat/turunkan tangan, berbagi layar, dan akhiri panggilan.
+Pilih **Menu NVDA > Tools > WhatsApp Companion > Label kontrol panggilan** untuk menambahkan label sesuai bahasa WhatsApp. Anda dapat menyesuaikan label jawab, tolak, kamera, mikrofon, reaksi, angkat/turunkan tangan, berbagi layar, dan akhiri panggilan.
 
 1. Pilih **Tindakan panggilan**. Kolom **Label bawaan** yang hanya bisa dibaca menampilkan label yang sudah dikenali.
 2. Masukkan **Label tambahan**, satu nama kontrol persis per baris sesuai ucapan NVDA. Jangan sertakan ucapan jenis atau status kontrol, seperti "tombol" atau "tidak dicentang". Untuk kontrol dengan dua status, masukkan keduanya, misalnya label untuk membisukan dan mengaktifkan mikrofon.
@@ -161,11 +176,25 @@ Kolom kosong hanya memakai label bawaan. **Hapus semua label tambahan** mengoson
 
 Label disimpan secara global di `nvda.ini` milik NVDA, pada bagian `[whatsappCompanionCallLabels]`. Pengaturan berlaku untuk WhatsApp Stable dan Beta di semua profil NVDA, serta tetap tersimpan setelah add-on diperbarui atau dipasang ulang selama konfigurasi NVDA yang sama dipertahankan. Mengembalikan NVDA ke pengaturan bawaan pabrik atau menghapus konfigurasi tersebut menghapus label tersimpan.
 
+### Merekam panggilan
+
+Saat panggilan berlangsung, buka menu NVDA, pilih Tools, lalu WhatsApp Companion, kemudian Mulai rekam panggilan. Pilih Stable atau Beta, pilih mikrofon yang digunakan WhatsApp, lalu tentukan folder rekaman. Mulai setelah memberi tahu peserta panggilan. Gunakan Hentikan rekaman pada menu yang sama untuk berhenti kapan saja. Kedua perintah dapat diberi shortcut melalui Input gestures NVDA pada kategori WhatsApp Companion.
+
+Berkas WAV berisi audio WhatsApp di kanal kiri dan mikrofon di kanal kanan. Rekaman disimpan secara lokal di folder yang dipilih, dengan lokasi awal Documents/WhatsApp Recordings. Perekam hanya menangkap audio proses WhatsApp yang dipilih beserta proses anaknya. Suara lain dari WhatsApp masih dapat ikut terekam. Suara NVDA tidak termasuk dalam tangkapan tersebut, tetapi dapat masuk melalui mikrofon bila menggunakan speaker. Gunakan headset untuk menghindarinya.
+
+Mulai rekam panggilan tidak tersedia saat rekaman sedang berjalan atau dipersiapkan, dan bila pemeriksaan terakhir tidak menemukan panggilan. Bila status panggilan belum diketahui, perintah tetap tersedia dan memeriksa ulang saat dipilih. Setelah memilih Mulai, dialog pengaturan ditutup dan Companion membuka jendela panggilan untuk memastikan sambungannya. Jika diperlukan, tampilan penuh dipulihkan dengan satu klik pada area peserta. Rekaman hanya dimulai setelah panggilan dipastikan tersambung. Biarkan jendela panggilan aktif selama pemeriksaan. Hentikan rekaman juga membatalkan persiapan yang sedang berlangsung.
+
+Mikrofon direkam secara terpisah, termasuk saat dibisukan di WhatsApp. Bila jendela panggilan sudah hilang sekitar 15 detik, rekaman berhenti sendiri dan NVDA mengumumkan bahwa panggilan berakhir serta lokasi berkas tersimpan. Jendela panggilan yang diminimalkan atau pemeriksaan yang tidak pasti tidak pernah menghentikan rekaman. Rekaman juga berhenti saat proses WhatsApp yang dipilih keluar, NVDA keluar, sesi dikunci, desktop aman terbuka, atau batas empat jam tercapai. Jika terjadi kesalahan, sebagian rekaman mungkin tersimpan. Lokasinya akan diumumkan jika tersedia.
+
+Perekaman memerlukan Windows build 20348 atau yang lebih baru, izin akses mikrofon untuk aplikasi desktop, serta Windows PowerShell yang dapat menjalankan Add-Type. Helper berjalan dengan execution policy Bypass hanya untuk prosesnya sendiri, sehingga kebijakan bawaan PowerShell Restricted tidak memblokirnya dan tidak ada pengaturan sistem yang diubah. Tidak perlu memasang ekstensi browser, encoder, atau aplikasi perekam tambahan. Jika penangkapan khusus proses gagal, perekam melaporkan kesalahan tanpa beralih ke audio seluruh sistem. Merekam panggilan di aplikasi desktop hanya tersedia melalui Companion. Di browser, WhatsApp Web Plus memiliki menu Rekam panggilan sendiri.
+
 ### Pintasan panggilan
 
 Lihat [daftar pintasan lengkap](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/docs/detailed-guide.id.md#pintasan-keyboard-whatsapp) untuk navigasi, panggilan masuk, dan fitur tambahan.
 
-Perintah panggilan hanya muncul dalam **NVDA > Preferensi > Gestur Input > WhatsApp Companion** bila dialog dibuka dari WhatsApp. Fokuskan WhatsApp dahulu. Perintah global seperti Luncurkan WhatsApp tetap tersedia di aplikasi lain. Gestur kustom panggilan dari versi sebelumnya perlu ditetapkan ulang karena perintah berpindah ke app module.
+Gunakan shortcut ini saat jendela panggilan WhatsApp aktif. Tekan `Alt + Tab` untuk berpindah ke jendela tersebut bila perlu.
+
+Perintah panggilan hanya muncul dalam **NVDA > Pilihan > Input gestures > WhatsApp Companion** bila dialog dibuka dari WhatsApp. Fokuskan WhatsApp dahulu. Perintah global seperti Luncurkan WhatsApp tetap tersedia di aplikasi lain. Gestur kustom panggilan dari versi sebelumnya perlu ditetapkan ulang karena perintah berpindah ke app module.
 
 | Tindakan | Shortcut |
 | --- | --- |
@@ -178,11 +207,15 @@ Perintah panggilan hanya muncul dalam **NVDA > Preferensi > Gestur Input > Whats
 | Mulai/hentikan berbagi layar | Ctrl+Alt+S |
 | Akhiri panggilan | Ctrl+Alt+W |
 
+Jika shortcut panggilan tidak menemukan kontrol pada tampilan kecil, Companion dapat memulihkan tampilan penuh dengan satu klik pada area peserta. Lepaskan tombol dan tunggu hasilnya, lalu tekan shortcut lagi untuk menjalankan perintah. Klik mengikuti posisi jendela panggilan yang telah diperiksa. Berpindah jendela membatalkan pemulihan. Jika pemulihan gagal, buka tampilan penuh secara manual.
+
+Shortcut reaksi membuka kontrol reaksi WhatsApp. Pilih reaksi yang ingin dikirim. Saat memulai berbagi layar, pilih apa yang akan dibagikan di WhatsApp. Tekan `Ctrl + Alt + S` lagi untuk berhenti berbagi.
+
 ## Menetapkan shortcut
 
-Pilih **Shift+F8 > Pemetaan ulang shortcut**, lalu pilih **Read Sticker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
+Pilih **Shift+F8 > Pemetaan ulang pintasan**, lalu pilih **Baca Stiker**, **Rekam pesan suara**, **Chat sebelumnya**, **Chat berikutnya**, **Mulai panggilan suara**, atau **Mulai panggilan video**. Ketik kombinasi seperti `Alt+C` atau `Alt+V`, lalu pilih **Simpan**. Gunakan Ctrl atau Alt, boleh ditambah Shift, diikuti huruf, angka, tombol tanda baca seperti koma atau titik, F1–F12, atau ArrowUp/Down/Left/Right. Huruf merujuk ke posisi fisik tombol keyboard. Kosongkan kolom untuk menonaktifkan tindakan. **Kembalikan bawaan** hanya mengubah kolom. Pilih Simpan untuk menerapkan atau Batal/Escape untuk membuang perubahan. Pengaturan lama tetap dipertahankan. Shortcut panggilan baru belum ditetapkan. Bawaan rekaman adalah Alt+M. Chat sebelumnya/berikutnya Alt+ArrowUp/Alt+ArrowDown, awalnya nonaktif.
 
-Kombinasi ganda dan perintah tetap script/Companion ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
+Kombinasi ganda, perintah tetap script/Companion, dan shortcut bawaan WhatsApp ditolak. Shortcut browser, sistem, NVDA, atau ekstensi masih dapat lebih diutamakan. AltGr tidak didukung. Panggilan suara/video memakai tombol yang tersedia di header percakapan aktif, dikenali dari ikon tanpa bergantung bahasa. Tidak perlu mengisi Custom language strings. Jika tombol tidak tersedia atau ambigu, pesan pemberitahuan dibacakan tanpa memulai panggilan.
 
 ### Merekam shortcut
 
@@ -247,6 +280,7 @@ Ini adalah bawaan, bukan penetapan shortcut yang Anda simpan.
 | `Alt+ArrowDown` | Chat berikutnya. Nonaktif hingga diatur dalam Pemetaan ulang pintasan |
 | Belum ditetapkan | Mulai panggilan suara: belum memiliki shortcut bawaan. Atur dalam Pemetaan ulang pintasan |
 | Belum ditetapkan | Mulai panggilan video: belum memiliki shortcut bawaan. Atur dalam Pemetaan ulang pintasan |
+| Belum ditetapkan | Baca Stiker: belum memiliki shortcut bawaan. Atur dalam Pemetaan ulang pintasan |
 
 ## Shortcut bawaan WhatsApp
 
@@ -306,18 +340,18 @@ Gunakan shortcut ini ketika kontrol panggilan tersedia. Tombol yang sama dapat m
 
 ## Memperbarui WhatsApp Web Plus di dalam Companion
 
-1. Buka **Menu NVDA > Peralatan > WhatsApp Companion**.
+1. Buka **Menu NVDA > Tools > WhatsApp Companion**.
 2. Pilih **Periksa pembaruan userscript WhatsApp Web Plus**.
 3. Tunggu sampai NVDA melaporkan hasilnya.
 4. Tutup WhatsApp sepenuhnya, lalu buka kembali melalui Companion.
 
 Langkah ini memperbarui salinan WhatsApp Web Plus yang digunakan Companion. Untuk memperbarui add-on Companion, pasang paket `.nvda-addon` yang lebih baru. Jika Anda juga memakai WhatsApp Web Plus di browser, perbarui pemasangan tersebut secara terpisah.
 
-Versi sumber saat ini adalah **2026.10.19**, dengan WhatsApp Web Plus **2026.10.19**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
+Versi sumber saat ini adalah **2026.11.07**, dengan WhatsApp Web Plus **2026.11.01**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
 
 ## Pemecahan masalah
 
-**WhatsApp sudah berjalan:** tutup sepenuhnya, lalu buka melalui Companion.
+**WhatsApp sudah berjalan:** tutup sepenuhnya, lalu buka melalui Companion. Agar tersambung tanpa harus menutupnya sendiri, aktifkan **Hubungkan otomatis saat WhatsApp dibuka**.
 
 **WhatsApp tidak ditemukan:** pastikan aplikasi Stable atau Beta yang dipilih sudah terpasang dari Microsoft Store.
 
@@ -333,15 +367,13 @@ Baca [panduan pemecahan masalah lengkap](https://github.com/muhammadGagah/whatsa
 
 Untuk panggilan native masuk, fokuskan jendela panggilan melalui Alt+Tab, lalu tekan **Ctrl+Alt+A** untuk menjawab atau **Ctrl+Alt+D** untuk menolak. Companion mensyaratkan satu pasangan tombol Accept/Decline yang terlihat dan aktif di jendela itu. Akhiri panggilan tidak dianggap Tolak. Pada aplikasi lain, editor, atau AltGr, tombol diteruskan seperti biasa. Sesi secure, terkunci, dan no-write juga meneruskan tombol. Penahanan/pengulangan tombol dibatasi agar tidak segera mengaktifkan lagi. WhatsApp memberikan umpan balik hasil panggilan.
 
-Untuk diagnostik, buka Gestur Input dari WhatsApp dan tetapkan ulang gestur **Ambil diagnostik panggilan WhatsApp native** (tanpa shortcut bawaan). Saat panggilan terhubung, ambil satu snapshot. Bagian `controls` pada `WWP-CALL-SNAPSHOT` memuat semua tombol yang dikenali tanpa mengaktifkannya. Ambil snapshot lagi setelah mikrofon/kamera berubah status atau tangan diangkat, bila diperlukan. Jika tombol tidak tercatat, fokuskan tombol itu dengan Tab, pastikan navigator NVDA berada pada tombol tersebut, lalu tekan NVDA+F1, lalu salin informasi objeknya setelah menghapus identitas pribadi. Tidak perlu mengambil NVDA+F1 untuk semua tombol sejak awal.
+Untuk diagnostik, buka Input gestures dari WhatsApp dan tetapkan ulang gestur **Simpan diagnostik panggilan WhatsApp ke log NVDA** (tanpa shortcut bawaan). Saat panggilan terhubung, ambil satu snapshot. Bagian `controls` pada `WWP-CALL-SNAPSHOT` memuat semua tombol yang dikenali tanpa mengaktifkannya. Ambil snapshot lagi setelah mikrofon/kamera berubah status atau tangan diangkat, bila diperlukan. Jika tombol tidak tercatat, fokuskan tombol itu dengan Tab, pastikan navigator NVDA berada pada tombol tersebut, lalu tekan NVDA+F1, lalu salin informasi objeknya setelah menghapus identitas pribadi. Tidak perlu mengambil NVDA+F1 untuk semua tombol sejak awal.
 
 Diagnostik juga mencatat tombol yang belum terpetakan pada `controls.unmapped`, termasuk ID teknis, enabled/offscreen, serta ketersediaan pola Invoke/Toggle. Nama tombol yang tidak dikenal tetap dihilangkan. Status `complete` berarti penelusuran selesai, bukan semua tombol sudah dikenali. Ketersediaan Toggle bukan status nyala/mati. Periksa identifier sebelum membagikan log karena provider dapat menyisipkan data pribadi. Jika kamera/reaksi/tangan/berbagi layar masih belum dikenali, kirim satu snapshot baru dahulu. Pemetaan aksi tidak ditambahkan hanya berdasarkan nama ID.
 
-Jika tampilan panggilan kecil hanya memiliki checkbox mikrofon, shortcut yang tidak menemukan kontrol akan mencoba aksi aksesibilitas bawaan pada satu objek WhatsApp.PeerStreamVm yang terverifikasi. Tidak memakai posisi tetap atau navigasi relatif. Lepaskan tombol, periksa tampilan, lalu tekan shortcut lagi. Perintah panggilan tidak dijalankan ulang otomatis. Jika objek tidak menawarkan default action atau hasilnya tidak pasti, buka tampilan penuh secara manual. Pemulihan ini tidak dijalankan setelah aksi panggilan gagal/meragukan. Uji dengan NVDA nyata: satu pemulihan, tombol ditahan, perpindahan jendela, serta aktivasi baru setelah tampilan kembali.
+Ctrl+Alt+S mengaktifkan Start screen sharing atau Stop screen sharing sesuai kontrol yang tersedia. Pilihan layar/jendela dan konfirmasi tetap dilakukan pengguna. Tidak ada layar yang dipilih otomatis. Penelusuran tetap mencakup seluruh jendela dengan batas node/waktu, memakai cache properti UIA per objek untuk mengurangi permintaan antarproses. Identitas dan keadaan kontrol diperiksa langsung lagi sebelum aktivasi. Log propertyCache menunjukkan apakah optimasi ini tersedia. Hasil partial tetap ditolak dan bukan izin mengaktifkan tombol.
 
-Ctrl+Alt+S mengaktifkan Start screen sharing atau Stop screen sharing sesuai kontrol yang tersedia. Pilihan layar/jendela dan konfirmasi tetap dilakukan pengguna. Tidak ada layar yang dipilih otomatis. Uji mulai, batalkan pemilih dengan Escape, hentikan berbagi, lalu Ctrl+Alt+W saat berbagi aktif. Penelusuran tetap mencakup seluruh jendela dengan batas node/waktu, memakai cache properti UIA per objek untuk mengurangi permintaan antarproses. Identitas dan keadaan kontrol diperiksa langsung lagi sebelum aktivasi. Log propertyCache menunjukkan apakah optimasi ini tersedia. Hasil partial tetap ditolak dan bukan izin mengaktifkan tombol.
-
-Enam shortcut panggilan aktif mensyaratkan tombol End call dan target unik dalam host yang sama. Pemetaan awal memakai label Inggris dan InvokePattern. Checkbox React (NewReactionButton) dan Start/Stop screen sharing (NewScreenShareButton) menggunakan satu aktivasi TogglePattern. Kontrol Toggle-only lainnya belum didukung. Reaksi dan berbagi layar membuka kontrol WhatsApp. Pilihan lanjut tetap dilakukan pengguna. Uji pada panggilan percobaan, karena label/status/provider pada instalasi nyata belum diverifikasi. Bila memakai WhatsAppNG, nonaktifkan sementara lalu restart NVDA agar app module tidak bertabrakan.
+Enam shortcut panggilan aktif mensyaratkan tombol End call dan target unik dalam host yang sama. Label bawaan berbahasa Inggris; tambahkan label sesuai bahasa WhatsApp melalui **Label kontrol panggilan**. Checkbox React (NewReactionButton) dan Start/Stop screen sharing (NewScreenShareButton) menggunakan satu aktivasi TogglePattern. Kontrol Toggle-only lainnya belum didukung. Reaksi dan berbagi layar membuka kontrol WhatsApp. Pilihan lanjut tetap dilakukan pengguna. Cobalah shortcut tersebut pada panggilan percobaan terlebih dahulu. Bila memakai WhatsAppNG, nonaktifkan sementara lalu restart NVDA agar app module tidak bertabrakan.
 
 Panduan online berikut bersifat opsional. Anda tidak perlu membacanya untuk menyelesaikan pemasangan.
 
@@ -366,6 +398,20 @@ Gunakan [pelacak masalah Companion](https://github.com/muhammadGagah/whatsapp-we
 Gunakan [pelacak masalah WhatsApp Web Plus](https://github.com/muhammadGagah/whatsapp-web-plus/issues) untuk masalah pintasan, label pesan, pembacaan Status, Mode Privasi, atau pengaturan.
 
 Jangan sertakan isi pesan pribadi, nama kontak, atau nomor telepon.
+
+## Terima kasih khusus
+
+Saya sangat berterima kasih kepada para pengembang yang karyanya membantu saya membangun WhatsApp Companion. Saya belajar banyak dari proyek mereka, dan masing-masing ikut membentuk add-on ini.
+
+[Messenger Accessibility for NVDA](https://github.com/NVDATH/messengerAccess-for-nvda/), karya para pengembang NVDATH, memperkenalkan saya pada gagasan menghubungkan add-on NVDA dengan userscript melalui sebuah jembatan. Itu add-on pertama yang saya ketahui memakai pendekatan ini alih-alih menangani semuanya dengan Python. Melihat kedua bagian itu bekerja sama membantu saya membayangkan apa yang dapat dicapai Companion.
+
+[WhatsApp Desktop accessibility enhancements (WhatsAppNG)](https://github.com/nunotfc/WhatsAppNG), karya Nuno Costa, menjadi rujukan penting saat saya mengerjakan pintasan panggilan. Pada WhatsApp versi Microsoft Store, panggilan terbuka di jendela native terpisah yang tidak dapat dijangkau userscript. Dalam pengujian saya, pintasan untuk mengakhiri panggilan, membisukan mikrofon, dan mengganti kamera tidak berfungsi di sana. Karena itu saya membuat kontrol tersebut langsung di Companion, dan mempelajari WhatsAppNG membantu saya menemukan jalannya.
+
+[WhatsAppPlus](https://github.com/Kostya-Gladkiy/WhatsAppPlus), karya Kostya Gladkiy, mungkin merupakan inspirasi terbesar saya. Banyak pintasan dan fitur dalam proyek ini mencerminkan pengalaman yang saya hargai dari add-on miliknya. Awalnya saya berencana menamai add-on ini WhatsApp Web Plus Companion dan sudah mendapat izin Kostya untuk memakai nama itu. Kemudian seorang teman menyarankan nama WhatsApp Companion agar tidak membingungkan pengguna, sehingga nama itulah yang dipakai. Saya sangat berterima kasih kepada Kostya atas pengertian dan dukungannya.
+
+Terakhir, saya ingin berterima kasih kepada para pengembang dan kontributor [Instant Translate](https://github.com/addonFactory/instantTranslate). Meskipun tujuannya berbeda dari proyek ini, mempelajarinya mengajarkan banyak hal kepada saya tentang pengembangan add-on NVDA. Pelajaran itu terus saya bawa saat mengerjakan Companion.
+
+Terima kasih kepada kalian semua karena telah membagikan karya kalian dan memberi pengembang lain, termasuk saya, kesempatan untuk belajar.
 
 ## Lisensi
 

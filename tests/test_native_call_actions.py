@@ -268,11 +268,13 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.win = types.SimpleNamespace(
 			getForegroundWindow=Mock(return_value=100),
 			getKeyState=Mock(return_value=0),
+			getWindowThreadProcessID=Mock(return_value=(10, 1)),
 			VK_RMENU=165,
 			isDescendantWindow=lambda root, host: (root, host) == (100, 200),
 		)
 		client = types.SimpleNamespace(
 			ElementFromHandle=lambda hwnd: self.root,
+			GetFocusedElement=lambda: getattr(self.api.getFocusObject(), "UIAElement", element()),
 			RawViewWalker=Walker(self.root),
 		)
 		self.ui = types.SimpleNamespace(message=Mock())
@@ -309,7 +311,121 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.runtime = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(self.runtime)
 		self.runtime.diagnosticsAllowed = lambda: True
+		self.client = client
+		self.realWithClient = self.runtime._withCallClient
+		self.runtime._withCallClient = lambda work: work(client, self.modules["UIAHandler"])
+
+		def immediate(work, finished):
+			try:
+				result = self.runtime._withCallClient(work)
+			except Exception:
+				result = "failed"
+			finished(result)
+
+		self.realDispatch = self.runtime._dispatchCallWorker
+		self.runtime._dispatchCallWorker = immediate
+		self.runtime._callOnMain = lambda function: function()
 		self.gesture = Mock()
+
+	def inventory(self):
+		return self.runtime.captureControlInventory(100, 10, self.client, self.modules["UIAHandler"])
+
+	def test_worker_owns_com_client_and_uninitializes_on_failure(self):
+		calls = []
+		owned = types.SimpleNamespace()
+		com = types.SimpleNamespace(
+			COINIT_MULTITHREADED=0,
+			CLSCTX_INPROC_SERVER=1,
+			CoInitializeEx=lambda flags: calls.append(("init", flags)),
+			CoCreateInstance=Mock(return_value=owned),
+			CoUninitialize=lambda: calls.append(("uninit",)),
+		)
+		uia = self.modules["UIAHandler"]
+		with (
+			patch.dict(sys.modules, {"comtypes": com}),
+			patch.object(
+				uia,
+				"UIA",
+				types.SimpleNamespace(
+					CUIAutomation8=types.SimpleNamespace(
+						_reg_clsid_="clsid",
+						_com_interfaces_=[None, "interface"],
+					),
+				),
+				create=True,
+			),
+		):
+
+			def work(client, constants):
+				self.assertIs(client, owned)
+				self.assertIsNot(client, self.client)
+				self.assertEqual(client.ConnectionTimeout, 1000)
+				self.assertEqual(client.TransactionTimeout, 1000)
+				raise RuntimeError("provider failed")
+
+			self.assertEqual(self.realWithClient(work), "failed")
+		self.assertEqual(calls, [("init", 0), ("uninit",)])
+
+	def test_slow_provider_does_not_block_gui_or_spawn_more_workers(self):
+		import threading
+
+		entered = threading.Event()
+		release = threading.Event()
+		completed = threading.Event()
+		callbacks = []
+		threads = []
+
+		def slowRoot(hwnd):
+			threads.append(threading.get_ident())
+			entered.set()
+			release.wait(2)
+			return self.root
+
+		def dispatch(fn, *args):
+			callbacks.append(lambda: fn(*args))
+			completed.set()
+
+		self.client.ElementFromHandle = slowRoot
+		self.runtime._dispatchCallWorker = self.realDispatch
+		with patch.dict(sys.modules, {"wx": types.SimpleNamespace(CallAfter=dispatch)}):
+			try:
+				self.runtime.performCallAction(CallAction.ANSWER, self.gesture)
+				self.assertTrue(entered.wait(1))
+				self.assertNotEqual(threads[0], threading.get_ident())
+				self.assertFalse(completed.is_set())
+				self.runtime.performCallAction(CallAction.DECLINE, self.gesture)
+				self.assertEqual(len(threads), 1)
+				self.runtime.cancelRecovery()
+			finally:
+				release.set()
+			self.assertTrue(completed.wait(2))
+			for callback in callbacks:
+				callback()
+		self.pattern.Invoke.assert_not_called()
+		self.gesture.send.assert_not_called()
+		self.ui.message.assert_not_called()
+		self.assertFalse(self.runtime._restorePending)
+
+	def test_expired_or_replaced_window_never_invokes(self):
+		for expired in (True, False):
+			with self.subTest(expired=expired):
+				self.runtime._lastAttempt = (0, 0.0)
+				pending = []
+				with patch.object(
+					self.runtime,
+					"_dispatchCallWorker",
+					side_effect=lambda w, f: pending.append((w, f)),
+				):
+					self.runtime.performCallAction(CallAction.ANSWER, self.gesture)
+				work, finished = pending.pop()
+				if expired:
+					with patch.object(self.runtime.time, "monotonic", return_value=10**12):
+						finished(self.runtime._withCallClient(work))
+				else:
+					self.win.getWindowThreadProcessID.return_value = (99, 1)
+					finished(self.runtime._withCallClient(work))
+		self.pattern.Invoke.assert_not_called()
+		self.gesture.send.assert_not_called()
 
 	def prepareCompact(self):
 		self.answer.currentName = "Mute microphone"
@@ -326,51 +442,120 @@ class NativeActionRuntimeTests(unittest.TestCase):
 			windowHandle=200,
 		)
 
+	def runRecovery(self, result=True, cancel=False, moved=False, restore=None):
+		self.restore = restore or Mock(return_value=result)
+		self.worker = None
+
+		def schedule(work, finished):
+			self.worker = lambda: finished(self.runtime._withCallClient(work))
+
+		with (
+			patch.dict(
+				sys.modules,
+				{
+					"globalPlugins.whatsappWebPlusCompanion.callAvailability": types.SimpleNamespace(
+						restoreCallView=self.restore,
+					),
+				},
+			),
+			patch.object(self.runtime, "_dispatchCallWorker", side_effect=schedule),
+		):
+			self.runtime.performCallAction(CallAction.END, self.gesture)
+			self.runtime.performCallAction(CallAction.END, self.gesture)
+			self.assertIsNotNone(self.worker)
+			if cancel:
+				self.runtime.cancelRecovery()
+			if moved:
+				self.win.getForegroundWindow.return_value = 999
+			self.worker()
+
+	def test_compact_hidden_mute_with_exact_id_can_restore(self):
+		self.prepareCompact()
+		self.answer.currentIsOffscreen = True
+		self.answer.currentAutomationId = "MicMuteButton"
+		self.runRecovery()
+		self.restore.assert_called_once()
+
+	def test_hidden_mute_without_exact_id_does_not_restore(self):
+		from appModules.wwpCallSupport.compact import kind
+
+		self.prepareCompact()
+		self.answer.currentIsOffscreen = True
+		self.answer.currentAutomationId = "other"
+		self.assertIsNone(kind(self.answer, 10, allowHiddenMute=True))
+
 	def test_compact_restore_once_no_call_action_or_replay(self):
 		self.prepareCompact()
-		self.runtime.performCallAction(CallAction.END, self.gesture)
-		self.runtime.performCallAction(CallAction.CAMERA, self.gesture)
-		self.pattern.DoDefaultAction.assert_called_once_with()
+		self.runRecovery()
+		self.restore.assert_called_once()
+		self.pattern.DoDefaultAction.assert_not_called()
 		self.pattern.Invoke.assert_not_called()
 		self.pattern.Toggle.assert_not_called()
 		self.gesture.send.assert_not_called()
-		self.ui.message.assert_called_once()
+		self.assertIn("Press the shortcut again", self.ui.message.call_args.args[0])
+
+	def test_restore_is_announced_and_suppressed_shortcuts_explain_why(self):
+		notice = "Restoring call controls. Release the shortcut keys."
+		self.prepareCompact()
+		spoken = []
+
+		def pressDuringRestore(pid, hwnd, cancel):
+			spoken.append([call.args[0] for call in self.ui.message.call_args_list])
+			# Auto-repeat right after the notice stays quiet; a later press hears it again.
+			self.runtime.performCallAction(CallAction.END, self.gesture)
+			spoken.append(self.ui.message.call_count)
+			self.runtime._lastRestoreNotice -= 10
+			self.runtime.performCallAction(CallAction.END, self.gesture)
+			spoken.append(self.ui.message.call_args.args[0])
+			return True
+
+		self.runRecovery(restore=Mock(side_effect=pressDuringRestore))
+		self.restore.assert_called_once()
+		self.assertEqual(spoken, [[notice], 1, notice])
+		self.assertEqual(
+			self.ui.message.call_args.args[0],
+			"Call controls restored. Press the shortcut again.",
+		)
+		self.gesture.send.assert_not_called()
+		self.assertFalse(self.runtime._restoreRunning)
+
+	def test_pending_ordinary_action_suppresses_repeat_silently(self):
+		pending = []
+		with patch.object(self.runtime, "_dispatchCallWorker", side_effect=lambda w, f: pending.append(f)):
+			self.runtime.performCallAction(CallAction.ANSWER, self.gesture)
+			self.runtime.performCallAction(CallAction.DECLINE, self.gesture)
+		self.assertEqual(len(pending), 1)
+		self.ui.message.assert_not_called()
+		self.gesture.send.assert_not_called()
 
 	def test_compact_failure_never_replays_or_retries(self):
 		self.prepareCompact()
-		self.pattern.DoDefaultAction.side_effect = RuntimeError("uncertain")
-		self.runtime.performCallAction(CallAction.END, self.gesture)
-		self.runtime.performCallAction(CallAction.END, self.gesture)
-		self.pattern.DoDefaultAction.assert_called_once_with()
+		self.runRecovery(result=False)
+		self.restore.assert_called_once()
 		self.gesture.send.assert_not_called()
 		self.pattern.Invoke.assert_not_called()
+		self.assertIn("Couldn't restore", self.ui.message.call_args.args[0])
+
+	def test_cancelled_restore_has_no_late_success(self):
+		self.prepareCompact()
+		self.runRecovery(cancel=True)
+		self.ui.message.assert_not_called()
+		self.restore.assert_not_called()
+		self.assertFalse(self.runtime._restorePending)
+
+	def test_focus_move_suppresses_late_restore_announcement(self):
+		self.prepareCompact()
+		self.runRecovery(moved=True)
+		self.ui.message.assert_not_called()
+		self.restore.assert_not_called()
 
 	def test_compact_held_repeat_after_throttle_expires_still_does_not_restore(self):
 		self.prepareCompact()
-		self.runtime.performCallAction(CallAction.END, self.gesture)
+		self.runRecovery()
 		with patch.object(self.runtime.time, "monotonic", return_value=self.runtime._lastRestore + 10):
 			with patch.object(self.modules["scriptHandler"], "getLastScriptRepeatCount", return_value=1):
 				self.runtime.performCallAction(CallAction.END, self.gesture)
-		self.pattern.DoDefaultAction.assert_called_once_with()
-
-	def test_compact_missing_default_action_does_not_click(self):
-		self.prepareCompact()
-		self.pattern.CurrentDefaultAction = ""
-		self.runtime.performCallAction(CallAction.END, self.gesture)
-		self.pattern.DoDefaultAction.assert_not_called()
-		self.gesture.send.assert_not_called()
-		self.ui.message.assert_called_once()
-
-	def test_compact_rejects_changed_context_or_target(self):
-		self.prepareCompact()
-
-		def changed(patternId):
-			self.decline.currentName = "Other list item"
-			return types.SimpleNamespace(QueryInterface=lambda _: self.pattern)
-
-		self.decline.GetCurrentPattern.side_effect = changed
-		self.runtime.performCallAction(CallAction.END, self.gesture)
-		self.pattern.DoDefaultAction.assert_not_called()
+		self.restore.assert_called_once()
 
 	def test_compact_requires_unique_peer_same_host_and_complete_scan(self):
 		from appModules.wwpCallSupport.compact import findCompact
@@ -416,11 +601,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 			self.pattern.Invoke.assert_not_called()
 			self.runtime.performCallAction(CallAction.END, self.gesture)
 			self.pattern.Invoke.assert_called_once_with()
-			item = next(
-				x
-				for x in self.runtime.captureControlInventory(self.foreground, 10)["recognized"]
-				if x["action"] == "share"
-			)
+			item = next(x for x in self.inventory()["recognized"] if x["action"] == "share")
 			self.assertEqual(item["label"], label.casefold())
 		self.ui.message.assert_not_called()
 		self.gesture.send.assert_not_called()
@@ -507,7 +688,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 
 	def test_react_inventory_includes_checkbox_without_activation(self):
 		self.prepareReact()
-		result = self.runtime.captureControlInventory(self.foreground, 10)
+		result = self.inventory()
 		item = next(x for x in result["recognized"] if x["action"] == "reactions")
 		self.assertEqual(item["uiaClass"], "CheckBox")
 		self.assertEqual(item["automationId"], "NewReactionButton")
@@ -528,7 +709,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 				self.pattern.Invoke.assert_called_once_with()
 				self.answer.GetCurrentPattern.assert_called_once()
 				self.decline.GetCurrentPattern.assert_not_called()
-				inventory = self.runtime.captureControlInventory(self.foreground, 10)
+				inventory = self.inventory()
 				self.assertIn("camera", [item["action"] for item in inventory["recognized"]])
 		self.gesture.send.assert_not_called()
 
@@ -551,7 +732,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 	def test_control_inventory_is_read_only_and_omits_unknown_names(self):
 		self.answer.currentName = "Private caller Alice"
 		self.decline.currentName = "End call"
-		result = self.runtime.captureControlInventory(self.foreground, 10)
+		result = self.inventory()
 		self.assertEqual(result["status"], "complete")
 		self.assertEqual([x["action"] for x in result["recognized"]], ["end-call"])
 		self.assertNotIn("Alice", str(result))
@@ -560,7 +741,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 
 	def test_control_inventory_reports_incomplete_search(self):
 		with patch.object(diagnostics, "MAX_NODES", 1):
-			result = self.runtime.captureControlInventory(self.foreground, 10)
+			result = self.inventory()
 		self.assertEqual(result["status"], "partial")
 		self.pattern.Invoke.assert_not_called()
 
@@ -570,7 +751,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.answer.currentIsEnabled = False
 		self.answer.currentIsOffscreen = True
 		self.decline.currentName = "End call"
-		result = self.runtime.captureControlInventory(self.foreground, 10)
+		result = self.inventory()
 		self.assertEqual(result["status"], "complete")
 		unknown = result["unmapped"][0]
 		self.assertEqual(unknown["automationId"], "NewVideoMuteButton")
@@ -585,7 +766,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 
 	def test_inventory_pattern_errors_are_independent(self):
 		self.answer.GetCurrentPattern.side_effect = [RuntimeError("private"), object()]
-		result = self.runtime.captureControlInventory(self.foreground, 10)
+		result = self.inventory()
 		item = next(x for x in result["recognized"] if x["action"] == "answer")
 		self.assertEqual(item["invoke"], "unavailable")
 		self.assertTrue(item["toggle"])
@@ -593,7 +774,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 
 	def test_inventory_skips_foreign_process_and_obeys_time_budget(self):
 		self.answer.currentProcessId = 99
-		result = self.runtime.captureControlInventory(self.foreground, 10)
+		result = self.inventory()
 		self.assertEqual(len(result["recognized"]), 1)
 		self.answer.GetCurrentPattern.assert_not_called()
 		result = diagnostics.collectInventory(
@@ -639,6 +820,28 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.runtime.performCallAction(CallAction.DECLINE, self.gesture)
 		self.gesture.send.assert_not_called()
 		self.ui.message.assert_called_once()
+
+	def test_discovery_errors_pass_the_key_through_without_a_failure_message(self):
+		actions = sys.modules["appModules.wwpCallSupport.actions"]
+
+		def incomplete(*args, **kwargs):
+			raise actions.IncompleteSearch()
+
+		with patch.object(actions, "collectControls", incomplete):
+			self.runtime.performCallAction(CallAction.MUTE, self.gesture)
+		self.gesture.send.assert_called_once_with()
+		self.ui.message.assert_not_called()
+		self.gesture.reset_mock()
+		self.runtime._lastAttempt = (0, 0.0)
+
+		def unavailable(hwnd):
+			raise OSError("COM error")
+
+		with patch.object(self.client, "ElementFromHandle", unavailable):
+			self.runtime.performCallAction(CallAction.MUTE, self.gesture)
+		self.gesture.send.assert_called_once_with()
+		self.ui.message.assert_not_called()
+		self.pattern.Invoke.assert_not_called()
 
 	def test_foreground_change_during_discovery_aborts(self):
 		self.win.getForegroundWindow.side_effect = [100, 999]

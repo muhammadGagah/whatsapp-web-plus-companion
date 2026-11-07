@@ -1,5 +1,5 @@
 # WhatsApp Companion - fixed-purpose elevated registry permission repair.
-# Deviates from the original plan's native C++ helper by project-owner decision.
+# A plain PowerShell script keeps the elevated step small and easy to audit.
 #
 # Exit-code ABI (stable):
 # 0 repaired                      8 mutex busy
@@ -314,8 +314,8 @@ try {
 	}
 	exit 0
 } catch {
-	# A later failure must still leave the DACL unchanged (plan: restore on
-	# failure). Best effort; the journal and postcheck remain the backstop.
+	# A later failure must still leave the DACL unchanged, so restore it.
+	# Best effort; the journal and postcheck remain the backstop.
 	if ($null -ne $key -and $null -ne $restoreSecurity) {
 		try { $key.SetAccessControl($restoreSecurity) } catch { }
 	}
