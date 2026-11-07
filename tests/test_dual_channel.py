@@ -128,7 +128,7 @@ class TwoChannelControllerTests(unittest.TestCase):
 		self.assertTrue(_waitFor(lambda: len(controller.closers) == 2))
 		self.assertTrue(controller.forceClose(channels=(Channel.BETA,)))
 		self.assertTrue(
-			_waitFor(lambda: not controller.forceClosing and not controller.channelActive(Channel.BETA))
+			_waitFor(lambda: not controller.forceClosing and not controller.channelActive(Channel.BETA)),
 		)
 		self.assertEqual(calls, [{"channels": (Channel.BETA,)}])
 		self.assertEqual(closed, ["beta"])
@@ -175,7 +175,8 @@ class ForceCloseChoiceTests(unittest.TestCase):
 
 		fakeWx = types.SimpleNamespace(Dialog=object)
 		with patch.dict(
-			sys.modules, {"wx": fakeWx, "addonHandler": types.SimpleNamespace(initTranslation=lambda: None)}
+			sys.modules,
+			{"wx": fakeWx, "addonHandler": types.SimpleNamespace(initTranslation=lambda: None)},
 		):
 			import builtins
 
@@ -237,7 +238,9 @@ class RecentInstanceTests(unittest.TestCase):
 
 	def _io(self, seconds=30.0, cancel=None):
 		return launcher._OperationIO(
-			cancel or threading.Event(), lambda closer: None, time.monotonic() + seconds
+			cancel or threading.Event(),
+			lambda closer: None,
+			time.monotonic() + seconds,
 		)
 
 	def test_old_instance_is_left_open(self):
@@ -300,7 +303,9 @@ class RecentInstanceTests(unittest.TestCase):
 class RegistryTurnTests(unittest.TestCase):
 	def _io(self, seconds=5.0, cancel=None):
 		return launcher._OperationIO(
-			cancel or threading.Event(), lambda closer: None, time.monotonic() + seconds
+			cancel or threading.Event(),
+			lambda closer: None,
+			time.monotonic() + seconds,
 		)
 
 	def test_second_channel_waits_until_the_first_has_restored_the_registry(self):

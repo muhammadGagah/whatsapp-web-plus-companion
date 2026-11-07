@@ -124,7 +124,8 @@ class NativeProbeTests(unittest.TestCase):
 		rows = [{"ProcessId": 10, "ExecutablePath": "C:\\Program Files\\WindowsApps\\WA\\WhatsApp.exe"}]
 		with patch.object(nativeProbes, "processRows", side_effect=nativeProbes.NativeProbeUnavailable("x")):
 			self.assertEqual(
-				findRunningPackageProcesses(package, lambda _: json.dumps(rows), native=True), (10,)
+				findRunningPackageProcesses(package, lambda _: json.dumps(rows), native=True),
+				(10,),
 			)
 
 
@@ -139,7 +140,9 @@ class _Cancel:
 class LaunchDiagnosticsTests(unittest.TestCase):
 	def _io(self, seconds=30.0):
 		return launcher._OperationIO(
-			threading.Event(), lambda closer: None, launcher.time.monotonic() + seconds
+			threading.Event(),
+			lambda closer: None,
+			launcher.time.monotonic() + seconds,
 		)
 
 	def test_listener_timeout_reports_the_validation_failure_not_only_the_probe(self):
@@ -150,7 +153,8 @@ class LaunchDiagnosticsTests(unittest.TestCase):
 				side_effect=[
 					([Listener("::1", 49223, 20)], {20: 10}),
 					LoaderError(
-						"powershell.failed", "timeout;stage=listener.ports;elapsed=1.63s;budget=1.61s"
+						"powershell.failed",
+						"timeout;stage=listener.ports;elapsed=1.63s;budget=1.61s",
 					),
 				],
 			),
@@ -165,12 +169,15 @@ class LaunchDiagnosticsTests(unittest.TestCase):
 
 	def test_non_timeout_probe_failure_is_still_raised_unchanged(self):
 		with patch.object(
-			launcher, "collectProcessTopology", side_effect=LoaderError("powershell.failed", "exit=1")
+			launcher,
+			"collectProcessTopology",
+			side_effect=LoaderError("powershell.failed", "exit=1"),
 		):
 			with self.assertRaises(LoaderError) as raised:
 				launcher._waitForValidatedListener(49223, {10}, _Cancel(), io=self._io())
 		self.assertEqual(
-			(raised.exception.code, raised.exception.safeDetail), ("powershell.failed", "exit=1")
+			(raised.exception.code, raised.exception.safeDetail),
+			("powershell.failed", "exit=1"),
 		)
 
 	def test_ancestry_failure_refreshes_package_processes_and_drops_stale_pids(self):
@@ -223,7 +230,10 @@ class LaunchDiagnosticsTests(unittest.TestCase):
 		with patch.object(launcher, "_launchOperation", side_effect=failing):
 			with self.assertRaises(LoaderError) as raised:
 				launcher.launchOperation(
-					Channel.STABLE, threading.Event(), lambda state: None, gateObserver=seen.append
+					Channel.STABLE,
+					threading.Event(),
+					lambda state: None,
+					gateObserver=seen.append,
 				)
 		self.assertEqual(seen, ["package", "notRunning"])
 		detail = raised.exception.safeDetail

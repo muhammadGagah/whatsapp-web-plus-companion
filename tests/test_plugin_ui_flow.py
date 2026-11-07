@@ -1412,21 +1412,21 @@ class TwoChannelPluginTests(unittest.TestCase):
 			mock.patch.object(self.plugin, "_foregroundChannel", return_value=None),
 		):
 			self.assertTrue(
-				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "One"))
+				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "One")),
 			)
 			self.assertTrue(
-				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Two"))
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Two")),
 			)
 			self.assertFalse(
-				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Again"))
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Again")),
 			)
 			# A reconnect of Beta does not reset Stable.
 			self._connect("beta", "b2")
 			self.assertTrue(
-				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b2", 1, "Three"))
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b2", 1, "Three")),
 			)
 			self.assertFalse(
-				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "Old"))
+				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "Old")),
 			)
 		self.assertEqual([call.args[0] for call in speak.call_args_list], ["One", "Two", "Three"])
 
@@ -1440,10 +1440,10 @@ class TwoChannelPluginTests(unittest.TestCase):
 			mock.patch.object(self.plugin, "_foregroundChannel", return_value=Channel.STABLE),
 		):
 			self.assertTrue(
-				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Beta"))
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Beta")),
 			)
 			self.assertTrue(
-				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "Stable"))
+				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "Stable")),
 			)
 		self.assertEqual([call.args[0] for call in speak.call_args_list], ["Stable"])
 		# The skipped Beta message is consumed, not replayed when Beta comes to the front.
@@ -1507,7 +1507,8 @@ class AutoConnectPluginTests(unittest.TestCase):
 	@staticmethod
 	def _window(pid=4321, path=_STABLE_EXE, name="whatsapp_root"):
 		return types.SimpleNamespace(
-			processID=pid, appModule=types.SimpleNamespace(appName=name, appPath=path)
+			processID=pid,
+			appModule=types.SimpleNamespace(appName=name, appPath=path),
 		)
 
 	def _foreground(self, window):
@@ -1538,7 +1539,9 @@ class AutoConnectPluginTests(unittest.TestCase):
 				return_value=120.0,
 			),
 			"age unknown": lambda: mock.patch.object(
-				self.module.nativeProbes, "processAgeSeconds", return_value=None
+				self.module.nativeProbes,
+				"processAgeSeconds",
+				return_value=None,
 			),
 			"already connected": lambda: mock.patch.object(
 				self.plugin.controller,

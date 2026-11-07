@@ -878,7 +878,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.selectedChannel = channel
 		self._report(
 			OperationResult(
-				False, "autoConnect.starting", "autoConnect.starting", {"channel": channel.value}
+				False,
+				"autoConnect.starting",
+				"autoConnect.starting",
+				{"channel": channel.value},
 			),
 			defer=True,
 		)
@@ -1217,7 +1220,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			"operation.busy": _("WhatsApp Companion is already running. Close WhatsApp first."),
 			# Translators: Spoken and brailled when this WhatsApp channel already runs with the Companion.
 			"operation.channelBusy": _(
-				"WhatsApp {channel} is already running with WhatsApp Companion."
+				"WhatsApp {channel} is already running with WhatsApp Companion.",
 			).format(
 				channel=channel,
 			),
