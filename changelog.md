@@ -24,6 +24,10 @@ When a launch step runs out of time, the NVDA log now shows the check that kept 
 
 Rewrite WhatsApp Companion messages, menu help and dialogs in English and Indonesian so they are shorter and easier to understand. Call commands in Input Gestures no longer say "native".
 
+### Includes WhatsApp Web Plus 2026.11.07
+
+Include WhatsApp Web Plus 2026.11.07. Tab and Shift+Tab return to the chat you were on in the chat list, voice statuses are read with their sender and time, and the Status list says "Recent" and "Viewed". The chat list behind Status, Channels, Communities and Calls is no longer read, and a new **Loud** voice-message profile makes voice messages louder and more even. See the WhatsApp Web Plus changelog for all changes.
+
 ## 2026.11.01 - 2026-11-01
 
 Run the recording helper with a process-scoped execution policy, so microphone listing, call detection, recording and compact call-view restore also work on computers that keep the default Restricted PowerShell policy.

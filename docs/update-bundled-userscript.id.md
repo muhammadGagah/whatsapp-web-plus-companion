@@ -21,8 +21,8 @@ Gunakan terminal PowerShell yang sama untuk semua langkah. Semua path lokal di b
 ```powershell
 $scriptRoot = 'D:\whatsapp\whatsapp-web-plus'
 $companionRoot = 'D:\whatsapp\whatsapp-web-plus-companion'
-$expectedVersion = '2026.11.01'
-$expectedSequence = 2026110101
+$expectedVersion = '2026.11.07'
+$expectedSequence = 2026110701
 ```
 
 URL unduhan pada blok berikut adalah URL resmi project, bukan contoh path lokal. Untuk fork, perubahan publikasi dan verifikasi harus disesuaikan bersama.
