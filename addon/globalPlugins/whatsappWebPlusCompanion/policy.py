@@ -51,3 +51,21 @@ MAX_HTTP_BYTES = 1024 * 1024
 MAX_HTTP_HEADER_BYTES = 64 * 1024
 MAX_FRAME_BYTES = 1024 * 1024
 ALLOWED_HTTP_PATHS = frozenset(("/json/version", "/json/list"))
+
+
+def channelForExecutable(path: object) -> Channel | None:
+	"""The WhatsApp channel whose Microsoft Store package contains this executable.
+
+	Package install folders start with the package name, for example
+	``WindowsApps\\5319275A.WhatsAppDesktop_2.2642.101.0_x64__cv1g1gvanyjgm``.
+	"""
+	if not isinstance(path, str) or not path:
+		return None
+	folders = [part.casefold() for part in path.replace("/", "\\").split("\\")]
+	for channel, policy in CHANNELS.items():
+		name = policy.packageFamily.rsplit("_", 1)[0].casefold()
+		publisher = policy.packageFamily.rsplit("_", 1)[1].casefold()
+		for folder in folders[:-1]:
+			if folder.startswith(name + "_") and folder.endswith("__" + publisher):
+				return channel
+	return None

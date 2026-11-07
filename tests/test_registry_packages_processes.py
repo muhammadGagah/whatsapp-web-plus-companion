@@ -51,7 +51,7 @@ class PackageProcessTests(unittest.TestCase):
 			runPowerShellCancellable("Get-AppxPackage", cancel)
 
 		self.assertFalse(process.killed)
-		popen.assert_not_called()  # Cancellation is now checked before creating a process.
+		popen.assert_not_called()  # Cancellation is checked before creating a process.
 
 	@patch("globalPlugins.whatsappWebPlusCompanion.packages.subprocess.run")
 	def test_power_shell_does_not_inherit_nvda_stdin(self, run) -> None:
@@ -259,6 +259,7 @@ class PackageProcessTests(unittest.TestCase):
 			cancel = threading.Event()
 			io = launcher._OperationIO(cancel, lambda closer: None, outerEnd)
 			with (
+				patch.object(launcher, "_NATIVE_PROBES", False),
 				patch.object(launcher.time, "monotonic", side_effect=lambda: clock[0]),
 				patch.object(launcher, "runPowerShellCancellable", side_effect=run),
 			):

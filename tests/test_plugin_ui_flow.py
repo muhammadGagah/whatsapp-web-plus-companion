@@ -99,6 +99,9 @@ def _installFakeEnvironment() -> None:
 		def Enable(self, enabled) -> None:
 			self.enabled = enabled
 
+		def Check(self, checked) -> None:
+			self.checked = checked
+
 		def Destroy(self) -> None:
 			pass
 
@@ -110,6 +113,9 @@ def _installFakeEnvironment() -> None:
 			item = FakeMenuItem(label)
 			self.entries.append(item)
 			return item
+
+		def AppendCheckItem(self, itemId, label: str, helpText: str) -> FakeMenuItem:
+			return self.Append(itemId, label, helpText)
 
 		def AppendSeparator(self) -> None:
 			self.entries.append(None)
@@ -235,7 +241,7 @@ class PluginUiFlowTests(unittest.TestCase):
 		progress = OperationResult(True, "cdp.recovering", "cdp.recovering", {})
 		with mock.patch.object(self.module.commandFeedback, "message") as feedback:
 			self.assertTrue(self.plugin._reportIfCurrent(self.plugin._generation, progress))
-			feedback.assert_called_once_with("Restoring the WhatsApp Companion connection. Please wait.")
+			feedback.assert_called_once_with("Reconnecting WhatsApp Companion. Please wait.")
 			self.assertIs(self.plugin.lastResult, previous)
 			feedback.reset_mock()
 			self.assertFalse(self.plugin._reportIfCurrent(self.plugin._generation - 1, progress))
@@ -247,11 +253,11 @@ class PluginUiFlowTests(unittest.TestCase):
 		for result, expected in (
 			(
 				OperationResult(True, "cdp.restored", "cdp.restored", {}),
-				"The WhatsApp Companion connection has been restored.",
+				"WhatsApp Companion is connected again.",
 			),
 			(
 				OperationResult(False, "cdp.timeout", "cdp.timeout", {}),
-				"The WhatsApp Companion connection could not be restored. Close WhatsApp, then launch it again.",
+				"Couldn't reconnect WhatsApp Companion. Close WhatsApp, then launch it again.",
 			),
 		):
 			self.plugin.lastResult = OperationResult(True, "attached", "active", {})
@@ -484,7 +490,7 @@ class PluginUiFlowTests(unittest.TestCase):
 	def test_automatic_stops_are_announced_with_saved_path(self):
 		for state, expected in (
 			("call-ended", "The call ended. Recording saved: call.wav"),
-			("limit", "The 4-hour recording limit was reached. Recording saved: call.wav"),
+			("limit", "Recording reached the 4-hour limit. Saved: call.wav"),
 		):
 			with (
 				self.subTest(state=state),
@@ -548,7 +554,7 @@ class PluginUiFlowTests(unittest.TestCase):
 			recorder.captureStarted = False
 			self.plugin._stopRecording()
 			recorder.stop.assert_called_once_with()
-			self.assertEqual(announce.call_args.args[0], "Cancelling call recording preparation.")
+			self.assertEqual(announce.call_args.args[0], "Cancelling the recording.")
 			recorder.captureStarted = True
 			self.plugin._stopRecording()
 			self.assertEqual(announce.call_args.args[0], "Stopping recording and saving the file.")
@@ -560,10 +566,10 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._recording.cancel.clear()
 			self.plugin._recordingReport("focus-changed", "")
-			self.assertIn("lost focus", announce.call_args.args[0])
+			self.assertIn("you left the call window", announce.call_args.args[0])
 
 	def test_failed_call_check_is_not_reported_as_no_call(self):
-		expected = "Could not check for a WhatsApp call. Try again."
+		expected = "Couldn't check for a WhatsApp call. Try again."
 		with (
 			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
 			mock.patch.object(self.plugin, "_recording") as recorder,
@@ -662,7 +668,7 @@ class PluginUiFlowTests(unittest.TestCase):
 		self.assertFalse(self.plugin._registryDiagnosisPending)
 		self.assertEqual(self.plugin.lastResult.code, "registry.repair.processUnknown")
 		self.assertTrue(
-			any("Could not verify whether WhatsApp is running" in text for text in self.uiMessages),
+			any("Couldn't tell whether WhatsApp is open" in text for text in self.uiMessages),
 		)
 
 	def test_process_probe_distinguishes_unknown_absent_and_running(self) -> None:
@@ -720,13 +726,13 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._startRegistryDiagnosis()
 			for _ in range(100):
-				if "The required WebView2 policy permissions are available." in self.uiMessages:
+				if "WebView2 permissions are fine. Nothing needs fixing." in self.uiMessages:
 					break
 				time.sleep(0.001)
 
-		self.assertIn("Checking WebView2 policy permissions.", self.uiMessages)
+		self.assertIn("Checking WebView2 permissions.", self.uiMessages)
 		self.assertIn(
-			"The required WebView2 policy permissions are available.",
+			"WebView2 permissions are fine. Nothing needs fixing.",
 			self.uiMessages,
 		)
 		self.assertEqual(self.plugin.lastResult.code, "registry.repair.notNeeded")
@@ -828,7 +834,7 @@ class PluginUiFlowTests(unittest.TestCase):
 					break
 				time.sleep(0.001)
 
-		self.assertIn("Checking WebView2 policy permissions.", self.uiMessages)
+		self.assertIn("Checking WebView2 permissions.", self.uiMessages)
 		self.assertIsNotNone(self.plugin._dialog)
 		self.assertEqual(
 			self.plugin.lastResult.code,
@@ -846,13 +852,13 @@ class PluginUiFlowTests(unittest.TestCase):
 		dialog = self.plugin._dialog
 		self.assertIsNotNone(dialog)
 		self.assertEqual(dialog.title, "Close WhatsApp to continue diagnosis?")
-		self.assertIn("Active calls and file transfers will be interrupted", dialog.message)
-		self.assertIn("review a separate confirmation", dialog.message)
+		self.assertIn("Calls and file transfers will stop", dialog.message)
+		self.assertIn("you'll be asked again", dialog.message)
 		self.assertEqual(dialog.noLabel, "&Keep WhatsApp open")
 		self.assertEqual(dialog.yesLabel, "&Force close WhatsApp and continue")
 		self.assertTrue(dialog.defaultNo)
 		self.assertTrue(dialog.fallbackNo)
-		self.assertNotIn("Close WhatsApp before diagnosing WebView2 policy permissions.", self.uiMessages)
+		self.assertNotIn("Close WhatsApp before checking WebView2 permissions.", self.uiMessages)
 
 		completion = None
 
@@ -882,25 +888,68 @@ class PluginUiFlowTests(unittest.TestCase):
 			)
 			startDiagnosis.assert_not_called()
 
-	def test_standalone_force_close_dialog_has_clear_copy_and_safe_default(self) -> None:
-		self.plugin._reviewForceClose()
+	def test_force_close_dialog_suggests_the_only_connected_whatsapp(self) -> None:
+		Channel = self.module.Channel
+		for active, expected in (
+			((), None),
+			((Channel.BETA,), Channel.BETA),
+			((Channel.STABLE, Channel.BETA), None),
+		):
+			created = []
 
-		dialog = self.plugin._dialog
-		self.assertIsNotNone(dialog)
-		self.assertEqual(dialog.title, "Force close WhatsApp applications?")
-		self.assertIn("Active calls and file transfers will be interrupted", dialog.message)
-		self.assertIn("Text you have not sent may be lost", dialog.message)
-		self.assertEqual(dialog.noLabel, "&Keep WhatsApp open")
-		self.assertEqual(dialog.yesLabel, "&Force close")
-		self.assertTrue(dialog.defaultNo)
-		self.assertTrue(dialog.fallbackNo)
+			def create(default):
+				created.append(default)
+				return _FakeMessageDialog(None, "Force close")
 
-		with mock.patch.object(self.plugin.controller, "forceClose", return_value=True) as forceClose:
-			dialog.callback(None)
-		forceClose.assert_called_once_with()
-		self.assertIn(
-			"Closing all running WhatsApp Stable and Beta apps from Microsoft Store.",
-			self.uiMessages,
+			with (
+				self.subTest(active=active),
+				mock.patch.object(self.plugin.controller, "activeChannels", return_value=active),
+				mock.patch.object(self.plugin, "_createForceCloseDialog", side_effect=create),
+			):
+				self.plugin._dialog = None
+				self.plugin._reviewForceClose()
+			self.assertEqual(created, [expected])
+			self.assertTrue(self.plugin._dialog.shown)
+
+	def test_force_close_choice_closes_one_channel_or_all(self) -> None:
+		Channel = self.module.Channel
+		cases = (
+			(None, mock.call(), "Closing WhatsApp Stable and Beta."),
+			((Channel.STABLE, Channel.BETA), mock.call(), None),
+			(
+				(Channel.BETA,),
+				mock.call(channels=(Channel.BETA,)),
+				"Closing WhatsApp Beta.",
+			),
+		)
+		for channels, expectedCall, message in cases:
+			self.uiMessages.clear()
+			with (
+				self.subTest(channels=channels),
+				mock.patch.object(self.plugin.controller, "forceClose", return_value=True) as forceClose,
+			):
+				self.plugin._startForceClose(channels)
+			self.assertEqual(forceClose.call_args_list, [expectedCall])
+			if message:
+				self.assertEqual(self.uiMessages, [message])
+
+	def test_single_channel_force_close_results_name_the_channel(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import OperationResult
+
+		closed = OperationResult(
+			True,
+			"processes.closed",
+			"processes.closed.one",
+			{"channel": "beta", "closedCount": 3},
+		)
+		none = OperationResult(True, "processes.none", "processes.none.one", {"channel": "stable"})
+		self.assertEqual(
+			self.plugin._messageForResult(closed),
+			"WhatsApp Beta was closed (3 processes).",
+		)
+		self.assertEqual(
+			self.plugin._messageForResult(none),
+			"WhatsApp Stable wasn't running.",
 		)
 
 	def test_resumed_diagnosis_waits_for_an_existing_dialog_to_close(self) -> None:
@@ -950,14 +999,14 @@ class PluginUiFlowTests(unittest.TestCase):
 
 		self.assertEqual(self.plugin.lastResult.code, "operation.loading")
 		self.assertIn(
-			"WhatsApp Stable is still loading with WhatsApp Companion. Please wait.",
+			"Opening WhatsApp Stable with WhatsApp Companion. Please wait.",
 			self.uiMessages,
 		)
 		self.uiMessages.clear()
 		self.plugin.script_reportLastResult(None)
 		self.assertEqual(
 			self.uiMessages,
-			["WhatsApp Stable is still loading with WhatsApp Companion. Please wait."],
+			["Opening WhatsApp Stable with WhatsApp Companion. Please wait."],
 		)
 
 	def test_dead_stale_dialog_is_cleared_and_diagnosis_proceeds(self) -> None:
@@ -978,10 +1027,10 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._startRegistryDiagnosis()
 			for _ in range(100):
-				if "The required WebView2 policy permissions are available." in self.uiMessages:
+				if "WebView2 permissions are fine. Nothing needs fixing." in self.uiMessages:
 					break
 				time.sleep(0.001)
-		self.assertIn("Checking WebView2 policy permissions.", self.uiMessages)
+		self.assertIn("Checking WebView2 permissions.", self.uiMessages)
 
 	def test_py_dead_object_error_recovers_singleton(self) -> None:
 		class DeadDialog:
@@ -1021,11 +1070,11 @@ class PluginUiFlowTests(unittest.TestCase):
 		):
 			self.plugin._startRegistryDiagnosis()
 			for _ in range(100):
-				if "The required WebView2 policy permissions are available." in self.uiMessages:
+				if "WebView2 permissions are fine. Nothing needs fixing." in self.uiMessages:
 					break
 				time.sleep(0.001)
 		self.assertIsNone(self.plugin._dialog)
-		self.assertIn("Checking WebView2 policy permissions.", self.uiMessages)
+		self.assertIn("Checking WebView2 permissions.", self.uiMessages)
 		self.assertEqual(self.plugin.lastResult.code, "registry.repair.notNeeded")
 
 	def test_diagnosis_loader_error_reports_exact_code(self) -> None:
@@ -1044,7 +1093,7 @@ class PluginUiFlowTests(unittest.TestCase):
 					break
 				time.sleep(0.001)
 		self.assertEqual(self.plugin.lastResult.code, "registry.machine.readAccessDenied")
-		self.assertTrue(any("computer-wide WebView2 policy setting" in text for text in self.uiMessages))
+		self.assertTrue(any("computer-wide WebView2 setting" in text for text in self.uiMessages))
 
 	def test_repair_identity_capture_failure_reports_exact_code(self) -> None:
 		from globalPlugins.whatsappWebPlusCompanion.models import LoaderError
@@ -1085,7 +1134,7 @@ class PluginUiFlowTests(unittest.TestCase):
 			function()
 		self.assertIn("Deferred hello", self.uiMessages)
 		self.assertIn(
-			"The required WebView2 policy permissions are available.",
+			"WebView2 permissions are fine. Nothing needs fixing.",
 			self.uiMessages,
 		)
 
@@ -1116,7 +1165,7 @@ class PluginUiFlowTests(unittest.TestCase):
 			callback()
 		self.assertEqual(
 			self.uiMessages,
-			["The WhatsApp Web Plus userscript is up to date at version 2.6.75."],
+			["WhatsApp Web Plus is up to date (2.6.75)."],
 		)
 
 	def test_updated_bundle_result_explains_next_launch(self) -> None:
@@ -1134,8 +1183,7 @@ class PluginUiFlowTests(unittest.TestCase):
 		)
 		self.assertTrue(
 			any(
-				"updated from version 2.6.74 to 2.6.75" in message
-				and "next time WhatsApp is launched through the Companion" in message
+				"updated from 2.6.74 to 2.6.75" in message and "next time you launch WhatsApp" in message
 				for message in self.uiMessages
 			),
 		)
@@ -1156,9 +1204,8 @@ class PluginUiFlowTests(unittest.TestCase):
 		)
 		self.assertTrue(
 			any(
-				"refreshed at version 2.6.75" in message
-				and "official script differed" in message
-				and "next time WhatsApp is launched through the Companion" in message
+				"2.6.75 was replaced with the official copy" in message
+				and "next time you launch WhatsApp" in message
 				for message in self.uiMessages
 			),
 		)
@@ -1194,7 +1241,7 @@ class PluginUiFlowTests(unittest.TestCase):
 			self.assertEqual(
 				self.uiMessages,
 				[
-					"The WhatsApp Web Plus userscript is up to date at version 2.6.74.",
+					"WhatsApp Web Plus is up to date (2.6.74).",
 				],
 			)
 			self.assertFalse(self.plugin._updateTerminalPending)
@@ -1211,14 +1258,14 @@ class PluginUiFlowTests(unittest.TestCase):
 
 		self.assertEqual(
 			self.uiMessages[-1],
-			"The WhatsApp Web Plus userscript is up to date at version 2.6.75.",
+			"WhatsApp Web Plus is up to date (2.6.75).",
 		)
 
 	def test_restricted_update_context_is_saved_as_last_result(self) -> None:
 		with mock.patch.object(self.module.globalVars.appArgs, "secure", True):
 			self.plugin._startUpdateCheck()
 		self.assertTrue(
-			any("cannot be updated in this NVDA context" in message for message in self.uiMessages),
+			any("can't be updated from this NVDA session" in message for message in self.uiMessages),
 		)
 		self.assertEqual(self.plugin.lastResult.code, "update.context")
 
@@ -1259,11 +1306,11 @@ class PluginUiFlowTests(unittest.TestCase):
 				self.assertEqual(len(self.uiMessages), 2)
 				self.assertEqual(
 					self.uiMessages[0],
-					"Checking for a signed WhatsApp Web Plus userscript update.",
+					"Checking for WhatsApp Web Plus updates.",
 				)
-				self.assertIn("existing Companion bundle was not changed", self.uiMessages[1])
+				self.assertIn("Your current version was kept.", self.uiMessages[1])
 				if errorCode == "keyUnknown":
-					self.assertIn("Update WhatsApp Companion and try again", self.uiMessages[1])
+					self.assertIn("Update WhatsApp Companion, then try again", self.uiMessages[1])
 				self.assertEqual(plugin.lastResult.code, f"update.{errorCode}")
 				self.assertEqual(plugin.lastResult.values["errorCode"], errorCode)
 				self.assertEqual(_FakeNativeDialog.instances, [])
@@ -1300,6 +1347,263 @@ class PluginUiFlowTests(unittest.TestCase):
 				callback()
 
 		self.assertEqual(self.uiMessages, [])
+
+
+_STABLE_EXE = (
+	r"C:\Program Files\WindowsApps\5319275A.WhatsAppDesktop_2.2642.101.0_x64__cv1g1gvanyjgm\WhatsApp.Root.exe"
+)
+_BETA_EXE = (
+	r"C:\Program Files\WindowsApps\5319275A.51895FA4EA97F_2.2643.3.0_x64__cv1g1gvanyjgm\WhatsApp.Root.exe"
+)
+
+
+class TwoChannelPluginTests(unittest.TestCase):
+	@classmethod
+	def setUpClass(cls) -> None:
+		_installFakeEnvironment()
+
+	def setUp(self) -> None:
+		pluginModule = sys.modules["globalPlugins.whatsappWebPlusCompanion"]
+		self.module = pluginModule
+		pluginModule.recoverPendingRegistryStateAtStartup = lambda: None
+		self.plugin = pluginModule.GlobalPlugin()
+		self.plugin._brailleMessages = mock.Mock()
+		from globalPlugins.whatsappWebPlusCompanion.security import AnnouncementGuard
+
+		self.plugin._announcementGuard = AnnouncementGuard(lambda: True)
+
+	def tearDown(self) -> None:
+		self.plugin.controller.stop()
+
+	def _result(self, key, channel, **values):
+		from globalPlugins.whatsappWebPlusCompanion.models import OperationResult
+
+		return OperationResult(True, key, key, {"channel": channel, **values})
+
+	def _connect(self, channel, session):
+		invalidate = self._result(
+			"companion.invalidate",
+			channel,
+			session=session,
+			generation=1,
+			context=f"{session}:1",
+			source="status",
+		)
+		self.assertTrue(self.plugin._applyCompanionInvalidation(invalidate))
+
+	def _announcement(self, channel, session, sequence, text):
+		return self._result(
+			"companion.announcement",
+			channel,
+			session=session,
+			generation=1,
+			context=f"{session}:1",
+			sequence=sequence,
+			source="status",
+			privacy=False,
+			text=text,
+		)
+
+	def test_stable_and_beta_keep_their_own_announcement_order(self) -> None:
+		self._connect("stable", "s")
+		self._connect("beta", "b")
+		with (
+			mock.patch.object(self.plugin, "_speakAndQueueBraille") as speak,
+			mock.patch.object(self.plugin, "_foregroundChannel", return_value=None),
+		):
+			self.assertTrue(
+				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "One"))
+			)
+			self.assertTrue(
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Two"))
+			)
+			self.assertFalse(
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Again"))
+			)
+			# A reconnect of Beta does not reset Stable.
+			self._connect("beta", "b2")
+			self.assertTrue(
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b2", 1, "Three"))
+			)
+			self.assertFalse(
+				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "Old"))
+			)
+		self.assertEqual([call.args[0] for call in speak.call_args_list], ["One", "Two", "Three"])
+
+	def test_whatsapp_in_the_background_is_quiet_while_the_other_one_is_in_front(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel
+
+		self._connect("stable", "s")
+		self._connect("beta", "b")
+		with (
+			mock.patch.object(self.plugin, "_speakAndQueueBraille") as speak,
+			mock.patch.object(self.plugin, "_foregroundChannel", return_value=Channel.STABLE),
+		):
+			self.assertTrue(
+				self.plugin._deliverCompanionAnnouncement(self._announcement("beta", "b", 1, "Beta"))
+			)
+			self.assertTrue(
+				self.plugin._deliverCompanionAnnouncement(self._announcement("stable", "s", 1, "Stable"))
+			)
+		self.assertEqual([call.args[0] for call in speak.call_args_list], ["Stable"])
+		# The skipped Beta message is consumed, not replayed when Beta comes to the front.
+		self.assertEqual(self.plugin._delivery("beta").lastSequence, 1)
+
+	def test_closing_one_channel_keeps_the_other_channel_session(self) -> None:
+		self._connect("stable", "s")
+		self._connect("beta", "b")
+		with mock.patch.object(self.module.commandFeedback, "message"):
+			self.plugin._reportIfCurrent(self.plugin._generation, self._result("package.closed", "beta"))
+		self.assertEqual(self.plugin._delivery("stable").session, "s")
+		self.assertEqual(self.plugin._delivery("beta").session, "")
+
+	def test_launching_a_channel_that_already_runs_names_that_channel(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel
+
+		with (
+			mock.patch.object(self.plugin.controller, "channelActive", return_value=True),
+			mock.patch.object(self.plugin.controller, "start") as start,
+			mock.patch.object(self.plugin, "_announce") as announce,
+		):
+			self.plugin._launch(Channel.BETA)
+		start.assert_not_called()
+		announce.assert_called_once_with("WhatsApp Beta is already running with WhatsApp Companion.")
+
+	def test_launch_report_is_tagged_with_its_channel(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel, OperationResult
+
+		with (
+			mock.patch.object(self.plugin.controller, "channelForToken", return_value=Channel.BETA),
+			mock.patch.object(self.plugin, "_queueReport", return_value=True) as queue,
+		):
+			self.plugin._queueLaunchReport(OperationResult(True, "cdp.restored", "cdp.restored", {}), 7)
+		self.assertEqual(queue.call_args.args[0].values, {"channel": "beta"})
+
+
+class AutoConnectPluginTests(unittest.TestCase):
+	@classmethod
+	def setUpClass(cls) -> None:
+		_installFakeEnvironment()
+
+	def setUp(self) -> None:
+		pluginModule = sys.modules["globalPlugins.whatsappWebPlusCompanion"]
+		self.module = pluginModule
+		pluginModule.recoverPendingRegistryStateAtStartup = lambda: None
+		self.plugin = pluginModule.GlobalPlugin()
+		self.patches = [
+			mock.patch.object(pluginModule.settings, "autoConnect", return_value=True),
+			mock.patch.object(self.plugin, "_recordingAllowed", return_value=True),
+			mock.patch.object(pluginModule.nativeProbes, "processAgeSeconds", return_value=3.0),
+			mock.patch.object(self.plugin, "_announce"),
+		]
+		for item in self.patches:
+			item.start()
+
+	def tearDown(self) -> None:
+		for item in self.patches:
+			item.stop()
+		self.plugin.controller.stop()
+
+	@staticmethod
+	def _window(pid=4321, path=_STABLE_EXE, name="whatsapp_root"):
+		return types.SimpleNamespace(
+			processID=pid, appModule=types.SimpleNamespace(appName=name, appPath=path)
+		)
+
+	def _foreground(self, window):
+		nextHandler = mock.Mock()
+		self.plugin.event_foreground(window, nextHandler)
+		nextHandler.assert_called_once_with()
+
+	def test_whatsapp_opened_by_the_user_is_reopened_once_for_its_channel(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel
+
+		with mock.patch.object(self.plugin.controller, "start", return_value=True) as start:
+			self._foreground(self._window(path=_BETA_EXE))
+			self._foreground(self._window(path=_BETA_EXE))
+		start.assert_called_once_with(Channel.BETA, replaceRecent=True)
+		self.assertEqual(self.plugin.selectedChannel, Channel.BETA)
+		self.plugin._announce.assert_called_once_with(
+			"Reopening WhatsApp Beta with WhatsApp Companion. Please wait.",
+		)
+
+	def test_nothing_is_reopened_when_it_should_not_be(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel
+
+		cases = {
+			"setting off": lambda: mock.patch.object(self.module.settings, "autoConnect", return_value=False),
+			"opened long ago": lambda: mock.patch.object(
+				self.module.nativeProbes,
+				"processAgeSeconds",
+				return_value=120.0,
+			),
+			"age unknown": lambda: mock.patch.object(
+				self.module.nativeProbes, "processAgeSeconds", return_value=None
+			),
+			"already connected": lambda: mock.patch.object(
+				self.plugin.controller,
+				"channelActive",
+				return_value=True,
+			),
+			"force closing": lambda: mock.patch.object(
+				type(self.plugin.controller),
+				"forceClosing",
+				new_callable=mock.PropertyMock,
+				return_value=True,
+			),
+		}
+		for pid, (name, makePatch) in enumerate(cases.items(), start=100):
+			with self.subTest(name), makePatch(), mock.patch.object(self.plugin.controller, "start") as start:
+				self._foreground(self._window(pid=pid))
+				start.assert_not_called()
+		for name, window in (
+			("other app", self._window(pid=200, path=r"C:\Windows\notepad.exe", name="notepad")),
+			("unknown WhatsApp build", self._window(pid=201, path=r"C:\Tools\WhatsApp.exe")),
+		):
+			with self.subTest(name), mock.patch.object(self.plugin.controller, "start") as start:
+				self._foreground(window)
+				start.assert_not_called()
+		self.plugin._autoConnectBlocked.add(Channel.STABLE)
+		with mock.patch.object(self.plugin.controller, "start") as start:
+			self._foreground(self._window(pid=300))
+			start.assert_not_called()
+
+	def test_failed_automatic_connection_stays_quiet_when_whatsapp_was_open_before(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel, OperationResult
+
+		self.plugin._autoConnectTokens[9] = Channel.STABLE
+		with mock.patch.object(self.plugin, "_queueReport") as queue:
+			self.assertTrue(
+				self.plugin._queueLaunchReport(
+					OperationResult(False, "autoConnect.tooLate", "autoConnect.tooLate", {}),
+					9,
+				),
+			)
+		queue.assert_not_called()
+		self.assertIn(Channel.STABLE, self.plugin._autoConnectBlocked)
+		# A manual launch lifts the block again.
+		with mock.patch.object(self.plugin.controller, "start", return_value=True):
+			self.plugin._launch(Channel.STABLE)
+		self.assertNotIn(Channel.STABLE, self.plugin._autoConnectBlocked)
+
+	def test_other_automatic_failures_are_still_reported(self) -> None:
+		from globalPlugins.whatsappWebPlusCompanion.models import Channel, OperationResult
+
+		self.plugin._autoConnectTokens[9] = Channel.BETA
+		failure = OperationResult(False, "autoConnect.closeFailed", "autoConnect.closeFailed", {})
+		with mock.patch.object(self.plugin, "_queueReport", return_value=True) as queue:
+			self.plugin._queueLaunchReport(failure, 9)
+		queue.assert_called_once()
+		self.assertIn(Channel.BETA, self.plugin._autoConnectBlocked)
+
+	def test_toggle_saves_the_setting_and_says_the_new_state(self) -> None:
+		with (
+			mock.patch.object(self.module.settings, "autoConnect", return_value=False),
+			mock.patch.object(self.module.settings, "setAutoConnect", return_value=True) as save,
+		):
+			self.plugin._toggleAutoConnect()
+		save.assert_called_once_with(True)
+		self.assertTrue(self.plugin._announce.call_args.args[0].startswith("Automatic connection on."))
 
 
 if __name__ == "__main__":

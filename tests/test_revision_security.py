@@ -1,5 +1,6 @@
-"""D02: fail-closed session gates, GUI generations and braille backlog invalidation.
-NVDA/Windows APIs are simulated here; see COMPATIBILITY_MATRIX.md for real gates.
+"""Fail-closed session gates, GUI generations and braille backlog invalidation.
+
+NVDA and Windows APIs are simulated here.
 """
 
 import sys

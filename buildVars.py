@@ -10,11 +10,11 @@ addon_info = AddonInfo(
 	addon_name="whatsappWebPlusCompanion",
 	addon_summary=_("WhatsApp Companion"),
 	addon_description=_(
-		"WhatsApp Companion makes Microsoft Store WhatsApp Stable and Beta easier to use with NVDA. It brings WhatsApp Web Plus features to the desktop app, with keyboard navigation, message reading, and call controls with customizable labels.",
+		"Makes WhatsApp Stable and Beta from Microsoft Store easier to use with NVDA, with WhatsApp Web Plus features, keyboard navigation, message reading and call controls.",
 	),
-	addon_version="2026.11.01",
+	addon_version="2026.11.07",
 	addon_changelog=_(
-		"Add manual WhatsApp call recording and make Companion announcements available to Speech History. Include WhatsApp Web Plus 2026.11.01. Requires NVDA 2025.1 or later.",
+		"Run WhatsApp Stable and Beta together, connect automatically when WhatsApp opens, and choose which WhatsApp to force close. Fixes launch failures on slow computers. Requires NVDA 2025.1 or later.",
 	),
 	addon_author="Muhammad <muha.aku@gmail.com>",
 	addon_url="https://github.com/muhammadGagah/whatsapp-web-plus-companion",

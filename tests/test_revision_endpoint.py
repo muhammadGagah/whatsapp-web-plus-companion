@@ -1,4 +1,4 @@
-"""D03: ownership snapshots and attachment checks (simulated Windows topology)."""
+"""Ownership snapshots and attachment checks (simulated Windows topology)."""
 
 import copy
 import json

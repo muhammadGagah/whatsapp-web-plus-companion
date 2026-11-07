@@ -22,6 +22,9 @@ class FakeMenuItem:
 	def Enable(self, enabled) -> None:
 		self.enabled = enabled
 
+	def Check(self, checked) -> None:
+		self.checked = checked
+
 	def Destroy(self) -> None:
 		self.destroyed = True
 
@@ -35,6 +38,11 @@ class FakeMenu:
 	def Append(self, itemId, label: str, helpText: str) -> FakeMenuItem:
 		item = FakeMenuItem(label)
 		self.entries.append(item)
+		return item
+
+	def AppendCheckItem(self, itemId, label: str, helpText: str) -> FakeMenuItem:
+		item = self.Append(itemId, label, helpText)
+		item.checkable = True
 		return item
 
 	def AppendSeparator(self) -> None:
@@ -174,10 +182,32 @@ class MenuTests(unittest.TestCase):
 		menu.terminate()
 		self.assertTrue(timers[-1].stopped)
 
-	def test_plugin_menu_has_ten_actions_including_recording(self) -> None:
+	def test_checkable_item_follows_its_setting(self) -> None:
+		state = {"on": False}
+		menu = self.menuModule.CompanionMenu(
+			"Companion",
+			"Help",
+			((self.menuModule.MenuSpec("Auto", "", lambda event: None, isChecked=lambda: state["on"]),),),
+		)
+		(item,) = menu._menu.entries
+		self.assertTrue(item.checkable)
+		self.assertFalse(item.checked)
+		state["on"] = True
+		event = mock.Mock()
+		(updateCheck,) = [
+			handler for handler, source in self.owner.bound if handler.__name__ == "updateCheck"
+		]
+		updateCheck(event)
+		event.Check.assert_called_once_with(True)
+		menu.refreshEnabled()
+		menu.terminate()
+		self.assertEqual(len(self.owner.bound), len(self.owner.unbound))
+
+	def test_plugin_menu_has_eleven_actions_including_recording(self) -> None:
 		path = pathlib.Path(__file__).parents[1] / "addon/globalPlugins/whatsappWebPlusCompanion/__init__.py"
 		source = path.read_text(encoding="utf-8")
-		self.assertEqual(source.count("MenuSpec("), 10)
+		self.assertEqual(source.count("MenuSpec("), 11)
+		self.assertIn("isChecked=settings.autoConnect", source)
 		self.assertIn("self._onCallLabelsMenu", source)
 		self.assertIn('_("Diagnose and repair WebView2 &policy permissions...")', source)
 		self.assertIn("self._onDiagnoseRepairMenu", source)

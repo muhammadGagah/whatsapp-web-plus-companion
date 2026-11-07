@@ -59,7 +59,20 @@ If Companion has already worked on this computer, an ordinary update does not re
 
 If WhatsApp opens without receiving focus, press `Alt + Tab`.
 
-Always launch WhatsApp from the Companion menu when you want its features. Opening WhatsApp from the Start menu does not prepare it for Companion.
+Launch WhatsApp from the Companion menu when you want its features. Opening WhatsApp from the Start menu does not prepare it for Companion, unless automatic connection is on.
+
+### Using Stable and Beta at the same time
+
+WhatsApp Stable and WhatsApp Beta can both run with Companion at the same time. Launch each one from the Companion menu. When both are open, NVDA speaks WhatsApp Web Plus announcements only from the WhatsApp that is in front. When another program is in front, announcements from both are spoken. **Force close Microsoft Store WhatsApp processes** lets you close only Stable, only Beta, or both.
+
+### Connecting automatically
+
+Turn on **Connect automatically when WhatsApp is opened** in the Companion menu. After that, when you open WhatsApp Stable or Beta from the Start menu, the taskbar or the desktop, Companion closes it and opens it again, prepared for Companion. NVDA says that WhatsApp is reopening, then confirms when Companion is connected. The setting is off by default.
+
+- This only happens within 30 seconds after WhatsApp started. A WhatsApp that was already open, for example before NVDA started, is never closed automatically. Close it and open it again.
+- If WhatsApp was opened by selecting a notification, the chat from that notification is not opened after the restart.
+- If an automatic connection fails, Companion does not try again for that WhatsApp until you launch it from the menu or turn the setting off and on.
+- You can assign a shortcut to **Turn automatic WhatsApp Companion connection on or off** in NVDA's Input Gestures dialog.
 
 ## Check that it works
 
@@ -80,7 +93,7 @@ Open **NVDA menu > Tools > WhatsApp Companion** to launch WhatsApp or manage Com
 
 **Repeat a message:** choose **Report the last WhatsApp Companion result** if you missed a result or use NVDA speech On-demand mode.
 
-**Close WhatsApp:** close it normally. If it stays running, use **Force close all Microsoft Store WhatsApp processes**. This can interrupt calls or transfers and lose unsent text.
+**Close WhatsApp:** close it normally. If it stays running, use **Force close Microsoft Store WhatsApp processes**, choose WhatsApp Stable, WhatsApp Beta or All, then select **Force close**. Pressing `Enter` keeps WhatsApp open. This can interrupt calls or transfers and lose unsent text.
 
 **Read a full message:** focus a message and press `Alt + Shift + C` to open it in NVDA's reading window. Press `Escape` to close it.
 
@@ -334,11 +347,11 @@ Use these shortcuts while call controls are available. The same key can have a d
 
 This updates the WhatsApp Web Plus copy used by Companion. To update the Companion add-on itself, install a newer `.nvda-addon` package. If you also use WhatsApp Web Plus in a browser, update that installation separately.
 
-The current source version is **2026.11.01**, including WhatsApp Web Plus **2026.11.01**. Read the [Companion release history](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) for changes.
+The current source version is **2026.11.07**, including WhatsApp Web Plus **2026.11.01**. Read the [Companion release history](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) for changes.
 
 ## Troubleshooting
 
-**WhatsApp is already running:** close it completely, then launch it through Companion.
+**WhatsApp is already running:** close it completely, then launch it through Companion. To connect without closing it yourself, turn on **Connect automatically when WhatsApp is opened**.
 
 **WhatsApp cannot be found:** check that the selected Stable or Beta app is installed from Microsoft Store.
 
@@ -354,7 +367,7 @@ Read the [detailed troubleshooting guide](https://github.com/muhammadGagah/whats
 
 For a native incoming call, focus the call window with Alt+Tab, then press **Ctrl+Alt+A** to answer or **Ctrl+Alt+D** to decline. Companion requires one visible, enabled pair of Accept and Decline buttons in that window. End call is never treated as Decline. In other applications, in editable fields, or with AltGr, the keys pass through as usual. Secure, locked, and no-write sessions also pass the keys through. Holding or repeating a key does not activate a control again immediately. WhatsApp gives its own feedback about the call result.
 
-For diagnostics, open Input Gestures from WhatsApp and assign a gesture to **Capture native WhatsApp call diagnostics**, which has no default shortcut. During a connected call, capture one snapshot. The `controls` part of `WWP-CALL-SNAPSHOT` lists every recognized control without activating it. If needed, capture another snapshot after the microphone or camera changes state or after raising your hand. If a control is not recorded, focus it with Tab, make sure the NVDA navigator is on it, press NVDA+F1, and copy its object information after removing personal details. There is no need to collect NVDA+F1 output for every control in advance.
+For diagnostics, open Input Gestures from WhatsApp and assign a gesture to **Save WhatsApp call diagnostics to the NVDA log**, which has no default shortcut. During a connected call, capture one snapshot. The `controls` part of `WWP-CALL-SNAPSHOT` lists every recognized control without activating it. If needed, capture another snapshot after the microphone or camera changes state or after raising your hand. If a control is not recorded, focus it with Tab, make sure the NVDA navigator is on it, press NVDA+F1, and copy its object information after removing personal details. There is no need to collect NVDA+F1 output for every control in advance.
 
 Diagnostics also list unmapped controls in `controls.unmapped`, including technical IDs, enabled and offscreen states, and whether the Invoke and Toggle patterns are available. Names of unknown controls are left out. The status `complete` means the scan finished, not that every control was recognized. Toggle availability is not an on or off state. Check identifiers before sharing a log, because providers can insert personal data. If the camera, reactions, raise hand, or screen sharing are still not recognized, send one new snapshot first. Actions are never mapped from ID names alone.
 

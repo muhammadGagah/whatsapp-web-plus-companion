@@ -14,9 +14,10 @@ launch command.
 
 Close WhatsApp normally. Do not run the launch command again to stop it.
 
-If WhatsApp stays open in the background, use **Force close all Microsoft Store
-WhatsApp processes**. The Companion asks for confirmation because force
-closing WhatsApp can interrupt calls and file transfers. Text that you have not
+If WhatsApp stays open in the background, use **Force close Microsoft Store
+WhatsApp processes**. Choose WhatsApp Stable, WhatsApp Beta or All, then select
+**Force close**. The Companion asks first because force closing WhatsApp can
+interrupt calls and file transfers. Text that you have not
 sent may also be lost.
 
 ### Hear the last result again
@@ -45,8 +46,8 @@ install either one or both.
 
 ### Recovery commands
 
-- **Force close all Microsoft Store WhatsApp processes** closes every running
-  Stable and Beta process after you confirm the warning. Use it only when
+- **Force close Microsoft Store WhatsApp processes** closes the running
+  Stable processes, Beta processes, or both, whichever you choose. Use it only when
   WhatsApp did not close normally.
 - **Diagnose and repair WebView2 policy permissions** checks a Windows
   permission that the Companion needs. Run it after your first installation on

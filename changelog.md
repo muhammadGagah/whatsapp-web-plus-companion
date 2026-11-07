@@ -1,5 +1,29 @@
 # WhatsApp Companion changelog
 
+## 2026.11.07 - 2026-11-07
+
+### Stable and Beta at the same time
+
+Run WhatsApp Stable and WhatsApp Beta with WhatsApp Companion at the same time. Each one has its own connection, recovery and announcements. While one WhatsApp is in front, announcements from the other are not spoken. Launching a WhatsApp that is already connected now says so. When both are launched at once, their temporary WebView2 settings are changed one after the other.
+
+**Force close Microsoft Store WhatsApp processes** now asks whether to close WhatsApp Stable, WhatsApp Beta or both. It suggests the only WhatsApp connected to WhatsApp Companion, and `Enter` still keeps WhatsApp open. Closing one WhatsApp leaves the other connected.
+
+### Automatic connection
+
+Add **Connect automatically when WhatsApp is opened** to the WhatsApp Companion menu, with a command you can assign in Input Gestures. It is off by default. When it is on, WhatsApp Stable or Beta opened from the Start menu, taskbar or desktop in the last 30 seconds is closed and opened again with WhatsApp Companion. A WhatsApp that was already open is never closed. After a failed automatic connection, that WhatsApp is not reopened again until you launch it from the menu.
+
+### More reliable launch
+
+Check WhatsApp's processes and its local debugging port directly through Windows instead of starting PowerShell several times per launch. On a computer that has just started or is busy, or when WMI is unhealthy, these checks could use up the whole launch time and end with "WhatsApp Companion could not start". PowerShell is still used if the direct check is unavailable.
+
+Check the listener again against WhatsApp's current processes when WhatsApp replaces its first process during launch, instead of retrying with the old process list until time runs out.
+
+When a launch step runs out of time, the NVDA log now shows the check that kept failing, how many attempts were made and when each step finished.
+
+### Clearer messages
+
+Rewrite WhatsApp Companion messages, menu help and dialogs in English and Indonesian so they are shorter and easier to understand. Call commands in Input Gestures no longer say "native".
+
 ## 2026.11.01 - 2026-11-01
 
 Run the recording helper with a process-scoped execution policy, so microphone listing, call detection, recording and compact call-view restore also work on computers that keep the default Restricted PowerShell policy.

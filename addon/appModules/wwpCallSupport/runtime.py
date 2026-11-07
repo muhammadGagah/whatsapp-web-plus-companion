@@ -203,10 +203,10 @@ def performCallAction(action, gesture):
 			ui.message(
 				_("Call controls restored. Press the shortcut again.")
 				if result == "restored"
-				else _("Could not restore call controls. Focus the call window and try again."),
+				else _("Couldn't restore call controls. Go to the call window and try again."),
 			)
 		elif result == "failed":
-			ui.message(_("The call action could not be confirmed. Check the WhatsApp call window."))
+			ui.message(_("Couldn't confirm that it worked. Check the WhatsApp call window."))
 
 	try:
 		_dispatchCallWorker(work, finished)
@@ -252,8 +252,8 @@ def _performCallWork(
 				return "passthrough"
 			candidate = findCompact(root, client.RawViewWalker, pid)
 	except Exception:
-		# No usable call controls (no call, or a large or slow tree). As before the call worker
-		# existed, WhatsApp receives the key; only a failure after a control was found is reported.
+		# No usable call controls (no call, or a large or slow tree). WhatsApp receives the key;
+		# only a failure after a control was found is reported.
 		return "passthrough"
 	if not timely():
 		return "failed"
@@ -308,13 +308,13 @@ def captureDiagnostics():
 		appName = readProperty(readProperty(foreground, "appModule"), "appName")
 		if appName not in {"whatsapp.root", "whatsapp"} or type(processId) is not int or processId <= 0:
 			# Translators: Capture only the WhatsApp window belonging to this app module.
-			ui.message(_("Focus the WhatsApp call window before capturing diagnostics."))
+			ui.message(_("Go to the WhatsApp call window first."))
 			return
 		snapshot = captureSnapshot(processId, foreground, api.getFocusObject(), api.getNavigatorObject())
 		snapshot["appName"] = appName
 	except Exception:
 		# Translators: No exception details are logged, to avoid private provider data.
-		ui.message(_("Call diagnostics could not be captured."))
+		ui.message(_("Couldn't save call diagnostics."))
 		return
 
 	def work(client, uia):
@@ -332,10 +332,10 @@ def captureDiagnostics():
 		try:
 			log.info("WWP-CALL-SNAPSHOT %s", json.dumps(snapshot, ensure_ascii=True, separators=(",", ":")))
 		except Exception:
-			ui.message(_("Call diagnostics could not be captured."))
+			ui.message(_("Couldn't save call diagnostics."))
 			return
 		# Translators: Confirmation after writing one explicitly requested snapshot.
-		ui.message(_("Call diagnostics written to the NVDA log. Call controls were not activated."))
+		ui.message(_("Call diagnostics saved to the NVDA log. No call buttons were pressed."))
 
 	_diagnosticsPending = True
 	try:

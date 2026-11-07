@@ -42,10 +42,7 @@ class RecordingDialog(wx.Dialog):
 		intro = wx.StaticText(
 			self,
 			label=_(
-				"Start during a call after informing the participants. Choose the same microphone as WhatsApp. "
-				"WhatsApp audio is saved on the left channel and your microphone on the right. "
-				"The microphone is recorded even when muted in WhatsApp. Recording stops by itself shortly after the call "
-				"window closes; use Stop recording to stop earlier.",
+				"Tell everyone in the call before you record. Choose the microphone WhatsApp uses. WhatsApp audio goes to the left channel and your microphone to the right. Your microphone is recorded even when muted in WhatsApp. Recording stops shortly after the call ends, or when you choose Stop recording.",
 			),
 		)
 		intro.Wrap(550)
@@ -109,12 +106,12 @@ class RecordingDialog(wx.Dialog):
 		if available != self._lastAvailable:
 			if available is None:
 				# Translators: The call state could not be read; Start still checks before recording.
-				text = _("Could not confirm the call window. Start will check again.")
+				text = _("Couldn't find the call window yet. Start will check again.")
 			elif available:
-				text = _("Call window detected. Start will verify the connection.")
+				text = _("Call window found. Start will check the call.")
 			else:
 				text = _(
-					"Call window unavailable. Open the call window or check the selected WhatsApp channel.",
+					"Call window not found. Open the call window, or check which WhatsApp is selected.",
 				)
 			self._availabilityText.SetLabel(text)
 			self._availabilityText.Wrap(550)
@@ -136,7 +133,7 @@ class RecordingDialog(wx.Dialog):
 		folder = self.folder.GetValue().strip()
 		if not folder or not Path(folder).is_absolute():
 			wx.MessageBox(
-				_("Choose an absolute path for the recording folder."),
+				_("Enter the full folder path, starting with a drive letter."),
 				_("Record WhatsApp call"),
 				wx.OK | wx.ICON_ERROR,
 				self,

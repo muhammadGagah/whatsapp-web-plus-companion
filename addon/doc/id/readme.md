@@ -59,7 +59,20 @@ Jika Companion sudah pernah berfungsi di komputer ini, pembaruan biasa tidak mem
 
 Jika WhatsApp terbuka tetapi fokus belum berpindah ke sana, tekan `Alt + Tab`.
 
-Selalu buka WhatsApp dari menu Companion ketika ingin memakai fiturnya. Membuka WhatsApp dari menu Mulai tidak menyiapkannya untuk Companion.
+Buka WhatsApp dari menu Companion ketika ingin memakai fiturnya. Membuka WhatsApp dari menu Mulai tidak menyiapkannya untuk Companion, kecuali sambungan otomatis aktif.
+
+### Memakai Stable dan Beta bersamaan
+
+WhatsApp Stable dan WhatsApp Beta bisa berjalan dengan Companion pada saat yang sama. Luncurkan masing-masing dari menu Companion. Saat keduanya terbuka, NVDA hanya menyuarakan pengumuman WhatsApp Web Plus dari WhatsApp yang sedang di depan. Saat program lain yang di depan, pengumuman dari keduanya tetap disuarakan. **Tutup paksa proses WhatsApp dari Microsoft Store** dapat menutup Stable saja, Beta saja, atau keduanya.
+
+### Menghubungkan secara otomatis
+
+Aktifkan **Hubungkan otomatis saat WhatsApp dibuka** di menu Companion. Setelah itu, saat Anda membuka WhatsApp Stable atau Beta dari menu Mulai, taskbar, atau desktop, Companion menutupnya lalu membukanya lagi dalam keadaan siap untuk Companion. NVDA memberi tahu bahwa WhatsApp sedang dibuka ulang, lalu mengonfirmasi saat Companion sudah terhubung. Pengaturan ini nonaktif secara bawaan.
+
+- Ini hanya terjadi dalam 30 detik setelah WhatsApp dimulai. WhatsApp yang sudah terbuka sebelumnya, misalnya sebelum NVDA berjalan, tidak pernah ditutup otomatis. Tutup lalu buka kembali WhatsApp tersebut.
+- Jika WhatsApp dibuka dengan memilih notifikasi, chat dari notifikasi itu tidak terbuka setelah WhatsApp dibuka ulang.
+- Jika sambungan otomatis gagal, Companion tidak mencoba lagi untuk WhatsApp tersebut sampai Anda meluncurkannya dari menu, atau menonaktifkan lalu mengaktifkan kembali pengaturannya.
+- Anda dapat menetapkan pintasan untuk **Aktifkan atau nonaktifkan sambungan otomatis WhatsApp Companion** melalui Input gestures NVDA pada kategori WhatsApp Companion.
 
 ## Memastikan Companion berfungsi
 
@@ -80,7 +93,7 @@ Buka **Menu NVDA > Tools > WhatsApp Companion** untuk membuka WhatsApp atau meng
 
 **Mengulang pesan:** pilih **Laporkan hasil WhatsApp Companion terakhir** jika Anda melewatkan hasil atau menggunakan mode ucapan On-demand di NVDA.
 
-**Menutup WhatsApp:** tutup seperti biasa. Jika masih berjalan, gunakan **Tutup paksa semua proses WhatsApp dari Microsoft Store**. Tindakan ini dapat memutus panggilan atau transfer dan menghilangkan teks yang belum dikirim.
+**Menutup WhatsApp:** tutup seperti biasa. Jika masih berjalan, gunakan **Tutup paksa proses WhatsApp dari Microsoft Store**, pilih WhatsApp Stable, WhatsApp Beta, atau Semua, lalu pilih **Tutup paksa**. Menekan `Enter` membiarkan WhatsApp tetap terbuka. Tindakan ini dapat memutus panggilan atau transfer dan menghilangkan teks yang belum dikirim.
 
 **Membaca pesan lengkap:** fokuskan sebuah pesan dan tekan `Alt + Shift + C` untuk membukanya di jendela baca NVDA. Tekan `Escape` untuk menutupnya.
 
@@ -334,11 +347,11 @@ Gunakan shortcut ini ketika kontrol panggilan tersedia. Tombol yang sama dapat m
 
 Langkah ini memperbarui salinan WhatsApp Web Plus yang digunakan Companion. Untuk memperbarui add-on Companion, pasang paket `.nvda-addon` yang lebih baru. Jika Anda juga memakai WhatsApp Web Plus di browser, perbarui pemasangan tersebut secara terpisah.
 
-Versi sumber saat ini adalah **2026.11.01**, dengan WhatsApp Web Plus **2026.11.01**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
+Versi sumber saat ini adalah **2026.11.07**, dengan WhatsApp Web Plus **2026.11.01**. Lihat [riwayat perubahan Companion](https://github.com/muhammadGagah/whatsapp-web-plus-companion/blob/main/changelog.md) untuk rinciannya.
 
 ## Pemecahan masalah
 
-**WhatsApp sudah berjalan:** tutup sepenuhnya, lalu buka melalui Companion.
+**WhatsApp sudah berjalan:** tutup sepenuhnya, lalu buka melalui Companion. Agar tersambung tanpa harus menutupnya sendiri, aktifkan **Hubungkan otomatis saat WhatsApp dibuka**.
 
 **WhatsApp tidak ditemukan:** pastikan aplikasi Stable atau Beta yang dipilih sudah terpasang dari Microsoft Store.
 
@@ -354,7 +367,7 @@ Baca [panduan pemecahan masalah lengkap](https://github.com/muhammadGagah/whatsa
 
 Untuk panggilan native masuk, fokuskan jendela panggilan melalui Alt+Tab, lalu tekan **Ctrl+Alt+A** untuk menjawab atau **Ctrl+Alt+D** untuk menolak. Companion mensyaratkan satu pasangan tombol Accept/Decline yang terlihat dan aktif di jendela itu. Akhiri panggilan tidak dianggap Tolak. Pada aplikasi lain, editor, atau AltGr, tombol diteruskan seperti biasa. Sesi secure, terkunci, dan no-write juga meneruskan tombol. Penahanan/pengulangan tombol dibatasi agar tidak segera mengaktifkan lagi. WhatsApp memberikan umpan balik hasil panggilan.
 
-Untuk diagnostik, buka Input gestures dari WhatsApp dan tetapkan ulang gestur **Ambil diagnostik panggilan WhatsApp native** (tanpa shortcut bawaan). Saat panggilan terhubung, ambil satu snapshot. Bagian `controls` pada `WWP-CALL-SNAPSHOT` memuat semua tombol yang dikenali tanpa mengaktifkannya. Ambil snapshot lagi setelah mikrofon/kamera berubah status atau tangan diangkat, bila diperlukan. Jika tombol tidak tercatat, fokuskan tombol itu dengan Tab, pastikan navigator NVDA berada pada tombol tersebut, lalu tekan NVDA+F1, lalu salin informasi objeknya setelah menghapus identitas pribadi. Tidak perlu mengambil NVDA+F1 untuk semua tombol sejak awal.
+Untuk diagnostik, buka Input gestures dari WhatsApp dan tetapkan ulang gestur **Simpan diagnostik panggilan WhatsApp ke log NVDA** (tanpa shortcut bawaan). Saat panggilan terhubung, ambil satu snapshot. Bagian `controls` pada `WWP-CALL-SNAPSHOT` memuat semua tombol yang dikenali tanpa mengaktifkannya. Ambil snapshot lagi setelah mikrofon/kamera berubah status atau tangan diangkat, bila diperlukan. Jika tombol tidak tercatat, fokuskan tombol itu dengan Tab, pastikan navigator NVDA berada pada tombol tersebut, lalu tekan NVDA+F1, lalu salin informasi objeknya setelah menghapus identitas pribadi. Tidak perlu mengambil NVDA+F1 untuk semua tombol sejak awal.
 
 Diagnostik juga mencatat tombol yang belum terpetakan pada `controls.unmapped`, termasuk ID teknis, enabled/offscreen, serta ketersediaan pola Invoke/Toggle. Nama tombol yang tidak dikenal tetap dihilangkan. Status `complete` berarti penelusuran selesai, bukan semua tombol sudah dikenali. Ketersediaan Toggle bukan status nyala/mati. Periksa identifier sebelum membagikan log karena provider dapat menyisipkan data pribadi. Jika kamera/reaksi/tangan/berbagi layar masih belum dikenali, kirim satu snapshot baru dahulu. Pemetaan aksi tidak ditambahkan hanya berdasarkan nama ID.
 

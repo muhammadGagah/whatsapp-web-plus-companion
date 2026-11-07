@@ -46,6 +46,7 @@ class ResourceLocaleTests(unittest.TestCase):
 		for path in (
 			ROOT / "buildVars.py",
 			ROOT / "addon/globalPlugins/whatsappWebPlusCompanion/__init__.py",
+			ROOT / "addon/globalPlugins/whatsappWebPlusCompanion/forceCloseDialog.py",
 		):
 			tree = ast.parse(path.read_text(encoding="utf-8"))
 			for node in ast.walk(tree):

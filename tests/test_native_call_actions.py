@@ -534,7 +534,7 @@ class NativeActionRuntimeTests(unittest.TestCase):
 		self.restore.assert_called_once()
 		self.gesture.send.assert_not_called()
 		self.pattern.Invoke.assert_not_called()
-		self.assertIn("Could not restore", self.ui.message.call_args.args[0])
+		self.assertIn("Couldn't restore", self.ui.message.call_args.args[0])
 
 	def test_cancelled_restore_has_no_late_success(self):
 		self.prepareCompact()

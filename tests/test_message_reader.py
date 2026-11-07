@@ -324,7 +324,7 @@ class PlainReaderTests(unittest.TestCase):
 			ui.message.assert_called_with("Message copied.")
 			api.copyToClip.return_value = False
 			buttons[0].activate(None)
-			ui.message.assert_called_with("Could not copy the message.")
+			ui.message.assert_called_with("Couldn't copy the message.")
 			buttons[1].activate(None)
 			formatted.assert_called_once_with(reader, "id")
 			buttons[2].activate(None)

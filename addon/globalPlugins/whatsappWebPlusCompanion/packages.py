@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
+from . import nativeProbes
 from .models import LoaderError
 from .policy import ChannelPolicy
 
@@ -190,13 +191,23 @@ def resolvePackage(policy: ChannelPolicy, runner: PowerShellRunner = runPowerShe
 def findRunningPackageProcesses(
 	package: PackageInfo,
 	runner: PowerShellRunner = runPowerShell,
+	*,
+	native: bool = False,
 ) -> tuple[int, ...]:
 	script = (
 		"Get-CimInstance Win32_Process | Select-Object ProcessId,ExecutablePath | ConvertTo-Json -Compress"
 	)
+	rows = None
+	if native:
+		try:
+			rows = nativeProbes.processRows(details=True)
+		except nativeProbes.NativeProbeUnavailable as error:
+			nativeProbes.noteFallback("package", error)
+	if rows is None:
+		rows = _rows(runner(PowerShellCommand(script, "package.processes", 20)))
 	root = pathlib.PureWindowsPath(package.installLocation)
 	pids: set[int] = set()
-	for row in _rows(runner(PowerShellCommand(script, "package.processes", 20))):
+	for row in rows:
 		if not isinstance(row, dict) or not row.get("ExecutablePath"):
 			continue
 		path = pathlib.PureWindowsPath(str(row["ExecutablePath"]))
@@ -208,6 +219,37 @@ def findRunningPackageProcesses(
 		if pid > 0:
 			pids.add(pid)
 	return tuple(sorted(pids))
+
+
+def packageProcessesStartedWithin(package: PackageInfo, seconds: float) -> bool:
+	"""True when WhatsApp is running and every one of its processes started within ``seconds``.
+
+	Only the direct Windows check is used. If it is unavailable, the answer is False, so a WhatsApp
+	that may have been open for a long time is never closed automatically.
+	"""
+	try:
+		rows = nativeProbes.processRows(details=True)
+	except nativeProbes.NativeProbeUnavailable as error:
+		nativeProbes.noteFallback("autoConnect", error)
+		return False
+	root = pathlib.PureWindowsPath(package.installLocation)
+	# FILETIME counts 100-nanosecond intervals since 1601-01-01.
+	now = int((time.time() + 11644473600) * 10_000_000)
+	limit = int(seconds * 10_000_000)
+	found = False
+	for row in rows:
+		path = row.get("ExecutablePath")
+		if not path:
+			continue
+		try:
+			pathlib.PureWindowsPath(str(path)).relative_to(root)
+		except ValueError:
+			continue
+		created = row.get("Created")
+		if not isinstance(created, int) or created <= 0 or now - created > limit:
+			return False
+		found = True
+	return found
 
 
 def forceClosePackageProcesses(

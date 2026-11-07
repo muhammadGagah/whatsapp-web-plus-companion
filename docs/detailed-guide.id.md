@@ -15,8 +15,9 @@ untuk perintah membuka WhatsApp nanti.
 Tutup WhatsApp seperti biasa. Jangan menjalankan lagi perintah untuk membuka
 WhatsApp saat ingin menutupnya.
 
-Jika WhatsApp tetap berjalan di latar belakang, gunakan **Tutup paksa semua
-proses WhatsApp dari Microsoft Store**. Companion meminta konfirmasi karena
+Jika WhatsApp tetap berjalan di latar belakang, gunakan **Tutup paksa proses
+WhatsApp dari Microsoft Store**. Pilih WhatsApp Stable, WhatsApp Beta, atau
+Semua, lalu pilih **Tutup paksa**. Companion meminta konfirmasi karena
 penutupan paksa dapat memutus panggilan dan transfer file. Teks yang belum Anda
 kirim juga mungkin hilang.
 
@@ -47,8 +48,8 @@ terpisah. Anda boleh memasang salah satu atau keduanya.
 
 ### Perintah untuk mengatasi masalah
 
-- **Tutup paksa semua proses WhatsApp dari Microsoft Store** menutup semua
-  proses Stable dan Beta setelah Anda menyetujui peringatannya. Gunakan hanya
+- **Tutup paksa proses WhatsApp dari Microsoft Store** menutup proses Stable,
+  proses Beta, atau keduanya, sesuai pilihan Anda. Gunakan hanya
   jika WhatsApp tidak dapat ditutup seperti biasa.
 - **Diagnosa dan perbaiki izin kebijakan WebView2** memeriksa izin Windows yang
   diperlukan Companion. Jalankan setelah pemasangan pertama di komputer ini,
@@ -346,7 +347,7 @@ privasi, atau sesi saat ini akan dibuang.
 
 Tutup WhatsApp seperti biasa. Jika masih berada di area notifikasi, gunakan
 perintah **Keluar** atau **Exit** WhatsApp. Jika WhatsApp tetap tidak tertutup,
-gunakan **Tutup paksa semua proses WhatsApp dari Microsoft Store** dari submenu
+gunakan **Tutup paksa proses WhatsApp dari Microsoft Store** dari submenu
 Companion.
 
 ### Kanal WhatsApp yang dipilih tidak ditemukan

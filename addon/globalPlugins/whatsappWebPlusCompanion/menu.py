@@ -11,6 +11,7 @@ class MenuSpec:
 	helpText: str
 	handler: Callable[[wx.CommandEvent], None]
 	isEnabled: Callable[[], bool] | None = None
+	isChecked: Callable[[], bool] | None = None
 
 
 class CompanionMenu:
@@ -39,7 +40,17 @@ class CompanionMenu:
 			if sectionIndex:
 				self._menu.AppendSeparator()
 			for spec in section:
-				item = self._menu.Append(wx.ID_ANY, spec.label, spec.helpText)
+				if spec.isChecked is not None:
+					item = self._menu.AppendCheckItem(wx.ID_ANY, spec.label, spec.helpText)
+					item.Check(bool(spec.isChecked()))
+
+					def updateCheck(event, predicate=spec.isChecked):
+						event.Check(bool(predicate()))
+
+					self._updates.append((item, None, updateCheck))
+					self._owner.Bind(wx.EVT_UPDATE_UI, updateCheck, item)
+				else:
+					item = self._menu.Append(wx.ID_ANY, spec.label, spec.helpText)
 				self._owner.Bind(wx.EVT_MENU, spec.handler, item)
 				self._bindings.append((item, spec.handler))
 				if spec.isEnabled is not None:
@@ -57,7 +68,8 @@ class CompanionMenu:
 
 	def refreshEnabled(self) -> None:
 		for item, predicate, update in self._updates:
-			item.Enable(bool(predicate()))
+			if predicate is not None:
+				item.Enable(bool(predicate()))
 
 	def _onOpen(self, event) -> None:
 		event.Skip()

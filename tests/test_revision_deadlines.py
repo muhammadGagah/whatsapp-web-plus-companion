@@ -1,4 +1,4 @@
-"""D04: real loopback sockets, slow peers and cancellation, no WhatsApp required."""
+"""Real loopback sockets, slow peers and cancellation, no WhatsApp required."""
 
 import base64
 import hashlib

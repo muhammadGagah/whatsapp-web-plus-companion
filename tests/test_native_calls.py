@@ -335,7 +335,7 @@ class NativeCallAppModuleTests(unittest.TestCase):
 		data = json.loads(self.log.info.call_args.args[1])
 		self.assertEqual(data["controls"], {"status": "complete"})
 		self.ui.message.assert_called_once_with(
-			"Call diagnostics written to the NVDA log. Call controls were not activated.",
+			"Call diagnostics saved to the NVDA log. No call buttons were pressed.",
 		)
 		self.module.captureDiagnostics()
 		self.assertEqual(len(self.workers), 1)

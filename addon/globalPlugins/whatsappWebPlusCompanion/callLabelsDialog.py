@@ -41,9 +41,7 @@ class CallLabelsDialog(wx.Dialog):
 		intro = wx.StaticText(
 			self,
 			label=_(
-				"Add the exact labels spoken by NVDA for WhatsApp call controls, one per line. "
-				"For toggles, include both states. Built-in labels remain available; blank uses only built-in labels. "
-				"Changes apply to all WhatsApp channels after Save.",
+				"Add the exact labels NVDA speaks for WhatsApp call buttons, one per line. For on/off buttons, add both states. Built-in labels always work, so you can leave this empty. Changes apply to Stable and Beta after you save.",
 			),
 		)
 		intro.Wrap(560)
@@ -112,7 +110,7 @@ class CallLabelsDialog(wx.Dialog):
 		with wx.MessageDialog(
 			self,
 			_(
-				"Additional labels cleared in this dialog. Choose Save to apply, or Cancel to keep your saved labels.",
+				"Additional labels cleared. Choose Save to apply, or Cancel to keep your saved labels.",
 			),
 			_("Call control labels"),
 			wx.OK | wx.ICON_INFORMATION,
@@ -134,14 +132,13 @@ class CallLabelsDialog(wx.Dialog):
 				self._displayAction()
 			self._error(
 				_(
-					"Could not save labels for {action}. Use at most 20 labels per action, each at most 128 characters. "
-					"The same label cannot belong to different actions. Check the selected action.",
+					"Couldn't save labels for {action}. Use up to 20 labels, each up to 128 characters, and don't use the same label for two actions.",
 				).format(action=self._names[self._actions[self._index]]),
 			)
 			return
 		except Exception:
 			self._error(
-				_("Could not save call control labels. Your changes are still in this dialog. Try again."),
+				_("Couldn't save call control labels. Your changes are still here. Try again."),
 			)
 			return
 		self.Close()

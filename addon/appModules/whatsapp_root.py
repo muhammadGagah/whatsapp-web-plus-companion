@@ -30,28 +30,32 @@ class AppModule(_WhatsAppBase):
 		if isReviewTarget(obj, clsList) and MessageReview not in clsList:
 			clsList.insert(0, MessageReview)
 
-	@script(description=_("Answer native WhatsApp call"), gesture="kb:control+alt+a", speakOnDemand=True)
+	@script(description=_("Answer WhatsApp call"), gesture="kb:control+alt+a", speakOnDemand=True)
 	def script_answerNativeCall(self, gesture):
 		runtime.performCallAction(CallAction.ANSWER, gesture)
 
-	@script(description=_("Decline native WhatsApp call"), gesture="kb:control+alt+d", speakOnDemand=True)
+	@script(description=_("Decline WhatsApp call"), gesture="kb:control+alt+d", speakOnDemand=True)
 	def script_declineNativeCall(self, gesture):
 		runtime.performCallAction(CallAction.DECLINE, gesture)
 
 	@script(
-		description=_("Toggle native WhatsApp call camera"),
+		description=_("Turn the camera on or off in a WhatsApp call"),
 		gesture="kb:control+alt+v",
 		speakOnDemand=True,
 	)
 	def script_toggleNativeCallCamera(self, gesture):
 		runtime.performCallAction(CallAction.CAMERA, gesture)
 
-	@script(description=_("Toggle native WhatsApp call mute"), gesture="kb:control+alt+m", speakOnDemand=True)
+	@script(
+		description=_("Mute or unmute your microphone in a WhatsApp call"),
+		gesture="kb:control+alt+m",
+		speakOnDemand=True,
+	)
 	def script_toggleNativeCallMute(self, gesture):
 		runtime.performCallAction(CallAction.MUTE, gesture)
 
 	@script(
-		description=_("Open native WhatsApp call reactions"),
+		description=_("Open reactions in a WhatsApp call"),
 		gesture="kb:control+alt+r",
 		speakOnDemand=True,
 	)
@@ -59,7 +63,7 @@ class AppModule(_WhatsAppBase):
 		runtime.performCallAction(CallAction.REACTIONS, gesture)
 
 	@script(
-		description=_("Raise or lower hand in native WhatsApp call"),
+		description=_("Raise or lower your hand in a WhatsApp call"),
 		gesture="kb:control+alt+h",
 		speakOnDemand=True,
 	)
@@ -67,17 +71,17 @@ class AppModule(_WhatsAppBase):
 		runtime.performCallAction(CallAction.HAND, gesture)
 
 	@script(
-		description=_("Start or stop screen sharing in native WhatsApp call"),
+		description=_("Start or stop screen sharing in a WhatsApp call"),
 		gesture="kb:control+alt+s",
 		speakOnDemand=True,
 	)
 	def script_nativeCallScreenShare(self, gesture):
 		runtime.performCallAction(CallAction.SHARE, gesture)
 
-	@script(description=_("End native WhatsApp call"), gesture="kb:control+alt+w", speakOnDemand=True)
+	@script(description=_("End WhatsApp call"), gesture="kb:control+alt+w", speakOnDemand=True)
 	def script_endNativeCall(self, gesture):
 		runtime.performCallAction(CallAction.END, gesture)
 
-	@script(description=_("Capture native WhatsApp call diagnostics"), speakOnDemand=True)
+	@script(description=_("Save WhatsApp call diagnostics to the NVDA log"), speakOnDemand=True)
 	def script_captureNativeCallDiagnostics(self, gesture):
 		runtime.captureDiagnostics()
